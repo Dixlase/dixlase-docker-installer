@@ -7,11 +7,12 @@ WORKDIR /var/www/html
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Copy only package.json
+# Copy only package.json (no lock file is shipped with core)
 COPY ./html/package.json ./
 
-# npm install
-RUN npm ci || npm install
+# npm install (matches the main Dockerfile; npm ci would always fail
+# here because there is no package-lock.json to validate against)
+RUN npm install
 
 # Copy all source code
 COPY ./html ./
