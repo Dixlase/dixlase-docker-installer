@@ -61,5 +61,11 @@ COPY ./html .
 # Build the application
 RUN composer dump-autoload --optimize --no-scripts
 
+# Entrypoint chowns bind-mounted Laravel writable dirs to www-data so
+# php-fpm workers can write compiled views / caches / sessions.
+COPY app-entrypoint.sh /usr/local/bin/app-entrypoint.sh
+RUN chmod +x /usr/local/bin/app-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/app-entrypoint.sh"]
+
 # Default command
 CMD ["php-fpm"]
