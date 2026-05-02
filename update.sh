@@ -12,18 +12,18 @@ cd "$SCRIPT_DIR"
 BRANCH="${1:-main}"
 
 echo "========================================"
-echo "  Dixlase - ソース更新"
+echo "  Dixlase - Source update"
 echo "  Branch: $BRANCH"
 echo "========================================"
 echo ""
 
 if [ ! -d "html" ]; then
-    echo "  html/ が見つかりません。setup.sh を先に実行してください。"
+    echo "  html/ not found. Run setup.sh first."
     exit 1
 fi
 
 # Git pull
-echo "[1/4] GitHub から最新を取得中..."
+echo "[1/4] Pulling latest from GitHub..."
 cd html
 git fetch origin
 git checkout "$BRANCH"
@@ -32,25 +32,25 @@ cd ..
 
 # Update Composer / npm dependencies
 echo ""
-echo "[2/4] 依存パッケージを更新中..."
+echo "[2/4] Updating dependencies..."
 docker compose exec -T dixlase.test composer install --no-interaction
-echo "  composer install 完了。"
+echo "  composer install complete."
 
 # Run migrations
 echo ""
-echo "[3/4] マイグレーションを実行中..."
+echo "[3/4] Running migrations..."
 docker compose exec -T dixlase.test php artisan migrate --force
-echo "  マイグレーション完了。"
+echo "  Migrations complete."
 
 # Clear cache
 echo ""
-echo "[4/4] キャッシュをクリア中..."
+echo "[4/4] Clearing caches..."
 docker compose exec -T dixlase.test php artisan config:clear
 docker compose exec -T dixlase.test php artisan cache:clear
 docker compose exec -T dixlase.test php artisan view:clear
-echo "  キャッシュクリア完了。"
+echo "  Caches cleared."
 
 echo ""
 echo "========================================"
-echo "  更新完了!"
+echo "  Update complete!"
 echo "========================================"

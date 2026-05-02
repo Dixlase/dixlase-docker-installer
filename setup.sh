@@ -31,10 +31,10 @@ done
 
 if [ "$DEV_MODE" = true ]; then
     COMPOSE_PROFILE_ARGS="--profile dev"
-    MODE_LABEL="開発モード (Vite hot-reload)"
+    MODE_LABEL="Development mode (Vite hot-reload)"
 else
     COMPOSE_PROFILE_ARGS=""
-    MODE_LABEL="本番モード (ビルド済みアセット)"
+    MODE_LABEL="Production mode (pre-built assets)"
 fi
 
 echo "========================================"
@@ -48,18 +48,18 @@ echo ""
 # 1. Clone the core from GitHub
 # -------------------------------------------------
 if [ -d "html" ]; then
-    echo "[1/6] html/ が既に存在します。"
-    read -p "  削除してクリーンクローンしますか? (y/N): " confirm
+    echo "[1/6] html/ already exists."
+    read -p "  Delete and re-clone? (y/N): " confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-        echo "  html/ を削除中..."
+        echo "  Deleting html/..."
         rm -rf html
-        echo "  GitHub からクローン中..."
+        echo "  Cloning from GitHub..."
         git clone -b "$BRANCH" "$REPO_URL" html
     else
-        echo "  既存の html/ をそのまま使用します。"
+        echo "  Keeping existing html/."
     fi
 else
-    echo "[1/6] GitHub からクローン中..."
+    echo "[1/6] Cloning from GitHub..."
     git clone -b "$BRANCH" "$REPO_URL" html
 fi
 
@@ -67,45 +67,45 @@ fi
 # 1.5. Fetch submodules (themes etc.)
 # -------------------------------------------------
 echo ""
-echo "[1.5/6] サブモジュールを初期化中..."
+echo "[1.5/6] Initializing submodules..."
 cd html
 # Clone directly instead of using a submodule (handles commits the core may not reach)
 rm -rf themes/DixlaseOnePage
-echo "  themes/DixlaseOnePage を取得中..."
+echo "  Fetching themes/DixlaseOnePage..."
 git clone "$THEME_REPO_URL" themes/DixlaseOnePage
 cd ..
-echo "  サブモジュールの取得が完了しました。"
+echo "  Submodule fetch complete."
 
 # -------------------------------------------------
 # 2. Set up .env
 # -------------------------------------------------
 echo ""
-echo "[2/6] .env をセットアップ中..."
+echo "[2/6] Setting up .env..."
 
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)
 if [ ! -f ".env" ]; then
     cp .env.example .env
-    echo "  .env.example → .env (Docker Compose 用) にコピーしました。"
+    echo "  Copied .env.example -> .env (for Docker Compose)."
 else
-    echo "  .env は既に存在します（スキップ）。"
+    echo "  .env already exists (skipped)."
 fi
 
 # Laravel .env (used by the application)
 if [ ! -f "html/.env" ]; then
     cp .env.example html/.env
-    echo "  .env.example → html/.env (Laravel 用) にコピーしました。"
+    echo "  Copied .env.example -> html/.env (for Laravel)."
 else
-    echo "  html/.env は既に存在します（スキップ）。"
+    echo "  html/.env already exists (skipped)."
 fi
 
 # -------------------------------------------------
 # 3. Generate SSL certificate
 # -------------------------------------------------
 echo ""
-echo "[3/6] SSL 証明書を生成中..."
+echo "[3/6] Generating SSL certificate..."
 
 if [ -f "certs/localhost.crt" ] && [ -f "certs/localhost.key" ]; then
-    echo "  証明書は既に存在します（スキップ）。"
+    echo "  Certificate already exists (skipped)."
 else
     mkdir -p certs
     openssl genrsa -out certs/localhost.key 2048 2>/dev/null
@@ -117,55 +117,55 @@ else
     rm -f certs/localhost.csr
     chmod 600 certs/localhost.key
     chmod 644 certs/localhost.crt
-    echo "  証明書を生成しました。"
+    echo "  Certificate generated."
 fi
 
 # -------------------------------------------------
 # 4. Build and start Docker containers
 # -------------------------------------------------
 echo ""
-echo "[4/6] Docker コンテナをビルド・起動中..."
+echo "[4/6] Building and starting Docker containers..."
 docker compose $COMPOSE_PROFILE_ARGS build
 docker compose $COMPOSE_PROFILE_ARGS up -d
 
 # Wait for containers to start
-echo "  コンテナの起動を待機中..."
+echo "  Waiting for containers to start..."
 sleep 5
 
 # -------------------------------------------------
 # 5. Set up Laravel
 # -------------------------------------------------
 echo ""
-echo "[5/6] Laravel をセットアップ中..."
+echo "[5/6] Setting up Laravel..."
 
 # Reinstall because vendor/node_modules are missing on the host due to the volume mount
-echo "  composer install 実行中..."
+echo "  Running composer install..."
 docker compose exec -T dixlase.test composer install --no-interaction
-echo "  npm install 実行中..."
+echo "  Running npm install..."
 docker compose exec -T dixlase.test npm install
 
 # Generate APP_KEY
 docker compose exec -T dixlase.test php artisan key:generate --force
-echo "  APP_KEY を生成しました。"
+echo "  Generated APP_KEY."
 
 # Create the storage symlink
 docker compose exec -T dixlase.test php artisan storage:link 2>/dev/null || true
-echo "  ストレージリンクを作成しました。"
+echo "  Created storage symlink."
 
 # Clear caches (skipped if DB does not exist yet)
 docker compose exec -T dixlase.test php artisan config:clear
 docker compose exec -T dixlase.test php artisan cache:clear 2>/dev/null || true
-echo "  キャッシュをクリアしました。"
+echo "  Cleared caches."
 
 # -------------------------------------------------
 # 6. Build assets (production mode only)
 # -------------------------------------------------
 echo ""
 if [ "$DEV_MODE" = true ]; then
-    echo "[6/6] 開発モード: Vite dev サーバーが vite コンテナで起動中..."
-    echo "      ビルドはスキップされます (hot-reload 有効)。"
+    echo "[6/6] Development mode: Vite dev server is running in the vite container..."
+    echo "      Build skipped (hot-reload enabled)."
 else
-    echo "[6/6] フロントエンドアセットをビルド中..."
+    echo "[6/6] Building frontend assets..."
     # Remove the hot file so the built assets are used
     docker compose exec -T dixlase.test rm -f public/hot
     docker compose exec -T dixlase.test npm run build
@@ -185,22 +185,22 @@ FORWARD_MAILPIT_PORT_VAL=$(grep '^FORWARD_MAILPIT_PORT=' .env | cut -d'=' -f2)
 
 echo ""
 echo "========================================"
-echo "  セットアップ完了!"
+echo "  Setup complete!"
 echo "========================================"
 echo ""
-echo "  アクセス URL:"
+echo "  Access URLs:"
 echo "    CMS:        $SSL_URL"
 echo "    Adminer:    http://localhost:$FORWARD_ADMINER_PORT_VAL"
 echo "    Mailpit:    http://localhost:$FORWARD_MAILPIT_PORT_VAL"
 echo ""
-echo "  次のステップ:"
-echo "    1. $SSL_URL にアクセス"
-echo "    2. インストールウィザードが表示されます"
-echo "    3. セットアップ完了後、管理画面で運用開始"
+echo "  Next steps:"
+echo "    1. Open $SSL_URL in your browser."
+echo "    2. The install wizard will appear."
+echo "    3. After install, start operations in the admin panel."
 echo ""
-echo "  便利なコマンド:"
-echo "    docker compose logs -f                  # ログを確認"
-echo "    docker compose exec dixlase.test bash   # コンテナに入る"
-echo "    ./reset.sh                              # 環境を完全リセット"
-echo "    ./update.sh                             # GitHub から最新を取得"
+echo "  Useful commands:"
+echo "    docker compose logs -f                  # View logs"
+echo "    docker compose exec dixlase.test bash   # Open a shell in the container"
+echo "    ./reset.sh                              # Full reset of the environment"
+echo "    ./update.sh                             # Pull latest from GitHub"
 echo ""

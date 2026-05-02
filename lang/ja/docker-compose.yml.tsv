@@ -1,0 +1,4 @@
+# Use standard ports (HTTP 80 / HTTPS 443 / MySQL 3306).	# 標準ポート (HTTP 80 / HTTPS 443 / MySQL 3306) を使用。
+# Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.	# 他のサービスと競合する場合は .env で APP_PORT / FORWARD_DB_PORT 等を上書き可能。
+# Development mode (Vite hot-reload):	# 開発モード (Vite hot-reload) で起動する場合:
+# Production mode (pre-built assets):	# 本番モード (ビルド済みアセット) で起動する場合:

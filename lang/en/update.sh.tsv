@@ -1,0 +1,15 @@
+# Dixlase source update	# Dixlase source update
+# Pulls the latest code from GitHub and refreshes the container.	# Pulls the latest code from GitHub and refreshes the container.
+# Update Composer / npm dependencies	# Update Composer / npm dependencies
+# Run migrations	# Run migrations
+# Clear cache	# Clear cache
+  Dixlase - Source update	  Dixlase - Source update
+  html/ not found. Run setup.sh first.	  html/ not found. Run setup.sh first.
+[1/4] Pulling latest from GitHub...	[1/4] Pulling latest from GitHub...
+[2/4] Updating dependencies...	[2/4] Updating dependencies...
+  composer install complete.	  composer install complete.
+[3/4] Running migrations...	[3/4] Running migrations...
+  Migrations complete.	  Migrations complete.
+[4/4] Clearing caches...	[4/4] Clearing caches...
+  Caches cleared.	  Caches cleared.
+  Update complete!	  Update complete!

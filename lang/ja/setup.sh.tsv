@@ -1,0 +1,69 @@
+# Dixlase setup script	# Dixlase セットアップスクリプト
+# Purpose: Clone the core from GitHub and build the Docker environment.	# 用途: GitHub からコアをクローンし、Docker 環境を構築
+# Usage:	# 使い方:
+#   ./setup.sh                  # Production mode (pre-built assets)	#   ./setup.sh                  # 本番モード (ビルド済みアセット運用)
+#   ./setup.sh --dev            # Development mode (Vite hot-reload)	#   ./setup.sh --dev            # 開発モード (Vite hot-reload 有効)
+#   ./setup.sh <branch>         # Clone the specified branch (default: main)	#   ./setup.sh <branch>         # 指定ブランチをクローン (デフォルト: main)
+#   ./setup.sh --dev <branch>   # Development mode + specified branch	#   ./setup.sh --dev <branch>   # 開発モード + ブランチ指定
+# Repository URLs can be overridden via environment variables. Default is public HTTPS.	# リポジトリ URL は環境変数で上書き可能。デフォルトは公開 HTTPS。
+# Parse arguments: --dev flag and branch name	# 引数パース: --dev フラグとブランチ名
+# 1. Clone the core from GitHub	# 1. GitHub からコアをクローン
+# 1.5. Fetch submodules (themes etc.)	# 1.5. サブモジュール（テーマ等）を取得
+# Clone directly instead of using a submodule (handles commits the core may not reach)	# サブモジュールではなく直接クローン（コアが参照するコミットが存在しない場合に対応）
+# 2. Set up .env	# 2. .env のセットアップ
+# Root .env (used by Docker Compose to interpolate ports / DB credentials)	# ルート .env (Docker Compose 用) — ポート/DB認証情報の補間に使用
+# Laravel .env (used by the application)	# Laravel .env (アプリケーション用)
+# 3. Generate SSL certificate	# 3. SSL 証明書の生成
+# 4. Build and start Docker containers	# 4. Docker イメージのビルドと起動
+# Wait for containers to start	# コンテナの起動を待つ
+# 5. Set up Laravel	# 5. Laravel のセットアップ
+# Reinstall because vendor/node_modules are missing on the host due to the volume mount	# ボリュームマウントにより vendor/node_modules がホスト側で欠落しているため再インストール
+# Generate APP_KEY	# APP_KEY を生成
+# Create the storage symlink	# ストレージリンクを作成
+# Clear caches (skipped if DB does not exist yet)	# キャッシュをクリア（DB 未作成時はスキップ）
+# 6. Build assets (production mode only)	# 6. アセットのビルド (本番モードのみ)
+# Remove the hot file so the built assets are used	# hot ファイルを削除してビルド済みアセットを使用させる
+# Done	# 完了
+# Read the actual ports from .env and display them	# .env から実際のポートを読み取って表示
+# Omit the port from the URL when it is the standard 443/80	# ポート 443/80 の場合は URL から省略
+Development mode (Vite hot-reload)	開発モード (Vite hot-reload)
+Production mode (pre-built assets)	本番モード (ビルド済みアセット)
+[1/6] html/ already exists.	[1/6] html/ が既に存在します。
+  Delete and re-clone? (y/N): 	  削除してクリーンクローンしますか? (y/N):
+  Deleting html/...	  html/ を削除中...
+  Cloning from GitHub...	  GitHub からクローン中...
+  Keeping existing html/.	  既存の html/ をそのまま使用します。
+[1/6] Cloning from GitHub...	[1/6] GitHub からクローン中...
+[1.5/6] Initializing submodules...	[1.5/6] サブモジュールを初期化中...
+  Fetching themes/DixlaseOnePage...	  themes/DixlaseOnePage を取得中...
+  Submodule fetch complete.	  サブモジュールの取得が完了しました。
+[2/6] Setting up .env...	[2/6] .env をセットアップ中...
+  Copied .env.example -> .env (for Docker Compose).	  .env.example → .env (Docker Compose 用) にコピーしました。
+  .env already exists (skipped).	  .env は既に存在します（スキップ）。
+  Copied .env.example -> html/.env (for Laravel).	  .env.example → html/.env (Laravel 用) にコピーしました。
+  html/.env already exists (skipped).	  html/.env は既に存在します（スキップ）。
+[3/6] Generating SSL certificate...	[3/6] SSL 証明書を生成中...
+  Certificate already exists (skipped).	  証明書は既に存在します（スキップ）。
+  Certificate generated.	  証明書を生成しました。
+[4/6] Building and starting Docker containers...	[4/6] Docker コンテナをビルド・起動中...
+  Waiting for containers to start...	  コンテナの起動を待機中...
+[5/6] Setting up Laravel...	[5/6] Laravel をセットアップ中...
+  Running composer install...	  composer install 実行中...
+  Running npm install...	  npm install 実行中...
+  Generated APP_KEY.	  APP_KEY を生成しました。
+  Created storage symlink.	  ストレージリンクを作成しました。
+  Cleared caches.	  キャッシュをクリアしました。
+[6/6] Development mode: Vite dev server is running in the vite container...	[6/6] 開発モード: Vite dev サーバーが vite コンテナで起動中...
+      Build skipped (hot-reload enabled).	      ビルドはスキップされます (hot-reload 有効)。
+[6/6] Building frontend assets...	[6/6] フロントエンドアセットをビルド中...
+  Setup complete!	  セットアップ完了!
+  Access URLs:	  アクセス URL:
+  Next steps:	  次のステップ:
+    1. Open $SSL_URL in your browser.	    1. $SSL_URL にアクセス
+    2. The install wizard will appear.	    2. インストールウィザードが表示されます
+    3. After install, start operations in the admin panel.	    3. セットアップ完了後、管理画面で運用開始
+  Useful commands:	  便利なコマンド:
+# View logs	# ログを確認
+# Open a shell in the container	# コンテナに入る
+# Full reset of the environment	# 環境を完全リセット
+# Pull latest from GitHub	# GitHub から最新を取得
