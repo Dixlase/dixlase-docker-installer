@@ -12,15 +12,13 @@
 # Clone directly instead of using a submodule (handles commits the core may not reach)	# サブモジュールではなく直接クローン（コアが参照するコミットが存在しない場合に対応）
 # 2. Set up .env	# 2. .env のセットアップ
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)	# ルート .env (Docker Compose 用) — ポート/DB認証情報の補間に使用
-# Laravel .env (used by the application)	# Laravel .env (アプリケーション用)
 # 3. Generate SSL certificate	# 3. SSL 証明書の生成
 # 4. Build and start Docker containers	# 4. Docker イメージのビルドと起動
 # Wait for containers to start	# コンテナの起動を待つ
 # 5. Set up Laravel	# 5. Laravel のセットアップ
 # Reinstall because vendor/node_modules are missing on the host due to the volume mount	# ボリュームマウントにより vendor/node_modules がホスト側で欠落しているため再インストール
-# Generate APP_KEY	# APP_KEY を生成
-# Create the storage symlink	# ストレージリンクを作成
-# Clear caches (skipped if DB does not exist yet)	# キャッシュをクリア（DB 未作成時はスキップ）
+# Artisan steps require html/.env. On a clean install that file is created by	# artisan ステップには html/.env が必要。クリーンインストール時はそのファイルが
+# the Dixlase install wizard, so these steps run only on re-runs.	# Dixlase インストールウィザードで生成されるため、これらのステップは再実行時のみ動作する。
 # 6. Build assets (production mode only)	# 6. アセットのビルド (本番モードのみ)
 # Remove the hot file so the built assets are used	# hot ファイルを削除してビルド済みアセットを使用させる
 # Done	# 完了
@@ -40,8 +38,6 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 [2/6] Setting up .env...	[2/6] .env をセットアップ中...
   Copied .env.example -> .env (for Docker Compose).	  .env.example → .env (Docker Compose 用) にコピーしました。
   .env already exists (skipped).	  .env は既に存在します（スキップ）。
-  Copied .env.example -> html/.env (for Laravel).	  .env.example → html/.env (Laravel 用) にコピーしました。
-  html/.env already exists (skipped).	  html/.env は既に存在します（スキップ）。
 [3/6] Generating SSL certificate...	[3/6] SSL 証明書を生成中...
   Certificate already exists (skipped).	  証明書は既に存在します（スキップ）。
   Certificate generated.	  証明書を生成しました。
@@ -53,6 +49,7 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
   Generated APP_KEY.	  APP_KEY を生成しました。
   Created storage symlink.	  ストレージリンクを作成しました。
   Cleared caches.	  キャッシュをクリアしました。
+  Skipping artisan steps — the install wizard will run them.	  artisan ステップをスキップ — インストールウィザードが実行します。
 [6/6] Development mode: Vite dev server is running in the vite container...	[6/6] 開発モード: Vite dev サーバーが vite コンテナで起動中...
       Build skipped (hot-reload enabled).	      ビルドはスキップされます (hot-reload 有効)。
 [6/6] Building frontend assets...	[6/6] フロントエンドアセットをビルド中...

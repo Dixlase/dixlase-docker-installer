@@ -93,14 +93,6 @@ else
     echo "  .env already exists (skipped)."
 fi
 
-# Laravel .env (used by the application)
-if [ ! -f "html/.env" ]; then
-    cp .env.example html/.env
-    echo "  Copied .env.example -> html/.env (for Laravel)."
-else
-    echo "  html/.env already exists (skipped)."
-fi
-
 # -------------------------------------------------
 # 3. Generate SSL certificate
 # -------------------------------------------------
@@ -147,18 +139,21 @@ docker compose exec -T dixlase.test composer install --no-interaction
 echo "  Running npm install..."
 docker compose exec -T dixlase.test npm install
 
-# Generate APP_KEY
-docker compose exec -T dixlase.test php artisan key:generate --force
-echo "  Generated APP_KEY."
+# Artisan steps require html/.env. On a clean install that file is created by
+# the Dixlase install wizard, so these steps run only on re-runs.
+if [ -f html/.env ]; then
+    docker compose exec -T dixlase.test php artisan key:generate --force
+    echo "  Generated APP_KEY."
 
-# Create the storage symlink
-docker compose exec -T dixlase.test php artisan storage:link 2>/dev/null || true
-echo "  Created storage symlink."
+    docker compose exec -T dixlase.test php artisan storage:link 2>/dev/null || true
+    echo "  Created storage symlink."
 
-# Clear caches (skipped if DB does not exist yet)
-docker compose exec -T dixlase.test php artisan config:clear
-docker compose exec -T dixlase.test php artisan cache:clear 2>/dev/null || true
-echo "  Cleared caches."
+    docker compose exec -T dixlase.test php artisan config:clear
+    docker compose exec -T dixlase.test php artisan cache:clear 2>/dev/null || true
+    echo "  Cleared caches."
+else
+    echo "  Skipping artisan steps — the install wizard will run them."
+fi
 
 # -------------------------------------------------
 # 6. Build assets (production mode only)

@@ -24,10 +24,10 @@ After setup completes, open `https://localhost` in your browser. The first visit
 
 1. Clones the Dixlase core repository into `./html/`
 2. Clones the default theme into `./html/themes/DixlaseOnePage/`
-3. Copies `.env.example` to both `./.env` (Docker Compose) and `./html/.env` (Laravel)
+3. Copies `.env.example` to `./.env` (used by Docker Compose for ports and DB credentials). Laravel's own `./html/.env` is created by the Dixlase install wizard on first browser visit.
 4. Generates a self-signed TLS certificate in `./certs/`
 5. Builds and starts the Docker containers
-6. Runs `composer install`, `npm install`, `php artisan key:generate`, and (in production mode) `npm run build`
+6. Runs `composer install`, `npm install`, and (in production mode) `npm run build`
 
 ## Default URLs
 
@@ -87,10 +87,6 @@ export DIXLASE_REPO_URL=https://github.com/your-org/dixlase-core.git
 export DIXLASE_THEME_REPO_URL=https://github.com/your-org/theme-dixlase-onepage.git
 ./setup.sh
 ```
-
-### Optional: GitHub token for extension downloads
-
-If you plan to install commercial extensions, set the `EXTENSION_GITHUB_TOKEN` value in `./html/.env` to a GitHub Classic PAT with `repo` scope.
 
 ## Localization
 

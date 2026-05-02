@@ -24,10 +24,10 @@ cd dixlase
 
 1. Dixlase コアリポジトリを `./html/` にクローン
 2. デフォルトテーマを `./html/themes/DixlaseOnePage/` にクローン
-3. `.env.example` を `./.env` (Docker Compose 用) と `./html/.env` (Laravel 用) の両方にコピー
+3. `.env.example` を `./.env` (Docker Compose のポート / DB 認証情報用) にコピー。Laravel 側の `./html/.env` はブラウザで初回アクセスした際に Dixlase インストールウィザードが生成します。
 4. 自己署名 TLS 証明書を `./certs/` に生成
 5. Docker コンテナをビルド・起動
-6. `composer install`、`npm install`、`php artisan key:generate`、(本番モードの場合) `npm run build` を実行
+6. `composer install`、`npm install`、(本番モードの場合) `npm run build` を実行
 
 ## デフォルトの URL
 
@@ -87,10 +87,6 @@ export DIXLASE_REPO_URL=https://github.com/your-org/dixlase-core.git
 export DIXLASE_THEME_REPO_URL=https://github.com/your-org/theme-dixlase-onepage.git
 ./setup.sh
 ```
-
-### 任意: 拡張機能ダウンロード用 GitHub トークン
-
-商用拡張機能をインストールする予定がある場合は、`./html/.env` の `EXTENSION_GITHUB_TOKEN` に `repo` スコープ付きの GitHub Classic PAT を設定してください。
 
 ## ローカライゼーション
 
