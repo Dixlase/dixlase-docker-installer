@@ -1,0 +1,77 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint-and-validate:
+    name: Lint, validate, and verify translations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Shell syntax check (bash -n)
+        run: |
+          set -e
+          for f in setup.sh reset.sh update.sh entrypoint.sh convert-comments.sh; do
+            bash -n "$f"
+            echo "OK: $f"
+          done
+
+      - name: ShellCheck
+        run: |
+          shellcheck setup.sh reset.sh update.sh entrypoint.sh convert-comments.sh
+
+      - name: Validate docker-compose.yml
+        run: docker compose config --quiet
+
+      - name: Verify dictionary keys exist verbatim in source
+        run: |
+          set -e
+          fail=0
+          for dict in $(find lang -name '*.tsv' -type f); do
+            # lang/<locale>/<source-path>.tsv -> <source-path>
+            rel="${dict#lang/*/}"
+            source="${rel%.tsv}"
+            if [ ! -f "$source" ]; then
+              echo "MISS  source not found: $source (referenced by $dict)"
+              fail=1
+              continue
+            fi
+            while IFS=$'\t' read -r key _value; do
+              [ -z "$key" ] && continue
+              if ! grep -qF -- "$key" "$source"; then
+                echo "MISS  key not in $source: '$key' (from $dict)"
+                fail=1
+              fi
+            done < "$dict"
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "Dictionary/source consistency check failed."
+            exit 1
+          fi
+          echo "All dictionary keys exist in their source files."
+
+      - name: Round-trip translation test (EN -> JA -> EN)
+        run: |
+          set -e
+          mkdir /tmp/before
+          cp setup.sh reset.sh update.sh \
+             Dockerfile Dockerfile.vite docker-compose.yml \
+             .env.example /tmp/before/
+          cp -r nginx /tmp/before/
+          ./convert-comments.sh ja
+          ./convert-comments.sh ja --reverse
+          for f in setup.sh reset.sh update.sh \
+                   Dockerfile Dockerfile.vite docker-compose.yml \
+                   nginx/nginx.conf .env.example; do
+            diff -q "/tmp/before/$f" "$f"
+          done
+          echo "Round-trip preserved every file byte-for-byte."
