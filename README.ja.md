@@ -24,10 +24,9 @@ cd dixlase
 
 1. Dixlase コアリポジトリを `./html/` にクローン
 2. デフォルトテーマを `./html/themes/DixlaseOnePage/` にクローン
-3. `.env.example` を `./.env` (Docker Compose のポート / DB 認証情報用) にコピー。Laravel 側の `./html/.env` はブラウザで初回アクセスした際に Dixlase インストールウィザードが生成します。
-4. 自己署名 TLS 証明書を `./certs/` に生成
-5. Docker コンテナをビルド・起動
-6. `composer install`、`npm install`、(本番モードの場合) `npm run build` を実行
+3. 自己署名 TLS 証明書を `./certs/` に生成
+4. Docker コンテナをビルド・起動
+5. `composer install`、`npm install`、(本番モードの場合) `npm run build` を実行
 
 ## デフォルトの URL
 
