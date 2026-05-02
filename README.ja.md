@@ -92,6 +92,18 @@ export DIXLASE_THEME_REPO_URL=https://github.com/your-org/theme-dixlase-onepage.
 
 商用拡張機能をインストールする予定がある場合は、`./html/.env` の `EXTENSION_GITHUB_TOKEN` に `repo` スコープ付きの GitHub Classic PAT を設定してください。
 
+## ローカライゼーション
+
+インストーラースクリプトのコメントと UI メッセージはデフォルトで英語です。日本語に切り替える (または戻す) には付属の変換スクリプトを使います:
+
+```bash
+./convert-comments.sh ja              # 全ファイル: 英語 → 日本語
+./convert-comments.sh ja setup.sh     # 単一ファイル: 英語 → 日本語
+./convert-comments.sh ja --reverse    # 全ファイル: 日本語 → 英語 (復元)
+```
+
+翻訳辞書は `lang/<locale>/<source-path>.tsv` に配置されます (タブ区切りの `<英語テキスト>\t<ロケール側テキスト>` ペア)。新しいロケールを追加したり既存のものを拡張する場合は、既存ファイルと同じ場所に新しい TSV を置いてください。フォーマットの詳細は [CLAUDE.md](./CLAUDE.md) を参照してください。
+
 ## 便利なコマンド
 
 ```bash
@@ -114,7 +126,9 @@ docker compose exec dixlase.test bash   # アプリコンテナ内でシェル�
 ├── setup.sh                # 初回セットアップ
 ├── update.sh               # コアを最新化してマイグレーションを実行
 ├── reset.sh                # 全状態を削除して再セットアップ
-└── entrypoint.sh           # Vite コンテナのエントリポイント
+├── convert-comments.sh     # スクリプトのコメント / メッセージをロケール間で切り替える
+├── entrypoint.sh           # Vite コンテナのエントリポイント
+└── lang/{en,ja}/           # 翻訳辞書 (TSV)
 ```
 
 ## ライセンス
