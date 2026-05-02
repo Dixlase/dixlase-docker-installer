@@ -1,30 +1,32 @@
 # Dixlase Docker Installer — Coding Rules
 
-このリポジトリで作業するすべての貢献者 (人間・AI 双方) が従うべきルール。
+For Japanese, see [CLAUDE.ja.md](./CLAUDE.ja.md).
+
+Rules every contributor (human or AI) must follow when working in this repository.
 
 ## Commit Message Convention
 
-Dixlase プロジェクト全体で統一されたコミットメッセージ規約に従う。
+Follow the unified commit message convention used across all Dixlase projects.
 
-### 必須ルール
+### Required rules
 
-1. **`Co-Authored-By:` 行を付けない**
-   - Claude / `noreply@anthropic.com` を含む一切の `Co-Authored-By` 行を禁止する。
+1. **No `Co-Authored-By:` line**
+   - Forbid every `Co-Authored-By` line, including Claude / `noreply@anthropic.com`.
 
-2. **Conventional Commits プレフィックスを使用する**
-   - `feat:` — 新機能
-   - `fix:` — バグ修正
-   - `refactor:` — 動作を変えないコード改善
-   - `docs:` — ドキュメントのみの変更
-   - `test:` — テストの追加・更新
-   - `chore:` — ツーリング、依存関係、その他のメンテナンス
+2. **Use a Conventional Commits prefix**
+   - `feat:` — new feature
+   - `fix:` — bug fix
+   - `refactor:` — code change that does not alter behaviour
+   - `docs:` — documentation-only change
+   - `test:` — adding or updating tests
+   - `chore:` — tooling, dependencies, other maintenance
 
-3. **バイリンガル形式 (英 / 日)**
-   - Subject 行: `<type>: <English> / <日本語>` (` / ` で区切る)
-   - 本文: 英語段落 → 日本語段落の順
-   - 各箇条書き: 英語行 + インデントした日本語訳のペア
+3. **Bilingual format (English / Japanese)**
+   - Subject line: `<type>: <English> / <日本語>` (separated by ` / `)
+   - Body: English paragraph first, then Japanese paragraph
+   - Each bullet: an English line followed by an indented Japanese translation
 
-### 雛形
+### Template
 
 ```
 feat: add user profile page / ユーザープロファイルページを追加
@@ -41,63 +43,63 @@ was chosen.
   アバターアップロード対応のプロファイル Blade ビューを作成
 ```
 
-### 補足
+### Notes
 
-- 外部コントリビューター (Dixlase コアメンテナーでない方) は英語のみのコミットメッセージも歓迎する。
-- バイリンガル形式は本リポジトリのコアメンテナー運用ルールであり、プロジェクトのバイリンガル履歴を保つことを目的とする。
-- 参考: Dixlase Core の `CONTRIBUTING.md` / `CONTRIBUTING.ja.md`、および `git log` の既存コミット例。
+- External contributors (anyone who is not a Dixlase core maintainer) are welcome to use English-only commit messages.
+- The bilingual format is a core-maintainer rule for this repository, intended to keep the project's bilingual history intact.
+- References: `CONTRIBUTING.md` / `CONTRIBUTING.ja.md` in Dixlase Core, and existing commits in `git log`.
 
-## ファイル編集の方針
+## File editing policy
 
-- スクリプトはすべて POSIX 準拠の `bash` で記述する (macOS / Linux 双方で動作させる)。
-- `sed -i` などの BSD/GNU 差異が出るコマンドは、両環境で動く形 (例: `sed -i.bak ... && rm *.bak`) を選ぶ。
-- ハードコードされたパス・個人マシン依存の値は禁止する (公開配布物のため)。
+- Write all scripts in POSIX-compliant `bash` so they run on both macOS and Linux.
+- For commands that differ between BSD and GNU (e.g. `sed -i`), pick a form that works in both environments (e.g. `sed -i.bak ... && rm *.bak`).
+- Hardcoded paths and machine-specific values are forbidden (this is a public installer).
 
-## ソース内コメント・文字列の言語
+## Language of in-source comments and strings
 
-- **ソースコード上のコメント・echo/read 文字列はすべて英語で書く** (デフォルトロケール)。日本語コメント・日本語 UI 文字列を直接書かない。
-- 日本語が必要な場面 (例外):
-  - `README.ja.md` のような `*.ja.md` ドキュメント
-  - `lang/ja/` 配下の翻訳辞書 (本ディレクトリは日本語の正規ソース)
-  - コミットメッセージのバイリンガル併記 (上記規約参照)
-- 既存ファイルを編集する際に日本語コメント・日本語 UI 文字列を見つけたら:
-  1. 英語に置き換える
-  2. 該当の英語テキストと日本語の対訳を `lang/ja/<source-path>.tsv` に追記する
-  3. `lang/en/<source-path>.tsv` にも identity (英→英) を追記する (`./convert-comments.sh` 経由で再生成可)
+- **All comments and `echo` / `read` strings in source code must be written in English** (the default locale). Do not write Japanese comments or Japanese UI strings directly.
+- Exceptions where Japanese is required:
+  - `*.ja.md` documents such as `README.ja.md`
+  - Translation dictionaries under `lang/ja/` (this directory is the canonical Japanese source)
+  - Bilingual commit messages (see the convention above)
+- When you find Japanese comments or Japanese UI strings while editing an existing file:
+  1. Replace them with English
+  2. Append the English-to-Japanese pair to `lang/ja/<source-path>.tsv`
+  3. Append the identity (English-to-English) to `lang/en/<source-path>.tsv` (regenerable via `./convert-comments.sh`)
 
-## 翻訳ライブラリ (`lang/{en,ja}/`)
+## Translation library (`lang/{en,ja}/`)
 
-各ソースファイル (`Dockerfile`、`setup.sh`、`nginx/nginx.conf` 等) は、対応する翻訳辞書を `lang/<locale>/<source-path>.tsv` に持つ。
+Each source file (`Dockerfile`, `setup.sh`, `nginx/nginx.conf`, etc.) has a corresponding translation dictionary at `lang/<locale>/<source-path>.tsv`.
 
-### フォーマット
+### Format
 
-タブ区切りの 1 行 1 ペア:
+Tab-separated, one pair per line:
 
 ```
 <english-text>	<locale-text>
 ```
 
-- 1 行に source 側テキストと target ロケール側テキストを `\t` で区切って記述する
-- `lang/en/<file>.tsv` は identity (col1 == col2)。`lang/ja/<file>.tsv` は英→日の対訳
-- 空行・カラム数不足の行は無視される
-- コメント行 (`#` 始まり) も普通のエントリ。辞書ファイル内にメタコメントは入れない
+- One source-side text and one target-locale text per line, separated by `\t`
+- `lang/en/<file>.tsv` is identity (col1 == col2). `lang/ja/<file>.tsv` is the English-to-Japanese mapping.
+- Empty lines and lines with too few columns are ignored.
+- Comment lines (starting with `#`) are ordinary entries. Do not put meta comments inside dictionary files.
 
-### キーの作り方
+### Key construction
 
-- **コメント** (`# Text` 形式): 行頭インデントを含めず `# Text` をキーにする (sed の部分一致が行頭インデントを保持するため)
-- **文字列リテラル** (`echo "..."` 等): 引用符内のテキストをそのままキーにする (前後の空白も含めて表示用整形を保つ)
+- **Comments** (`# Text` form): use `# Text` as the key, without leading indentation (sed's partial match preserves the line's indentation).
+- **String literals** (`echo "..."` etc.): use the text inside the quotes verbatim as the key, including surrounding whitespace, so display formatting is preserved.
 
-### 一括変換スクリプト
+### Bulk conversion script
 
-`./convert-comments.sh` は辞書を読んでソースを書き換える bash スクリプト:
+`./convert-comments.sh` is a bash script that reads the dictionaries and rewrites source files:
 
 ```bash
-./convert-comments.sh ja                # 全ファイル: 英 -> 日
-./convert-comments.sh ja setup.sh       # 単一ファイル: 英 -> 日
-./convert-comments.sh ja --reverse      # 全ファイル: 日 -> 英 (復元)
+./convert-comments.sh ja                # all files: en -> ja
+./convert-comments.sh ja setup.sh       # single file: en -> ja
+./convert-comments.sh ja --reverse      # all files: ja -> en (restore)
 ```
 
-実装上の注意 (改修する場合):
-- 部分一致衝突を避けるため、キーは長い順に sed パターン化する
-- sed の delimiter は `|` を使い、特殊文字 (`\` `.` `[` `]` `*` `^` `$` `|`) は bash の parameter expansion で escape する (BSD/GNU 双方で動かすため)
-- `sed -i.bak ... && rm -f *.bak` の portable 形式を使う
+Implementation notes (when modifying the script):
+- To avoid partial-match collisions, sort keys by length (longest first) before turning them into sed patterns.
+- Use `|` as the sed delimiter, and escape special characters (`\` `.` `[` `]` `*` `^` `$` `|`) via bash parameter expansion (works on both BSD and GNU sed).
+- Use the portable `sed -i.bak ... && rm -f *.bak` form.
