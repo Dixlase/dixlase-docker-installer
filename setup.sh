@@ -32,11 +32,11 @@ for arg in "$@"; do
     esac
 done
 
+COMPOSE_PROFILE_ARGS=()
 if [ "$DEV_MODE" = true ]; then
-    COMPOSE_PROFILE_ARGS="--profile dev"
+    COMPOSE_PROFILE_ARGS=(--profile dev)
     MODE_LABEL="Development mode (Vite hot-reload)"
 else
-    COMPOSE_PROFILE_ARGS=""
     MODE_LABEL="Production mode (pre-built assets)"
 fi
 
@@ -52,7 +52,7 @@ echo ""
 # -------------------------------------------------
 if [ -d "html" ]; then
     echo "[1/6] html/ already exists."
-    read -p "  Delete and re-clone? (y/N): " confirm
+    read -r -p "  Delete and re-clone? (y/N): " confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
         echo "  Deleting html/..."
         rm -rf html
@@ -128,8 +128,8 @@ fi
 # -------------------------------------------------
 echo ""
 echo "[4/6] Building and starting Docker containers..."
-docker compose $COMPOSE_PROFILE_ARGS build
-docker compose $COMPOSE_PROFILE_ARGS up -d
+docker compose "${COMPOSE_PROFILE_ARGS[@]}" build
+docker compose "${COMPOSE_PROFILE_ARGS[@]}" up -d
 
 # Wait for containers to start
 echo "  Waiting for containers to start..."
@@ -178,7 +178,6 @@ fi
 # Done
 # -------------------------------------------------
 # Read the actual ports from .env and display them
-APP_PORT_VAL=$(grep '^APP_PORT=' .env | cut -d'=' -f2)
 APP_SSL_PORT_VAL=$(grep '^APP_SSL_PORT=' .env | cut -d'=' -f2)
 FORWARD_ADMINER_PORT_VAL=$(grep '^FORWARD_ADMINER_PORT=' .env | cut -d'=' -f2)
 FORWARD_MAILPIT_PORT_VAL=$(grep '^FORWARD_MAILPIT_PORT=' .env | cut -d'=' -f2)

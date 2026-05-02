@@ -127,7 +127,7 @@ if [ -n "$TARGET_FILE" ]; then
     apply_dict "$DICT" "$TARGET_FILE"
 else
     while IFS= read -r dict; do
-        rel="${dict#$DICT_DIR/}"
+        rel="${dict#"$DICT_DIR"/}"
         source="${rel%.tsv}"
         apply_dict "$dict" "$source"
     done < <(find "$DICT_DIR" -type f -name '*.tsv' | sort)
