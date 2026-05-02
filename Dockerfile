@@ -1,4 +1,4 @@
-# Dockerfile - Dixlase Sandbox
+# Dockerfile - Dixlase
 FROM php:8.3-fpm
 
 # システムパッケージをインストール
