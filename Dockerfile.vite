@@ -1,4 +1,4 @@
-# Dockerfile.vite - Dixlase Sandbox
+# Dockerfile.vite - Dixlase
 FROM node:20
 
 WORKDIR /var/www/html
