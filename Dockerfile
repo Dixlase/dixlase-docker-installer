@@ -1,7 +1,7 @@
 # Dockerfile - Dixlase
 FROM php:8.3-fpm
 
-# システムパッケージをインストール
+# Install system packages
 RUN apt-get update --allow-releaseinfo-change && apt-get install -y --allow-unauthenticated \
     build-essential \
     libpng-dev \
@@ -24,42 +24,42 @@ RUN apt-get update --allow-releaseinfo-change && apt-get install -y --allow-unau
     libssl-dev \
     libicu-dev
 
-# Node.js 20 をインストール (NodeSource)
+# Install Node.js 20 (NodeSource)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
-# 拡張機能をインストール
+# Install PHP extensions
 RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath intl
 
-# GDライブラリの設定
+# Configure GD library
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install gd
 
-# PHP設定ファイルをコピー
+# Copy PHP configuration file
 COPY ./php/php.ini /usr/local/etc/php/conf.d/uploads.ini
 
-# Composerをインストール
+# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 作業ディレクトリを設定
+# Set working directory
 WORKDIR /var/www/html
 
-# 依存関係をインストール（html/ が存在する場合のみ）
+# Install dependencies (only if html/ exists)
 COPY ./html/composer.json ./html/composer.lock ./
 COPY ./html/patches ./patches
 RUN composer install --no-scripts --optimize-autoloader
 
-# パッケージをインストール
+# Install npm packages
 COPY ./html/package.json ./
 
 # npm install
 RUN npm install
 
-# アプリケーションのソースコードをコピー
+# Copy application source code
 COPY ./html .
 
-# アプリケーションをビルド
+# Build the application
 RUN composer dump-autoload --optimize --no-scripts
 
-# デフォルトコマンド
+# Default command
 CMD ["php-fpm"]

@@ -1,0 +1,12 @@
+<?php
+
+/**
+ * Comment dictionary for Dockerfile.vite — English (identity).
+ */
+
+return [
+    '# Copy entrypoint script' => '# Copy entrypoint script',
+    '# Copy only package.json' => '# Copy only package.json',
+    '# Copy all source code' => '# Copy all source code',
+    '# Start the Vite server' => '# Start the Vite server',
+];

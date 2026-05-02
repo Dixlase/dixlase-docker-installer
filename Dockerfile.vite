@@ -3,20 +3,20 @@ FROM node:20
 
 WORKDIR /var/www/html
 
-# エントリポイントスクリプトをコピー
+# Copy entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# package.json のみコピー
+# Copy only package.json
 COPY ./html/package.json ./
 
 # npm install
 RUN npm ci || npm install
 
-# ソースコードをすべてコピー
+# Copy all source code
 COPY ./html ./
 
-# Viteサーバーを起動
+# Start the Vite server
 EXPOSE 5173
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
