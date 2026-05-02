@@ -2,12 +2,12 @@
 set -e
 
 # ====================================================
-# Dixlase 完全リセット
-# DB・ソース・Docker ボリュームをすべて削除して再構築
+# Dixlase complete reset
+# Deletes all DB / source / Docker volumes and rebuilds from scratch.
 #
-# 使い方:
-#   ./reset.sh             # 本番モードで再セットアップ
-#   ./reset.sh --dev       # 開発モードで再セットアップ
+# Usage:
+#   ./reset.sh             # Re-setup in production mode
+#   ./reset.sh --dev       # Re-setup in development mode
 # ====================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -34,7 +34,7 @@ docker compose down -v 2>/dev/null || true
 
 echo ""
 echo "[2/3] データを削除中..."
-# node_modules 等は Docker 内で root 作成のためコンテナ経由で削除
+# node_modules etc. are created as root inside Docker, so delete via sudo
 if [ -d "html" ]; then
     sudo rm -rf html/node_modules html/vendor
 fi

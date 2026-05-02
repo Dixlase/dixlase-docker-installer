@@ -2,8 +2,8 @@
 set -e
 
 # ====================================================
-# Dixlase ソース更新
-# GitHub から最新のコードを pull してコンテナを再構築
+# Dixlase source update
+# Pulls the latest code from GitHub and refreshes the container.
 # ====================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -30,19 +30,19 @@ git checkout "$BRANCH"
 git pull origin "$BRANCH"
 cd ..
 
-# Composer/npm 更新
+# Update Composer / npm dependencies
 echo ""
 echo "[2/4] 依存パッケージを更新中..."
 docker compose exec -T dixlase.test composer install --no-interaction
 echo "  composer install 完了。"
 
-# マイグレーション
+# Run migrations
 echo ""
 echo "[3/4] マイグレーションを実行中..."
 docker compose exec -T dixlase.test php artisan migrate --force
 echo "  マイグレーション完了。"
 
-# キャッシュクリア
+# Clear cache
 echo ""
 echo "[4/4] キャッシュをクリア中..."
 docker compose exec -T dixlase.test php artisan config:clear

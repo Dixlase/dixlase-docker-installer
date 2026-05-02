@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * Comment dictionary for nginx/nginx.conf — English (identity).
+ */
+
+return [
+    '# HTTP -> HTTPS redirect' => '# HTTP -> HTTPS redirect',
+    '# HTTPS server configuration' => '# HTTPS server configuration',
+    '# SSL certificate' => '# SSL certificate',
+    '# SSL hardening' => '# SSL hardening',
+    '# File upload size limit' => '# File upload size limit',
+    '# WebSocket support' => '# WebSocket support',
+    '# Skip SSL verification (development only)' => '# Skip SSL verification (development only)',
+];

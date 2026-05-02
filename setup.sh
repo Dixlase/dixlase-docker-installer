@@ -2,24 +2,24 @@
 set -e
 
 # ====================================================
-# Dixlase セットアップスクリプト
-# 用途: GitHub からコアをクローンし、Docker 環境を構築
+# Dixlase setup script
+# Purpose: Clone the core from GitHub and build the Docker environment.
 #
-# 使い方:
-#   ./setup.sh                  # 本番モード (ビルド済みアセット運用)
-#   ./setup.sh --dev            # 開発モード (Vite hot-reload 有効)
-#   ./setup.sh <branch>         # 指定ブランチをクローン (デフォルト: main)
-#   ./setup.sh --dev <branch>   # 開発モード + ブランチ指定
+# Usage:
+#   ./setup.sh                  # Production mode (pre-built assets)
+#   ./setup.sh --dev            # Development mode (Vite hot-reload)
+#   ./setup.sh <branch>         # Clone the specified branch (default: main)
+#   ./setup.sh --dev <branch>   # Development mode + specified branch
 # ====================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# リポジトリ URL は環境変数で上書き可能。デフォルトは公開 HTTPS。
+# Repository URLs can be overridden via environment variables. Default is public HTTPS.
 REPO_URL="${DIXLASE_REPO_URL:-https://github.com/Dixlase/dixlase-core.git}"
 THEME_REPO_URL="${DIXLASE_THEME_REPO_URL:-https://github.com/Dixlase/theme-dixlase-onepage.git}"
 
-# 引数パース: --dev フラグとブランチ名
+# Parse arguments: --dev flag and branch name
 DEV_MODE=false
 BRANCH="main"
 for arg in "$@"; do
@@ -45,7 +45,7 @@ echo "========================================"
 echo ""
 
 # -------------------------------------------------
-# 1. GitHub からコアをクローン
+# 1. Clone the core from GitHub
 # -------------------------------------------------
 if [ -d "html" ]; then
     echo "[1/6] html/ が既に存在します。"
@@ -64,12 +64,12 @@ else
 fi
 
 # -------------------------------------------------
-# 1.5. サブモジュール（テーマ等）を取得
+# 1.5. Fetch submodules (themes etc.)
 # -------------------------------------------------
 echo ""
 echo "[1.5/6] サブモジュールを初期化中..."
 cd html
-# サブモジュールではなく直接クローン（コアが参照するコミットが存在しない場合に対応）
+# Clone directly instead of using a submodule (handles commits the core may not reach)
 rm -rf themes/DixlaseOnePage
 echo "  themes/DixlaseOnePage を取得中..."
 git clone "$THEME_REPO_URL" themes/DixlaseOnePage
@@ -77,12 +77,12 @@ cd ..
 echo "  サブモジュールの取得が完了しました。"
 
 # -------------------------------------------------
-# 2. .env のセットアップ
+# 2. Set up .env
 # -------------------------------------------------
 echo ""
 echo "[2/6] .env をセットアップ中..."
 
-# ルート .env (Docker Compose 用) — ポート/DB認証情報の補間に使用
+# Root .env (used by Docker Compose to interpolate ports / DB credentials)
 if [ ! -f ".env" ]; then
     cp .env.example .env
     echo "  .env.example → .env (Docker Compose 用) にコピーしました。"
@@ -90,7 +90,7 @@ else
     echo "  .env は既に存在します（スキップ）。"
 fi
 
-# Laravel .env (アプリケーション用)
+# Laravel .env (used by the application)
 if [ ! -f "html/.env" ]; then
     cp .env.example html/.env
     echo "  .env.example → html/.env (Laravel 用) にコピーしました。"
@@ -99,7 +99,7 @@ else
 fi
 
 # -------------------------------------------------
-# 3. SSL 証明書の生成
+# 3. Generate SSL certificate
 # -------------------------------------------------
 echo ""
 echo "[3/6] SSL 証明書を生成中..."
@@ -121,44 +121,44 @@ else
 fi
 
 # -------------------------------------------------
-# 4. Docker イメージのビルドと起動
+# 4. Build and start Docker containers
 # -------------------------------------------------
 echo ""
 echo "[4/6] Docker コンテナをビルド・起動中..."
 docker compose $COMPOSE_PROFILE_ARGS build
 docker compose $COMPOSE_PROFILE_ARGS up -d
 
-# コンテナの起動を待つ
+# Wait for containers to start
 echo "  コンテナの起動を待機中..."
 sleep 5
 
 # -------------------------------------------------
-# 5. Laravel のセットアップ
+# 5. Set up Laravel
 # -------------------------------------------------
 echo ""
 echo "[5/6] Laravel をセットアップ中..."
 
-# ボリュームマウントにより vendor/node_modules がホスト側で欠落しているため再インストール
+# Reinstall because vendor/node_modules are missing on the host due to the volume mount
 echo "  composer install 実行中..."
 docker compose exec -T dixlase.test composer install --no-interaction
 echo "  npm install 実行中..."
 docker compose exec -T dixlase.test npm install
 
-# APP_KEY を生成
+# Generate APP_KEY
 docker compose exec -T dixlase.test php artisan key:generate --force
 echo "  APP_KEY を生成しました。"
 
-# ストレージリンクを作成
+# Create the storage symlink
 docker compose exec -T dixlase.test php artisan storage:link 2>/dev/null || true
 echo "  ストレージリンクを作成しました。"
 
-# キャッシュをクリア（DB 未作成時はスキップ）
+# Clear caches (skipped if DB does not exist yet)
 docker compose exec -T dixlase.test php artisan config:clear
 docker compose exec -T dixlase.test php artisan cache:clear 2>/dev/null || true
 echo "  キャッシュをクリアしました。"
 
 # -------------------------------------------------
-# 6. アセットのビルド (本番モードのみ)
+# 6. Build assets (production mode only)
 # -------------------------------------------------
 echo ""
 if [ "$DEV_MODE" = true ]; then
@@ -166,21 +166,21 @@ if [ "$DEV_MODE" = true ]; then
     echo "      ビルドはスキップされます (hot-reload 有効)。"
 else
     echo "[6/6] フロントエンドアセットをビルド中..."
-    # hot ファイルを削除してビルド済みアセットを使用させる
+    # Remove the hot file so the built assets are used
     docker compose exec -T dixlase.test rm -f public/hot
     docker compose exec -T dixlase.test npm run build
 fi
 
 # -------------------------------------------------
-# 完了
+# Done
 # -------------------------------------------------
-# .env から実際のポートを読み取って表示
+# Read the actual ports from .env and display them
 APP_PORT_VAL=$(grep '^APP_PORT=' .env | cut -d'=' -f2)
 APP_SSL_PORT_VAL=$(grep '^APP_SSL_PORT=' .env | cut -d'=' -f2)
 FORWARD_ADMINER_PORT_VAL=$(grep '^FORWARD_ADMINER_PORT=' .env | cut -d'=' -f2)
 FORWARD_MAILPIT_PORT_VAL=$(grep '^FORWARD_MAILPIT_PORT=' .env | cut -d'=' -f2)
 
-# ポート 443/80 の場合は URL から省略
+# Omit the port from the URL when it is the standard 443/80
 [ "$APP_SSL_PORT_VAL" = "443" ] && SSL_URL="https://localhost" || SSL_URL="https://localhost:$APP_SSL_PORT_VAL"
 
 echo ""

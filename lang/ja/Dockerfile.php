@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * Comment dictionary for Dockerfile — Japanese.
+ */
+
+return [
+    '# Install system packages' => '# システムパッケージをインストール',
+    '# Install Node.js 20 (NodeSource)' => '# Node.js 20 をインストール (NodeSource)',
+    '# Install PHP extensions' => '# 拡張機能をインストール',
+    '# Configure GD library' => '# GDライブラリの設定',
+    '# Copy PHP configuration file' => '# PHP設定ファイルをコピー',
+    '# Install Composer' => '# Composerをインストール',
+    '# Set working directory' => '# 作業ディレクトリを設定',
+    '# Install dependencies (only if html/ exists)' => '# 依存関係をインストール（html/ が存在する場合のみ）',
+    '# Install npm packages' => '# パッケージをインストール',
+    '# Copy application source code' => '# アプリケーションのソースコードをコピー',
+    '# Build the application' => '# アプリケーションをビルド',
+    '# Default command' => '# デフォルトコマンド',
+];
