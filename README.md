@@ -92,6 +92,18 @@ export DIXLASE_THEME_REPO_URL=https://github.com/your-org/theme-dixlase-onepage.
 
 If you plan to install commercial extensions, set the `EXTENSION_GITHUB_TOKEN` value in `./html/.env` to a GitHub Classic PAT with `repo` scope.
 
+## Localization
+
+Comments and user-facing messages in the installer scripts default to English. To switch them to Japanese (or back), use the bundled converter:
+
+```bash
+./convert-comments.sh ja              # All files: English -> Japanese
+./convert-comments.sh ja setup.sh     # One file: English -> Japanese
+./convert-comments.sh ja --reverse    # All files: Japanese -> English (revert)
+```
+
+Translation dictionaries live at `lang/<locale>/<source-path>.tsv` (tab-separated `<english-text>\t<locale-text>` pairs). To add a new locale or extend an existing one, drop a new TSV next to the existing files; see [CLAUDE.md](./CLAUDE.md) for the format.
+
 ## Useful commands
 
 ```bash
@@ -114,7 +126,9 @@ docker compose exec dixlase.test bash   # open a shell inside the app container
 ├── setup.sh                # Initial setup
 ├── update.sh               # Pull latest core and re-run migrations
 ├── reset.sh                # Wipe state and re-run setup
-└── entrypoint.sh           # Vite container entrypoint
+├── convert-comments.sh     # Switch script comments / messages between locales
+├── entrypoint.sh           # Vite container entrypoint
+└── lang/{en,ja}/           # Translation dictionaries (TSV)
 ```
 
 ## License
