@@ -25,7 +25,7 @@ echo "    - Docker containers and volumes"
 echo "    - html/ (source code)"
 echo "    - mysql/ (database files)"
 echo ""
-read -p "  Are you sure you want to reset? (y/N): " confirm
+read -r -p "  Are you sure you want to reset? (y/N): " confirm
 if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     echo "  Cancelled."
     exit 0
