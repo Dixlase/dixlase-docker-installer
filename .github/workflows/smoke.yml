@@ -41,6 +41,18 @@ jobs:
           set -e
           echo "n" | ./setup.sh
 
+      # CI-only: bootstrap html/.env from core's bundled .env.example so Laravel
+      # can boot far enough for the install wizard's first screen to render.
+      # In normal use the Dixlase install wizard handles this on first browser
+      # visit; we shortcut that here so curl can probe the stack. Removed in
+      # the teardown step — it never gets committed back to the installer.
+      - name: Bootstrap html/.env for smoke test (temporary)
+        run: |
+          set -e
+          cp html/.env.example html/.env
+          docker compose exec -T dixlase.test php artisan key:generate --force
+          docker compose exec -T dixlase.test php artisan config:clear
+
       - name: Show running containers
         if: always()
         run: docker compose ps
@@ -66,4 +78,7 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: docker compose down -v 2>/dev/null || true
+        run: |
+          docker compose down -v 2>/dev/null || true
+          # Remove the smoke-test-only .env so the installer ships clean
+          rm -f html/.env
