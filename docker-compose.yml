@@ -31,7 +31,8 @@ services:
     restart: always
     volumes:
       - ./html:/var/www/html
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      # NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.
+      - ./nginx/nginx.${NGINX_VARIANT:-http}.conf:/etc/nginx/conf.d/default.conf
       - ./certs:/etc/ssl/private
     ports:
       - "${APP_PORT:-80}:80"

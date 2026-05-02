@@ -93,6 +93,23 @@ else
     echo "  .env already exists (skipped)."
 fi
 
+# Derive NGINX_VARIANT from the HTTPS flag so docker-compose mounts the
+# matching nginx config. Re-derive on every run so toggling HTTPS in
+# .env takes effect on the next setup.sh.
+HTTPS_VAL=$(grep '^HTTPS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
+if [ "$HTTPS_VAL" = "true" ] || [ "$HTTPS_VAL" = "1" ]; then
+    NGINX_VARIANT=https
+else
+    NGINX_VARIANT=http
+fi
+if grep -q '^NGINX_VARIANT=' .env; then
+    sed -i.bak "s|^NGINX_VARIANT=.*|NGINX_VARIANT=$NGINX_VARIANT|" .env
+    rm -f .env.bak
+else
+    printf 'NGINX_VARIANT=%s\n' "$NGINX_VARIANT" >> .env
+fi
+echo "  Selected nginx variant: nginx.$NGINX_VARIANT.conf (HTTPS=$HTTPS_VAL)"
+
 # -------------------------------------------------
 # 3. Generate SSL certificate
 # -------------------------------------------------
@@ -173,12 +190,18 @@ fi
 # Done
 # -------------------------------------------------
 # Read the actual ports from .env and display them
+APP_PORT_VAL=$(grep '^APP_PORT=' .env | cut -d'=' -f2)
 APP_SSL_PORT_VAL=$(grep '^APP_SSL_PORT=' .env | cut -d'=' -f2)
 FORWARD_ADMINER_PORT_VAL=$(grep '^FORWARD_ADMINER_PORT=' .env | cut -d'=' -f2)
 FORWARD_MAILPIT_PORT_VAL=$(grep '^FORWARD_MAILPIT_PORT=' .env | cut -d'=' -f2)
 
-# Omit the port from the URL when it is the standard 443/80
-[ "$APP_SSL_PORT_VAL" = "443" ] && SSL_URL="https://localhost" || SSL_URL="https://localhost:$APP_SSL_PORT_VAL"
+# Build CMS URL based on the HTTPS flag; omit the port when it is the
+# standard 80 / 443 for the chosen scheme.
+if [ "$NGINX_VARIANT" = "https" ]; then
+    [ "$APP_SSL_PORT_VAL" = "443" ] && APP_URL="https://localhost" || APP_URL="https://localhost:$APP_SSL_PORT_VAL"
+else
+    [ "$APP_PORT_VAL" = "80" ] && APP_URL="http://localhost" || APP_URL="http://localhost:$APP_PORT_VAL"
+fi
 
 echo ""
 echo "========================================"
@@ -186,12 +209,12 @@ echo "  Setup complete!"
 echo "========================================"
 echo ""
 echo "  Access URLs:"
-echo "    CMS:        $SSL_URL"
+echo "    CMS:        $APP_URL"
 echo "    Adminer:    http://localhost:$FORWARD_ADMINER_PORT_VAL"
 echo "    Mailpit:    http://localhost:$FORWARD_MAILPIT_PORT_VAL"
 echo ""
 echo "  Next steps:"
-echo "    1. Open $SSL_URL in your browser."
+echo "    1. Open $APP_URL in your browser."
 echo "    2. The install wizard will appear."
 echo "    3. After install, start operations in the admin panel."
 echo ""

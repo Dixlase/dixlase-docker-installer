@@ -72,11 +72,14 @@ jobs:
         if: always()
         run: docker compose ps
 
-      - name: Smoke check — curl https://localhost/
+      - name: Smoke check — curl http://localhost/
         run: |
           set -e
+          # Default install ships HTTPS=false (plain HTTP on port 80),
+          # so probe the HTTP endpoint here. The HTTPS path is exercised
+          # manually by setting HTTPS=true in .env and re-running setup.
           for i in $(seq 1 20); do
-            code=$(curl -k -s -o /dev/null -w "%{http_code}" https://localhost/ || true)
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/ || true)
             if [ -n "$code" ] && [ "$code" != "000" ] && [ "$code" -lt 500 ]; then
               echo "OK: CMS responded with HTTP $code (attempt $i)"
               exit 0
@@ -96,7 +99,7 @@ jobs:
         run: |
           # With APP_DEBUG=true, a 500 body carries the actual exception
           # and stack trace, which docker logs alone don't show.
-          curl -k -sS -o /tmp/resp.html -w "HTTP %{http_code}\n" https://localhost/ || true
+          curl -sS -o /tmp/resp.html -w "HTTP %{http_code}\n" http://localhost/ || true
           echo "--- response body (first 400 lines) ---"
           head -n 400 /tmp/resp.html || true
 

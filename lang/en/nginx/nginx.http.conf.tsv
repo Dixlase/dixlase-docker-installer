@@ -1,0 +1,8 @@
+# HTTP-only configuration (default).	# HTTP-only configuration (default).
+# Browsers block self-signed-cert pages on first access, so this mode	# Browsers block self-signed-cert pages on first access, so this mode
+# serves plain HTTP on port 80 with no redirect to HTTPS, letting the	# serves plain HTTP on port 80 with no redirect to HTTPS, letting the
+# install wizard render immediately. Set HTTPS=true in .env (and	# install wizard render immediately. Set HTTPS=true in .env (and
+# re-run ./setup.sh) to switch to nginx.https.conf for local TLS.	# re-run ./setup.sh) to switch to nginx.https.conf for local TLS.
+# File upload size limit	# File upload size limit
+# WebSocket support	# WebSocket support
+# Skip SSL verification (development only)	# Skip SSL verification (development only)

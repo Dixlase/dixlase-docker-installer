@@ -2,3 +2,4 @@
 # Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.	# Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.
 # Development mode (Vite hot-reload):	# Development mode (Vite hot-reload):
 # Production mode (pre-built assets):	# Production mode (pre-built assets):
+# NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.	# NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.

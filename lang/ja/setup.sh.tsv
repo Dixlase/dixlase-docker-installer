@@ -22,8 +22,12 @@
 # 6. Build assets (production mode only)	# 6. アセットのビルド (本番モードのみ)
 # Remove the hot file so the built assets are used	# hot ファイルを削除してビルド済みアセットを使用させる
 # Done	# 完了
+# Derive NGINX_VARIANT from the HTTPS flag so docker-compose mounts the	# HTTPS フラグから NGINX_VARIANT を導出し、docker-compose に対応する
+# matching nginx config. Re-derive on every run so toggling HTTPS in	# nginx 設定をマウントさせる。.env の HTTPS を切り替えた次回実行時に
+# .env takes effect on the next setup.sh.	# 反映されるよう、毎回再導出する。
 # Read the actual ports from .env and display them	# .env から実際のポートを読み取って表示
-# Omit the port from the URL when it is the standard 443/80	# ポート 443/80 の場合は URL から省略
+# Build CMS URL based on the HTTPS flag; omit the port when it is the	# HTTPS フラグに応じて CMS の URL を構築。選択したスキームの標準ポート
+# standard 80 / 443 for the chosen scheme.	# (80 / 443) のときは URL からポート番号を省略する。
 Development mode (Vite hot-reload)	開発モード (Vite hot-reload)
 Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 [1/6] html/ already exists.	[1/6] html/ が既に存在します。
@@ -56,7 +60,7 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
   Setup complete!	  セットアップ完了!
   Access URLs:	  アクセス URL:
   Next steps:	  次のステップ:
-    1. Open $SSL_URL in your browser.	    1. $SSL_URL にアクセス
+    1. Open $APP_URL in your browser.	    1. $APP_URL にアクセス
     2. The install wizard will appear.	    2. インストールウィザードが表示されます
     3. After install, start operations in the admin panel.	    3. セットアップ完了後、管理画面で運用開始
   Useful commands:	  便利なコマンド:
