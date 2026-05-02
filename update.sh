@@ -1,4 +1,7 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 exc-D inc.
+
 set -e
 
 # ====================================================
