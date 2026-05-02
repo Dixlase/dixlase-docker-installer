@@ -22,8 +22,12 @@
 # 6. Build assets (production mode only)	# 6. Build assets (production mode only)
 # Remove the hot file so the built assets are used	# Remove the hot file so the built assets are used
 # Done	# Done
+# Derive NGINX_VARIANT from the HTTPS flag so docker-compose mounts the	# Derive NGINX_VARIANT from the HTTPS flag so docker-compose mounts the
+# matching nginx config. Re-derive on every run so toggling HTTPS in	# matching nginx config. Re-derive on every run so toggling HTTPS in
+# .env takes effect on the next setup.sh.	# .env takes effect on the next setup.sh.
 # Read the actual ports from .env and display them	# Read the actual ports from .env and display them
-# Omit the port from the URL when it is the standard 443/80	# Omit the port from the URL when it is the standard 443/80
+# Build CMS URL based on the HTTPS flag; omit the port when it is the	# Build CMS URL based on the HTTPS flag; omit the port when it is the
+# standard 80 / 443 for the chosen scheme.	# standard 80 / 443 for the chosen scheme.
 Development mode (Vite hot-reload)	Development mode (Vite hot-reload)
 Production mode (pre-built assets)	Production mode (pre-built assets)
 [1/6] html/ already exists.	[1/6] html/ already exists.
@@ -56,7 +60,7 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
   Setup complete!	  Setup complete!
   Access URLs:	  Access URLs:
   Next steps:	  Next steps:
-    1. Open $SSL_URL in your browser.	    1. Open $SSL_URL in your browser.
+    1. Open $APP_URL in your browser.	    1. Open $APP_URL in your browser.
     2. The install wizard will appear.	    2. The install wizard will appear.
     3. After install, start operations in the admin panel.	    3. After install, start operations in the admin panel.
   Useful commands:	  Useful commands:

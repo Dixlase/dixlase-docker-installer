@@ -71,7 +71,8 @@ jobs:
           ./convert-comments.sh ja --reverse
           for f in setup.sh reset.sh update.sh \
                    Dockerfile Dockerfile.vite docker-compose.yml \
-                   nginx/nginx.conf .env.example; do
+                   nginx/nginx.http.conf nginx/nginx.https.conf \
+                   .env.example; do
             diff -q "/tmp/before/$f" "$f"
           done
           echo "Round-trip preserved every file byte-for-byte."

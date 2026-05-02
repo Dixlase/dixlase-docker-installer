@@ -18,7 +18,7 @@ cd dixlase
 ./setup.sh
 ```
 
-After setup completes, open `https://localhost` in your browser. The first visit shows the Dixlase install wizard.
+After setup completes, open `http://localhost` in your browser. The first visit shows the Dixlase install wizard. (Set `HTTPS=true` in `.env` and re-run `./setup.sh` to switch to HTTPS with a bundled self-signed certificate.)
 
 ## What the setup script does
 
@@ -33,7 +33,7 @@ After setup completes, open `https://localhost` in your browser. The first visit
 
 | Service | URL |
 | --- | --- |
-| Dixlase CMS | `https://localhost` |
+| Dixlase CMS | `http://localhost` (or `https://localhost` when `HTTPS=true`) |
 | Adminer (DB GUI) | `http://localhost:8081` |
 | Mailpit (mail catcher) | `http://localhost:8025` |
 
@@ -53,7 +53,7 @@ Builds frontend assets with `npm run build`. The Vite dev server is **not** star
 ./setup.sh --dev
 ```
 
-Brings up an extra `vite` container under the `dev` Docker Compose profile. Frontend changes are reflected via hot-reload at `https://localhost`.
+Brings up an extra `vite` container under the `dev` Docker Compose profile. Frontend changes are reflected via hot-reload at `http://localhost` (or `https://localhost` when `HTTPS=true`).
 
 To switch an existing setup between modes, run `./reset.sh --dev` or `./reset.sh`.
 
@@ -62,6 +62,7 @@ To switch an existing setup between modes, run `./reset.sh --dev` or `./reset.sh
 All host-side ports and database credentials can be overridden via `.env` (root). Edit it after `setup.sh` has run, then restart with `docker compose up -d`.
 
 ```env
+HTTPS=false           # set to true to use TLS with a self-signed cert
 APP_PORT=80
 APP_SSL_PORT=443
 FORWARD_DB_PORT=3306
@@ -75,6 +76,8 @@ DB_USERNAME=dixlase
 DB_PASSWORD=password
 DB_ROOT_PASSWORD=root
 ```
+
+After flipping `HTTPS`, re-run `./setup.sh` so Docker Compose picks up the matching nginx config (`nginx/nginx.http.conf` vs `nginx/nginx.https.conf`).
 
 If port `80` or `443` is already in use on your machine (Apache, IIS, etc.), set `APP_PORT=8080` and `APP_SSL_PORT=8443` (or any free ports) in `.env` before running `setup.sh`.
 
@@ -116,7 +119,8 @@ docker compose exec dixlase.test bash   # open a shell inside the app container
 ├── Dockerfile              # PHP-FPM 8.3 + Composer + Node 20
 ├── Dockerfile.vite         # Vite dev server (only used with --dev)
 ├── docker-compose.yml      # Service definitions
-├── nginx/nginx.conf        # Nginx vhost (HTTP→HTTPS, FastCGI, Vite proxy)
+├── nginx/nginx.http.conf   # Nginx vhost — HTTP only, no redirect (HTTPS=false)
+├── nginx/nginx.https.conf  # Nginx vhost — HTTP→HTTPS redirect + TLS (HTTPS=true)
 ├── php/php.ini             # PHP runtime overrides (upload size, memory, etc.)
 ├── .env.example            # Environment template (copied to .env on setup)
 ├── setup.sh                # Initial setup

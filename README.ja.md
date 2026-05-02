@@ -18,7 +18,7 @@ cd dixlase
 ./setup.sh
 ```
 
-セットアップ完了後、ブラウザで `https://localhost` にアクセスしてください。初回アクセス時には Dixlase のインストールウィザードが表示されます。
+セットアップ完了後、ブラウザで `http://localhost` にアクセスしてください。初回アクセス時には Dixlase のインストールウィザードが表示されます。 (`.env` で `HTTPS=true` に変更して `./setup.sh` を再実行すると、同梱の自己署名証明書を使った HTTPS に切り替わります。)
 
 ## setup.sh が行う処理
 
@@ -33,7 +33,7 @@ cd dixlase
 
 | サービス | URL |
 | --- | --- |
-| Dixlase CMS | `https://localhost` |
+| Dixlase CMS | `http://localhost` (`HTTPS=true` のときは `https://localhost`) |
 | Adminer (DB GUI) | `http://localhost:8081` |
 | Mailpit (メール受信) | `http://localhost:8025` |
 
@@ -53,7 +53,7 @@ cd dixlase
 ./setup.sh --dev
 ```
 
-Docker Compose の `dev` プロファイルで `vite` コンテナを追加起動します。フロントエンドのソースを編集すると `https://localhost` に hot-reload されます。
+Docker Compose の `dev` プロファイルで `vite` コンテナを追加起動します。フロントエンドのソースを編集すると `http://localhost` (`HTTPS=true` のときは `https://localhost`) に hot-reload されます。
 
 既存のセットアップでモードを切り替える場合は `./reset.sh --dev` または `./reset.sh` を実行してください。
 
@@ -62,6 +62,7 @@ Docker Compose の `dev` プロファイルで `vite` コンテナを追加起�
 ホスト側のポートと DB 認証情報はすべてルートの `.env` で上書きできます。`setup.sh` 実行後に `.env` を編集し、`docker compose up -d` で再起動してください。
 
 ```env
+HTTPS=false           # true にすると自己署名証明書での TLS が有効になる
 APP_PORT=80
 APP_SSL_PORT=443
 FORWARD_DB_PORT=3306
@@ -75,6 +76,8 @@ DB_USERNAME=dixlase
 DB_PASSWORD=password
 DB_ROOT_PASSWORD=root
 ```
+
+`HTTPS` を切り替えたあとは `./setup.sh` を再実行してください。Docker Compose が対応する nginx 設定 (`nginx/nginx.http.conf` または `nginx/nginx.https.conf`) を選択するためです。
 
 ローカルマシンで `80` / `443` ポートが既に使われている場合 (Apache / IIS など) は、`setup.sh` を実行する前に `.env` で `APP_PORT=8080` / `APP_SSL_PORT=8443` などの空きポートに変更してください。
 
@@ -116,7 +119,8 @@ docker compose exec dixlase.test bash   # アプリコンテナ内でシェル�
 ├── Dockerfile              # PHP-FPM 8.3 + Composer + Node 20
 ├── Dockerfile.vite         # Vite dev サーバー (--dev 指定時のみ使用)
 ├── docker-compose.yml      # サービス定義
-├── nginx/nginx.conf        # Nginx vhost (HTTP→HTTPS、FastCGI、Vite プロキシ)
+├── nginx/nginx.http.conf   # Nginx vhost — HTTP のみ・リダイレクトなし (HTTPS=false)
+├── nginx/nginx.https.conf  # Nginx vhost — HTTP→HTTPS リダイレクト + TLS (HTTPS=true)
 ├── php/php.ini             # PHP ランタイム設定 (アップロードサイズ、メモリ等)
 ├── .env.example            # 環境変数テンプレート (setup 時に .env にコピーされる)
 ├── setup.sh                # 初回セットアップ

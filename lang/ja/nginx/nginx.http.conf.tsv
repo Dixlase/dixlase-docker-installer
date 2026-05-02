@@ -1,0 +1,8 @@
+# HTTP-only configuration (default).	# HTTP のみの設定 (デフォルト)。
+# Browsers block self-signed-cert pages on first access, so this mode	# 自己署名証明書のページはブラウザに初回アクセス時にブロックされるため、
+# serves plain HTTP on port 80 with no redirect to HTTPS, letting the	# このモードはポート 80 で平文 HTTP を配信し HTTPS リダイレクトを行いません。
+# install wizard render immediately. Set HTTPS=true in .env (and	# インストールウィザードが即座に表示されます。ローカルで TLS を使いたいときは
+# re-run ./setup.sh) to switch to nginx.https.conf for local TLS.	# .env の HTTPS=true にして ./setup.sh を再実行すると nginx.https.conf を使います。
+# File upload size limit	# ファイルアップロードサイズ制限
+# WebSocket support	# WebSocket対応
+# Skip SSL verification (development only)	# SSL検証をスキップ（開発環境のみ）
