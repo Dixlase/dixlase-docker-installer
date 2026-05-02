@@ -12,15 +12,13 @@
 # Clone directly instead of using a submodule (handles commits the core may not reach)	# Clone directly instead of using a submodule (handles commits the core may not reach)
 # 2. Set up .env	# 2. Set up .env
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)	# Root .env (used by Docker Compose to interpolate ports / DB credentials)
-# Laravel .env (used by the application)	# Laravel .env (used by the application)
 # 3. Generate SSL certificate	# 3. Generate SSL certificate
 # 4. Build and start Docker containers	# 4. Build and start Docker containers
 # Wait for containers to start	# Wait for containers to start
 # 5. Set up Laravel	# 5. Set up Laravel
 # Reinstall because vendor/node_modules are missing on the host due to the volume mount	# Reinstall because vendor/node_modules are missing on the host due to the volume mount
-# Generate APP_KEY	# Generate APP_KEY
-# Create the storage symlink	# Create the storage symlink
-# Clear caches (skipped if DB does not exist yet)	# Clear caches (skipped if DB does not exist yet)
+# Artisan steps require html/.env. On a clean install that file is created by	# Artisan steps require html/.env. On a clean install that file is created by
+# the Dixlase install wizard, so these steps run only on re-runs.	# the Dixlase install wizard, so these steps run only on re-runs.
 # 6. Build assets (production mode only)	# 6. Build assets (production mode only)
 # Remove the hot file so the built assets are used	# Remove the hot file so the built assets are used
 # Done	# Done
@@ -40,8 +38,6 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 [2/6] Setting up .env...	[2/6] Setting up .env...
   Copied .env.example -> .env (for Docker Compose).	  Copied .env.example -> .env (for Docker Compose).
   .env already exists (skipped).	  .env already exists (skipped).
-  Copied .env.example -> html/.env (for Laravel).	  Copied .env.example -> html/.env (for Laravel).
-  html/.env already exists (skipped).	  html/.env already exists (skipped).
 [3/6] Generating SSL certificate...	[3/6] Generating SSL certificate...
   Certificate already exists (skipped).	  Certificate already exists (skipped).
   Certificate generated.	  Certificate generated.
@@ -53,6 +49,7 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
   Generated APP_KEY.	  Generated APP_KEY.
   Created storage symlink.	  Created storage symlink.
   Cleared caches.	  Cleared caches.
+  Skipping artisan steps — the install wizard will run them.	  Skipping artisan steps — the install wizard will run them.
 [6/6] Development mode: Vite dev server is running in the vite container...	[6/6] Development mode: Vite dev server is running in the vite container...
       Build skipped (hot-reload enabled).	      Build skipped (hot-reload enabled).
 [6/6] Building frontend assets...	[6/6] Building frontend assets...
