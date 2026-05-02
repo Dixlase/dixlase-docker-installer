@@ -1,6 +1,6 @@
 # Dixlase Docker Installer
 
-Dockerized installer for [Dixlase](https://github.com/Dixlase/dixlase-core) — a Laravel-based CMS. This repository provides a one-command setup that brings up the full stack (PHP-FPM, Nginx, MariaDB, Redis, Mailpit, Adminer) with sensible defaults.
+Dockerized installer for [Dixlase](https://github.com/Dixlase/dixlase-core) . This repository provides a one-command setup that brings up the full stack (PHP-FPM, Nginx, MariaDB, Redis, Mailpit, Adminer) with sensible defaults.
 
 For Japanese, see [README.ja.md](./README.ja.md).
 
@@ -119,4 +119,6 @@ docker compose exec dixlase.test bash   # open a shell inside the app container
 
 ## License
 
-Released under the AGPL v3 license, consistent with [Dixlase Core](https://github.com/Dixlase/dixlase-core).
+This installer (Dockerfiles, shell scripts, configuration templates) is released under the [MIT License](./LICENSE) so it can be freely forked, modified, and adapted for custom deployments.
+
+The Dixlase application itself is licensed separately under AGPL v3 — see [Dixlase Core](https://github.com/Dixlase/dixlase-core).
