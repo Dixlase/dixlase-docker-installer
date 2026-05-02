@@ -1,0 +1,69 @@
+name: Smoke test (E2E)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'setup.sh'
+      - 'Dockerfile'
+      - 'Dockerfile.vite'
+      - 'docker-compose.yml'
+      - 'nginx/**'
+      - 'php/**'
+      - '.env.example'
+      - 'entrypoint.sh'
+      - '.github/workflows/smoke.yml'
+
+jobs:
+  smoke:
+    name: End-to-end setup against private dixlase-core
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout installer
+        uses: actions/checkout@v4
+
+      - name: Checkout dixlase-core into html/
+        uses: actions/checkout@v4
+        with:
+          repository: Dixlase/dixlase-core
+          ref: main
+          token: ${{ secrets.CORE_REPO_TOKEN }}
+          path: html
+
+      - name: Run setup.sh (html/ pre-placed; answer "n" to skip re-clone prompt)
+        env:
+          DIXLASE_THEME_REPO_URL: https://x-access-token:${{ secrets.CORE_REPO_TOKEN }}@github.com/Dixlase/theme-dixlase-onepage.git
+        run: |
+          set -e
+          echo "n" | ./setup.sh
+
+      - name: Show running containers
+        if: always()
+        run: docker compose ps
+
+      - name: Smoke check — curl https://localhost/
+        run: |
+          set -e
+          for i in $(seq 1 20); do
+            code=$(curl -k -s -o /dev/null -w "%{http_code}" https://localhost/ || true)
+            if [ -n "$code" ] && [ "$code" != "000" ] && [ "$code" -lt 500 ]; then
+              echo "OK: CMS responded with HTTP $code (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code (not ready), waiting..."
+            sleep 4
+          done
+          echo "CMS did not respond with a non-5xx status within the time budget."
+          exit 1
+
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker compose logs --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v 2>/dev/null || true
