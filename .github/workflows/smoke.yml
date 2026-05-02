@@ -50,6 +50,18 @@ jobs:
         run: |
           set -e
           cp html/.env.example html/.env
+          # Align Laravel DB credentials with the MariaDB container the
+          # compose stack just bootstrapped (defaults from repo-root
+          # .env.example). Without this Laravel boots with whatever
+          # DB_PASSWORD core's .env.example ships with and every request
+          # 500s on "Access denied for user 'dixlase'".
+          sed -i.bak \
+            -e 's|^DB_HOST=.*|DB_HOST=mysql|' \
+            -e 's|^DB_DATABASE=.*|DB_DATABASE=dixlase|' \
+            -e 's|^DB_USERNAME=.*|DB_USERNAME=dixlase|' \
+            -e 's|^DB_PASSWORD=.*|DB_PASSWORD=password|' \
+            html/.env
+          rm -f html/.env.bak
           docker compose exec -T dixlase.test php artisan key:generate --force
           docker compose exec -T dixlase.test php artisan config:clear
 
