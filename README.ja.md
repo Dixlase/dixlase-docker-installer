@@ -1,6 +1,6 @@
 # Dixlase Docker インストーラー
 
-[Dixlase](https://github.com/Dixlase/dixlase-core) (Laravel ベースの CMS) を Docker で簡単に立ち上げるためのインストーラーです。1 コマンドで PHP-FPM / Nginx / MariaDB / Redis / Mailpit / Adminer を一括起動します。
+[Dixlase](https://github.com/Dixlase/dixlase-core) を Docker で簡単に立ち上げるためのインストーラーです。1 コマンドで PHP-FPM / Nginx / MariaDB / Redis / Mailpit / Adminer を一括起動します。
 
 For English, see [README.md](./README.md).
 
@@ -119,4 +119,6 @@ docker compose exec dixlase.test bash   # アプリコンテナ内でシェル�
 
 ## ライセンス
 
-[Dixlase Core](https://github.com/Dixlase/dixlase-core) と同様、AGPL v3 ライセンスの下で配布されます。
+本インストーラー (Dockerfile / シェルスクリプト / 設定テンプレート) は [MIT ライセンス](./LICENSE) の下で配布されます。フォーク・改変・カスタムデプロイに自由に利用できます。
+
+Dixlase 本体のアプリケーションコードは別途 AGPL v3 ライセンスの下で配布されます。詳細は [Dixlase Core](https://github.com/Dixlase/dixlase-core) を参照してください。
