@@ -34,12 +34,13 @@ docker compose down -v 2>/dev/null || true
 
 echo ""
 echo "[2/3] Removing data..."
-# node_modules etc. are created as root inside Docker, so delete via sudo
-if [ -d "html" ]; then
-    sudo rm -rf html/node_modules html/vendor
+# Use a throwaway container to remove root-owned files (avoids host-side sudo).
+if [ -d "html" ] || [ -d "mysql" ]; then
+    docker run --rm -v "$(pwd):/work" alpine \
+        sh -c 'rm -rf /work/html /work/mysql' 2>/dev/null || true
 fi
-rm -rf html
-rm -rf mysql
+# Final host-side cleanup for any non-root remnants.
+rm -rf html mysql 2>/dev/null || true
 echo "  Removed html/ and mysql/."
 
 echo ""

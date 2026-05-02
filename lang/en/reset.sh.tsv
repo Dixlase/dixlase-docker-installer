@@ -3,7 +3,8 @@
 # Usage:	# Usage:
 #   ./reset.sh             # Re-setup in production mode	#   ./reset.sh             # Re-setup in production mode
 #   ./reset.sh --dev       # Re-setup in development mode	#   ./reset.sh --dev       # Re-setup in development mode
-# node_modules etc. are created as root inside Docker, so delete via sudo	# node_modules etc. are created as root inside Docker, so delete via sudo
+# Use a throwaway container to remove root-owned files (avoids host-side sudo).	# Use a throwaway container to remove root-owned files (avoids host-side sudo).
+# Final host-side cleanup for any non-root remnants.	# Final host-side cleanup for any non-root remnants.
   Dixlase - Full reset	  Dixlase - Full reset
   The following will be deleted:	  The following will be deleted:
     - Docker containers and volumes	    - Docker containers and volumes
