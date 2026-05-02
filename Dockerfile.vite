@@ -1,0 +1,23 @@
+# Dockerfile.vite - Dixlase Sandbox
+FROM node:20
+
+WORKDIR /var/www/html
+
+# エントリポイントスクリプトをコピー
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# package.json のみコピー
+COPY ./html/package.json ./
+
+# npm install
+RUN npm ci || npm install
+
+# ソースコードをすべてコピー
+COPY ./html ./
+
+# Viteサーバーを起動
+EXPOSE 5173
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["npm", "run", "dev"]

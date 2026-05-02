@@ -1,0 +1,8 @@
+html/
+mysql/
+certs/
+.env
+.env.local
+.DS_Store
+*.log
+node_modules/
