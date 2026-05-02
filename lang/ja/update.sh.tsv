@@ -1,0 +1,15 @@
+# Dixlase source update	# Dixlase ソース更新
+# Pulls the latest code from GitHub and refreshes the container.	# GitHub から最新のコードを pull してコンテナを再構築
+# Update Composer / npm dependencies	# Composer/npm 更新
+# Run migrations	# マイグレーション
+# Clear cache	# キャッシュクリア
+  Dixlase - Source update	  Dixlase - ソース更新
+  html/ not found. Run setup.sh first.	  html/ が見つかりません。setup.sh を先に実行してください。
+[1/4] Pulling latest from GitHub...	[1/4] GitHub から最新を取得中...
+[2/4] Updating dependencies...	[2/4] 依存パッケージを更新中...
+  composer install complete.	  composer install 完了。
+[3/4] Running migrations...	[3/4] マイグレーションを実行中...
+  Migrations complete.	  マイグレーション完了。
+[4/4] Clearing caches...	[4/4] キャッシュをクリア中...
+  Caches cleared.	  キャッシュクリア完了。
+  Update complete!	  更新完了!

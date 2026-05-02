@@ -14,34 +14,34 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "========================================"
-echo "  Dixlase - 完全リセット"
+echo "  Dixlase - Full reset"
 echo "========================================"
 echo ""
-echo "  以下が削除されます:"
-echo "    - Docker コンテナ・ボリューム"
-echo "    - html/ (ソースコード)"
-echo "    - mysql/ (データベース)"
+echo "  The following will be deleted:"
+echo "    - Docker containers and volumes"
+echo "    - html/ (source code)"
+echo "    - mysql/ (database files)"
 echo ""
-read -p "  本当にリセットしますか? (y/N): " confirm
+read -p "  Are you sure you want to reset? (y/N): " confirm
 if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-    echo "  キャンセルしました。"
+    echo "  Cancelled."
     exit 0
 fi
 
 echo ""
-echo "[1/3] Docker コンテナを停止・削除中..."
+echo "[1/3] Stopping and removing Docker containers..."
 docker compose down -v 2>/dev/null || true
 
 echo ""
-echo "[2/3] データを削除中..."
+echo "[2/3] Removing data..."
 # node_modules etc. are created as root inside Docker, so delete via sudo
 if [ -d "html" ]; then
     sudo rm -rf html/node_modules html/vendor
 fi
 rm -rf html
 rm -rf mysql
-echo "  html/ と mysql/ を削除しました。"
+echo "  Removed html/ and mysql/."
 
 echo ""
-echo "[3/3] 再セットアップを実行中..."
+echo "[3/3] Re-running setup..."
 ./setup.sh "$@"

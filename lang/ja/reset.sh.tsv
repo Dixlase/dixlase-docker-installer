@@ -1,0 +1,17 @@
+# Dixlase complete reset	# Dixlase 完全リセット
+# Deletes all DB / source / Docker volumes and rebuilds from scratch.	# DB・ソース・Docker ボリュームをすべて削除して再構築
+# Usage:	# 使い方:
+#   ./reset.sh             # Re-setup in production mode	#   ./reset.sh             # 本番モードで再セットアップ
+#   ./reset.sh --dev       # Re-setup in development mode	#   ./reset.sh --dev       # 開発モードで再セットアップ
+# node_modules etc. are created as root inside Docker, so delete via sudo	# node_modules 等は Docker 内で root 作成のためコンテナ経由で削除
+  Dixlase - Full reset	  Dixlase - 完全リセット
+  The following will be deleted:	  以下が削除されます:
+    - Docker containers and volumes	    - Docker コンテナ・ボリューム
+    - html/ (source code)	    - html/ (ソースコード)
+    - mysql/ (database files)	    - mysql/ (データベース)
+  Are you sure you want to reset? (y/N): 	  本当にリセットしますか? (y/N):
+  Cancelled.	  キャンセルしました。
+[1/3] Stopping and removing Docker containers...	[1/3] Docker コンテナを停止・削除中...
+[2/3] Removing data...	[2/3] データを削除中...
+  Removed html/ and mysql/.	  html/ と mysql/ を削除しました。
+[3/3] Re-running setup...	[3/3] 再セットアップを実行中...

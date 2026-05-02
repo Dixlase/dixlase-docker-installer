@@ -1,0 +1,69 @@
+# Dixlase setup script	# Dixlase setup script
+# Purpose: Clone the core from GitHub and build the Docker environment.	# Purpose: Clone the core from GitHub and build the Docker environment.
+# Usage:	# Usage:
+#   ./setup.sh                  # Production mode (pre-built assets)	#   ./setup.sh                  # Production mode (pre-built assets)
+#   ./setup.sh --dev            # Development mode (Vite hot-reload)	#   ./setup.sh --dev            # Development mode (Vite hot-reload)
+#   ./setup.sh <branch>         # Clone the specified branch (default: main)	#   ./setup.sh <branch>         # Clone the specified branch (default: main)
+#   ./setup.sh --dev <branch>   # Development mode + specified branch	#   ./setup.sh --dev <branch>   # Development mode + specified branch
+# Repository URLs can be overridden via environment variables. Default is public HTTPS.	# Repository URLs can be overridden via environment variables. Default is public HTTPS.
+# Parse arguments: --dev flag and branch name	# Parse arguments: --dev flag and branch name
+# 1. Clone the core from GitHub	# 1. Clone the core from GitHub
+# 1.5. Fetch submodules (themes etc.)	# 1.5. Fetch submodules (themes etc.)
+# Clone directly instead of using a submodule (handles commits the core may not reach)	# Clone directly instead of using a submodule (handles commits the core may not reach)
+# 2. Set up .env	# 2. Set up .env
+# Root .env (used by Docker Compose to interpolate ports / DB credentials)	# Root .env (used by Docker Compose to interpolate ports / DB credentials)
+# Laravel .env (used by the application)	# Laravel .env (used by the application)
+# 3. Generate SSL certificate	# 3. Generate SSL certificate
+# 4. Build and start Docker containers	# 4. Build and start Docker containers
+# Wait for containers to start	# Wait for containers to start
+# 5. Set up Laravel	# 5. Set up Laravel
+# Reinstall because vendor/node_modules are missing on the host due to the volume mount	# Reinstall because vendor/node_modules are missing on the host due to the volume mount
+# Generate APP_KEY	# Generate APP_KEY
+# Create the storage symlink	# Create the storage symlink
+# Clear caches (skipped if DB does not exist yet)	# Clear caches (skipped if DB does not exist yet)
+# 6. Build assets (production mode only)	# 6. Build assets (production mode only)
+# Remove the hot file so the built assets are used	# Remove the hot file so the built assets are used
+# Done	# Done
+# Read the actual ports from .env and display them	# Read the actual ports from .env and display them
+# Omit the port from the URL when it is the standard 443/80	# Omit the port from the URL when it is the standard 443/80
+Development mode (Vite hot-reload)	Development mode (Vite hot-reload)
+Production mode (pre-built assets)	Production mode (pre-built assets)
+[1/6] html/ already exists.	[1/6] html/ already exists.
+  Delete and re-clone? (y/N): 	  Delete and re-clone? (y/N): 
+  Deleting html/...	  Deleting html/...
+  Cloning from GitHub...	  Cloning from GitHub...
+  Keeping existing html/.	  Keeping existing html/.
+[1/6] Cloning from GitHub...	[1/6] Cloning from GitHub...
+[1.5/6] Initializing submodules...	[1.5/6] Initializing submodules...
+  Fetching themes/DixlaseOnePage...	  Fetching themes/DixlaseOnePage...
+  Submodule fetch complete.	  Submodule fetch complete.
+[2/6] Setting up .env...	[2/6] Setting up .env...
+  Copied .env.example -> .env (for Docker Compose).	  Copied .env.example -> .env (for Docker Compose).
+  .env already exists (skipped).	  .env already exists (skipped).
+  Copied .env.example -> html/.env (for Laravel).	  Copied .env.example -> html/.env (for Laravel).
+  html/.env already exists (skipped).	  html/.env already exists (skipped).
+[3/6] Generating SSL certificate...	[3/6] Generating SSL certificate...
+  Certificate already exists (skipped).	  Certificate already exists (skipped).
+  Certificate generated.	  Certificate generated.
+[4/6] Building and starting Docker containers...	[4/6] Building and starting Docker containers...
+  Waiting for containers to start...	  Waiting for containers to start...
+[5/6] Setting up Laravel...	[5/6] Setting up Laravel...
+  Running composer install...	  Running composer install...
+  Running npm install...	  Running npm install...
+  Generated APP_KEY.	  Generated APP_KEY.
+  Created storage symlink.	  Created storage symlink.
+  Cleared caches.	  Cleared caches.
+[6/6] Development mode: Vite dev server is running in the vite container...	[6/6] Development mode: Vite dev server is running in the vite container...
+      Build skipped (hot-reload enabled).	      Build skipped (hot-reload enabled).
+[6/6] Building frontend assets...	[6/6] Building frontend assets...
+  Setup complete!	  Setup complete!
+  Access URLs:	  Access URLs:
+  Next steps:	  Next steps:
+    1. Open $SSL_URL in your browser.	    1. Open $SSL_URL in your browser.
+    2. The install wizard will appear.	    2. The install wizard will appear.
+    3. After install, start operations in the admin panel.	    3. After install, start operations in the admin panel.
+  Useful commands:	  Useful commands:
+# View logs	# View logs
+# Open a shell in the container	# Open a shell in the container
+# Full reset of the environment	# Full reset of the environment
+# Pull latest from GitHub	# Pull latest from GitHub

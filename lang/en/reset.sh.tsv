@@ -1,0 +1,17 @@
+# Dixlase complete reset	# Dixlase complete reset
+# Deletes all DB / source / Docker volumes and rebuilds from scratch.	# Deletes all DB / source / Docker volumes and rebuilds from scratch.
+# Usage:	# Usage:
+#   ./reset.sh             # Re-setup in production mode	#   ./reset.sh             # Re-setup in production mode
+#   ./reset.sh --dev       # Re-setup in development mode	#   ./reset.sh --dev       # Re-setup in development mode
+# node_modules etc. are created as root inside Docker, so delete via sudo	# node_modules etc. are created as root inside Docker, so delete via sudo
+  Dixlase - Full reset	  Dixlase - Full reset
+  The following will be deleted:	  The following will be deleted:
+    - Docker containers and volumes	    - Docker containers and volumes
+    - html/ (source code)	    - html/ (source code)
+    - mysql/ (database files)	    - mysql/ (database files)
+  Are you sure you want to reset? (y/N): 	  Are you sure you want to reset? (y/N): 
+  Cancelled.	  Cancelled.
+[1/3] Stopping and removing Docker containers...	[1/3] Stopping and removing Docker containers...
+[2/3] Removing data...	[2/3] Removing data...
+  Removed html/ and mysql/.	  Removed html/ and mysql/.
+[3/3] Re-running setup...	[3/3] Re-running setup...
