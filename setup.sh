@@ -15,7 +15,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-REPO_URL="git@github-dixlase:Dixlase/dixlase-core.git"
+# リポジトリ URL は環境変数で上書き可能。デフォルトは公開 HTTPS。
+REPO_URL="${DIXLASE_REPO_URL:-https://github.com/Dixlase/dixlase-core.git}"
+THEME_REPO_URL="${DIXLASE_THEME_REPO_URL:-https://github.com/Dixlase/theme-dixlase-onepage.git}"
 
 # 引数パース: --dev フラグとブランチ名
 DEV_MODE=false
@@ -70,7 +72,7 @@ cd html
 # サブモジュールではなく直接クローン（コアが参照するコミットが存在しない場合に対応）
 rm -rf themes/DixlaseOnePage
 echo "  themes/DixlaseOnePage を取得中..."
-git clone git@github-dixlase:Dixlase/theme-dixlase-onepage.git themes/DixlaseOnePage
+git clone "$THEME_REPO_URL" themes/DixlaseOnePage
 cd ..
 echo "  サブモジュールの取得が完了しました。"
 
@@ -94,16 +96,6 @@ if [ ! -f "html/.env" ]; then
     echo "  .env.example → html/.env (Laravel 用) にコピーしました。"
 else
     echo "  html/.env は既に存在します（スキップ）。"
-fi
-
-# 開発環境の .env から EXTENSION_GITHUB_TOKEN を取得して設定
-DEV_ENV="/Volumes/Data/Works/Dixlase/Core/docker/html/.env"
-if [ -f "$DEV_ENV" ]; then
-    TOKEN=$(grep '^EXTENSION_GITHUB_TOKEN=' "$DEV_ENV" | cut -d'=' -f2)
-    if [ -n "$TOKEN" ] && grep -q '^EXTENSION_GITHUB_TOKEN=$' "html/.env"; then
-        sed -i '' "s/^EXTENSION_GITHUB_TOKEN=$/EXTENSION_GITHUB_TOKEN=$TOKEN/" "html/.env"
-        echo "  開発環境から EXTENSION_GITHUB_TOKEN を自動設定しました。"
-    fi
 fi
 
 # -------------------------------------------------
