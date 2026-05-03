@@ -3,3 +3,4 @@
 # Development mode (Vite hot-reload):	# 開発モード (Vite hot-reload) で起動する場合:
 # Production mode (pre-built assets):	# 本番モード (ビルド済みアセット) で起動する場合:
 # NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.	# NGINX_VARIANT は setup.sh が .env の HTTPS フラグから導出します。
+# Activated by the "redis" profile (see COMPOSE_PROFILES in .env).	# "redis" プロファイル (.env の COMPOSE_PROFILES 参照) で有効化されます。

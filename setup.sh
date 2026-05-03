@@ -32,9 +32,7 @@ for arg in "$@"; do
     esac
 done
 
-COMPOSE_PROFILE_ARGS=()
 if [ "$DEV_MODE" = true ]; then
-    COMPOSE_PROFILE_ARGS=(--profile dev)
     MODE_LABEL="Development mode (Vite hot-reload)"
 else
     MODE_LABEL="Production mode (pre-built assets)"
@@ -110,6 +108,35 @@ else
 fi
 echo "  Selected nginx variant: nginx.$NGINX_VARIANT.conf (HTTPS=$HTTPS_VAL)"
 
+# Derive COMPOSE_PROFILES from VITE / REDIS so docker-compose starts the
+# right optional containers. CLI --dev forces VITE on for this run.
+VITE_VAL=$(grep '^VITE=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
+REDIS_VAL=$(grep '^REDIS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
+if [ "$DEV_MODE" = true ]; then
+    VITE_VAL=true
+fi
+PROFILES_LIST=""
+if [ "$VITE_VAL" = "true" ] || [ "$VITE_VAL" = "1" ]; then
+    PROFILES_LIST="dev"
+fi
+# REDIS defaults to true when unset/empty.
+if [ -z "$REDIS_VAL" ] || [ "$REDIS_VAL" = "true" ] || [ "$REDIS_VAL" = "1" ]; then
+    [ -n "$PROFILES_LIST" ] && PROFILES_LIST="${PROFILES_LIST},redis" || PROFILES_LIST="redis"
+fi
+if grep -q '^COMPOSE_PROFILES=' .env; then
+    sed -i.bak "s|^COMPOSE_PROFILES=.*|COMPOSE_PROFILES=$PROFILES_LIST|" .env
+    rm -f .env.bak
+else
+    printf 'COMPOSE_PROFILES=%s\n' "$PROFILES_LIST" >> .env
+fi
+echo "  Active compose profiles: ${PROFILES_LIST:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-true})"
+
+# Sync DEV_MODE with the effective VITE flag so step [6/6] and other
+# downstream logic reflect what actually runs.
+if [ "$VITE_VAL" = "true" ] || [ "$VITE_VAL" = "1" ]; then
+    DEV_MODE=true
+fi
+
 # -------------------------------------------------
 # 3. Generate SSL certificate
 # -------------------------------------------------
@@ -137,8 +164,9 @@ fi
 # -------------------------------------------------
 echo ""
 echo "[4/6] Building and starting Docker containers..."
-docker compose "${COMPOSE_PROFILE_ARGS[@]}" build
-docker compose "${COMPOSE_PROFILE_ARGS[@]}" up -d
+# Active profiles are picked up via COMPOSE_PROFILES in .env.
+docker compose build
+docker compose up -d
 
 # Wait for containers to start
 echo "  Waiting for containers to start..."
