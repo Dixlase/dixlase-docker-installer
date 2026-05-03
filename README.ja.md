@@ -63,6 +63,8 @@ Docker Compose の `dev` プロファイルで `vite` コンテナを追加起�
 
 ```env
 HTTPS=false           # true にすると自己署名証明書での TLS が有効になる
+VITE=false            # true にすると Vite dev サーバーを起動 (= --dev)
+REDIS=true            # false にすると Redis コンテナを起動しない
 APP_PORT=80
 APP_SSL_PORT=443
 FORWARD_DB_PORT=3306
@@ -77,7 +79,7 @@ DB_PASSWORD=password
 DB_ROOT_PASSWORD=root
 ```
 
-`HTTPS` を切り替えたあとは `./setup.sh` を再実行してください。Docker Compose が対応する nginx 設定 (`nginx/nginx.http.conf` または `nginx/nginx.https.conf`) を選択するためです。
+`HTTPS` / `VITE` / `REDIS` を切り替えたあとは `./setup.sh` を再実行してください。Docker Compose が対応する nginx 設定とアクティブな compose profile を反映します。`REDIS` をオフにした場合は Laravel 側の `CACHE_STORE` / `SESSION_DRIVER` も redis 以外に向け直してください。
 
 ローカルマシンで `80` / `443` ポートが既に使われている場合 (Apache / IIS など) は、`setup.sh` を実行する前に `.env` で `APP_PORT=8080` / `APP_SSL_PORT=8443` などの空きポートに変更してください。
 

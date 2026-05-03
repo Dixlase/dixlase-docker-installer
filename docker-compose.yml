@@ -84,6 +84,8 @@ services:
     container_name: dixlase-redis
     image: redis:latest
     restart: always
+    # Activated by the "redis" profile (see COMPOSE_PROFILES in .env).
+    profiles: ["redis"]
     ports:
       - "${FORWARD_REDIS_PORT:-6379}:6379"
     networks:

@@ -3,3 +3,4 @@
 # Development mode (Vite hot-reload):	# Development mode (Vite hot-reload):
 # Production mode (pre-built assets):	# Production mode (pre-built assets):
 # NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.	# NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.
+# Activated by the "redis" profile (see COMPOSE_PROFILES in .env).	# Activated by the "redis" profile (see COMPOSE_PROFILES in .env).
