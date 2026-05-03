@@ -35,6 +35,11 @@ RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath intl
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install gd
 
+# Install Redis PHP extension (PECL); enables Laravel cache / session / queue
+# drivers that target Redis. Required by the Dixlase install wizard's Redis
+# requirement check (extension_loaded('redis')).
+RUN pecl install redis && docker-php-ext-enable redis
+
 # Copy PHP configuration file
 COPY ./php/php.ini /usr/local/etc/php/conf.d/uploads.ini
 
