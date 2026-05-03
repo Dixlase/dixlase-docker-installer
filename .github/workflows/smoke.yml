@@ -61,7 +61,7 @@ jobs:
             -e 's|^DB_HOST=.*|DB_HOST=mysql|' \
             -e 's|^DB_DATABASE=.*|DB_DATABASE=dixlase|' \
             -e 's|^DB_USERNAME=.*|DB_USERNAME=dixlase|' \
-            -e 's|^DB_PASSWORD=.*|DB_PASSWORD=password|' \
+            -e 's|^DB_PASSWORD=.*|DB_PASSWORD=dixlase|' \
             -e 's|^APP_DEBUG=.*|APP_DEBUG=true|' \
             html/.env
           rm -f html/.env.bak
