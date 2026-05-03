@@ -119,8 +119,8 @@ PROFILES_LIST=""
 if [ "$VITE_VAL" = "true" ] || [ "$VITE_VAL" = "1" ]; then
     PROFILES_LIST="dev"
 fi
-# REDIS defaults to true when unset/empty.
-if [ -z "$REDIS_VAL" ] || [ "$REDIS_VAL" = "true" ] || [ "$REDIS_VAL" = "1" ]; then
+# REDIS defaults to false when unset/empty.
+if [ "$REDIS_VAL" = "true" ] || [ "$REDIS_VAL" = "1" ]; then
     [ -n "$PROFILES_LIST" ] && PROFILES_LIST="${PROFILES_LIST},redis" || PROFILES_LIST="redis"
 fi
 if grep -q '^COMPOSE_PROFILES=' .env; then
@@ -129,7 +129,7 @@ if grep -q '^COMPOSE_PROFILES=' .env; then
 else
     printf 'COMPOSE_PROFILES=%s\n' "$PROFILES_LIST" >> .env
 fi
-echo "  Active compose profiles: ${PROFILES_LIST:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-true})"
+echo "  Active compose profiles: ${PROFILES_LIST:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-false})"
 
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other
 # downstream logic reflect what actually runs.
