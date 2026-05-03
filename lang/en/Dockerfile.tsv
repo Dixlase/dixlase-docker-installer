@@ -2,6 +2,9 @@
 # Install Node.js 20 (NodeSource)	# Install Node.js 20 (NodeSource)
 # Install PHP extensions	# Install PHP extensions
 # Configure GD library	# Configure GD library
+# Install Redis PHP extension (PECL); enables Laravel cache / session / queue	# Install Redis PHP extension (PECL); enables Laravel cache / session / queue
+# drivers that target Redis. Required by the Dixlase install wizard's Redis	# drivers that target Redis. Required by the Dixlase install wizard's Redis
+# requirement check (extension_loaded('redis')).	# requirement check (extension_loaded('redis')).
 # Copy PHP configuration file	# Copy PHP configuration file
 # Install Composer	# Install Composer
 # Set working directory	# Set working directory
