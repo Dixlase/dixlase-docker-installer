@@ -62,9 +62,11 @@ To switch an existing setup between modes, run `./reset.sh --dev` or `./reset.sh
 All host-side ports and database credentials can be overridden via `.env` (root). Edit it after `setup.sh` has run, then restart with `docker compose up -d`.
 
 ```env
-HTTPS=false           # set to true to use TLS with a self-signed cert
-VITE=false            # set to true to start the Vite dev server (= --dev)
-REDIS=false           # set to true to start the Redis container
+HTTPS=false                  # set to true to use TLS with a self-signed cert
+VITE=false                   # set to true to start the Vite dev server (= --dev)
+REDIS=false                  # set to true to start the Redis container
+CONTAINER_PREFIX=dixlase     # name containers <prefix>-app, <prefix>-mysql, ...
+COMPOSE_PROJECT_NAME=dixlase # group label in Docker Desktop / `docker compose ls`
 APP_PORT=80
 APP_SSL_PORT=443
 FORWARD_DB_PORT=3306
@@ -75,7 +77,7 @@ FORWARD_VITE_PORT=5173
 
 DB_DATABASE=dixlase
 DB_USERNAME=dixlase
-DB_PASSWORD=password
+DB_PASSWORD=dixlase
 DB_ROOT_PASSWORD=root
 ```
 

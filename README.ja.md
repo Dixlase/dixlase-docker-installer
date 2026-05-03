@@ -62,9 +62,11 @@ Docker Compose の `dev` プロファイルで `vite` コンテナを追加起�
 ホスト側のポートと DB 認証情報はすべてルートの `.env` で上書きできます。`setup.sh` 実行後に `.env` を編集し、`docker compose up -d` で再起動してください。
 
 ```env
-HTTPS=false           # true にすると自己署名証明書での TLS が有効になる
-VITE=false            # true にすると Vite dev サーバーを起動 (= --dev)
-REDIS=false           # true にすると Redis コンテナを起動する
+HTTPS=false                  # true にすると自己署名証明書での TLS が有効になる
+VITE=false                   # true にすると Vite dev サーバーを起動 (= --dev)
+REDIS=false                  # true にすると Redis コンテナを起動する
+CONTAINER_PREFIX=dixlase     # コンテナ名を <prefix>-app, <prefix>-mysql, ... にする
+COMPOSE_PROJECT_NAME=dixlase # Docker Desktop や `docker compose ls` でのグループ名
 APP_PORT=80
 APP_SSL_PORT=443
 FORWARD_DB_PORT=3306
@@ -75,7 +77,7 @@ FORWARD_VITE_PORT=5173
 
 DB_DATABASE=dixlase
 DB_USERNAME=dixlase
-DB_PASSWORD=password
+DB_PASSWORD=dixlase
 DB_ROOT_PASSWORD=root
 ```
 

@@ -25,6 +25,12 @@
 # Derive NGINX_VARIANT from the HTTPS flag so docker-compose mounts the	# Derive NGINX_VARIANT from the HTTPS flag so docker-compose mounts the
 # matching nginx config. Re-derive on every run so toggling HTTPS in	# matching nginx config. Re-derive on every run so toggling HTTPS in
 # .env takes effect on the next setup.sh.	# .env takes effect on the next setup.sh.
+# Derive COMPOSE_PROFILES from VITE / REDIS so docker-compose starts the	# Derive COMPOSE_PROFILES from VITE / REDIS so docker-compose starts the
+# right optional containers. CLI --dev forces VITE on for this run.	# right optional containers. CLI --dev forces VITE on for this run.
+# REDIS defaults to false when unset/empty.	# REDIS defaults to false when unset/empty.
+# Sync DEV_MODE with the effective VITE flag so step [6/6] and other	# Sync DEV_MODE with the effective VITE flag so step [6/6] and other
+# downstream logic reflect what actually runs.	# downstream logic reflect what actually runs.
+# Active profiles are picked up via COMPOSE_PROFILES in .env.	# Active profiles are picked up via COMPOSE_PROFILES in .env.
 # Read the actual ports from .env and display them	# Read the actual ports from .env and display them
 # Build CMS URL based on the HTTPS flag; omit the port when it is the	# Build CMS URL based on the HTTPS flag; omit the port when it is the
 # standard 80 / 443 for the chosen scheme.	# standard 80 / 443 for the chosen scheme.
