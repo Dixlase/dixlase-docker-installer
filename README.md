@@ -64,7 +64,7 @@ All host-side ports and database credentials can be overridden via `.env` (root)
 ```env
 HTTPS=false           # set to true to use TLS with a self-signed cert
 VITE=false            # set to true to start the Vite dev server (= --dev)
-REDIS=true            # set to false to skip the Redis container
+REDIS=false           # set to true to start the Redis container
 APP_PORT=80
 APP_SSL_PORT=443
 FORWARD_DB_PORT=3306
@@ -79,7 +79,7 @@ DB_PASSWORD=password
 DB_ROOT_PASSWORD=root
 ```
 
-After flipping `HTTPS`, `VITE`, or `REDIS`, re-run `./setup.sh` so Docker Compose picks up the matching nginx config and active compose profiles. If you turn `REDIS` off, also point Laravel's `CACHE_STORE` and `SESSION_DRIVER` away from `redis`.
+After flipping `HTTPS`, `VITE`, or `REDIS`, re-run `./setup.sh` so Docker Compose picks up the matching nginx config and active compose profiles. When you enable `REDIS`, also point Laravel's `CACHE_STORE` and `SESSION_DRIVER` at `redis`.
 
 If port `80` or `443` is already in use on your machine (Apache, IIS, etc.), set `APP_PORT=8080` and `APP_SSL_PORT=8443` (or any free ports) in `.env` before running `setup.sh`.
 
