@@ -10,7 +10,7 @@
 
 services:
   dixlase.test:
-    container_name: dixlase-app
+    container_name: ${CONTAINER_PREFIX:-dixlase}-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -26,7 +26,7 @@ services:
     restart: always
 
   web:
-    container_name: dixlase-web
+    container_name: ${CONTAINER_PREFIX:-dixlase}-web
     image: nginx:alpine
     restart: always
     volumes:
@@ -43,7 +43,7 @@ services:
       - dixlase
 
   mysql:
-    container_name: dixlase-mysql
+    container_name: ${CONTAINER_PREFIX:-dixlase}-mysql
     image: mariadb:latest
     restart: always
     environment:
@@ -59,7 +59,7 @@ services:
       - dixlase
 
   adminer:
-    container_name: dixlase-adminer
+    container_name: ${CONTAINER_PREFIX:-dixlase}-adminer
     image: adminer:latest
     restart: always
     depends_on:
@@ -72,7 +72,7 @@ services:
       - dixlase
 
   mailpit:
-    container_name: dixlase-mail
+    container_name: ${CONTAINER_PREFIX:-dixlase}-mail
     image: axllent/mailpit
     restart: always
     ports:
@@ -81,7 +81,7 @@ services:
       - dixlase
 
   redis:
-    container_name: dixlase-redis
+    container_name: ${CONTAINER_PREFIX:-dixlase}-redis
     image: redis:latest
     restart: always
     # Activated by the "redis" profile (see COMPOSE_PROFILES in .env).
@@ -94,7 +94,7 @@ services:
       - redis:/data
 
   vite:
-    container_name: dixlase-vite
+    container_name: ${CONTAINER_PREFIX:-dixlase}-vite
     profiles: ["dev"]
     build:
       context: .
