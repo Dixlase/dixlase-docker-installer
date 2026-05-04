@@ -187,6 +187,20 @@ fi
 # -------------------------------------------------
 echo ""
 echo "[4/6] Building and starting Docker containers..."
+# If containers from a previous run exist, offer to recreate them.
+# Recreation guarantees a clean state and avoids Docker Desktop bind-mount
+# caching where freshly built host files are not visible to running containers.
+EXISTING_CONTAINERS=$(docker compose ps -aq 2>/dev/null | wc -l | tr -d ' ')
+if [ "$EXISTING_CONTAINERS" -gt 0 ]; then
+    echo "  Existing containers detected ($EXISTING_CONTAINERS)."
+    read -r -p "  Recreate them for a clean start? (y/N): " recreate
+    if [ "$recreate" = "y" ] || [ "$recreate" = "Y" ]; then
+        echo "  Removing existing containers..."
+        docker compose down
+    else
+        echo "  Keeping existing containers (in-place restart)."
+    fi
+fi
 # Active profiles are picked up from COMPOSE_PROFILES exported above.
 docker compose build
 docker compose up -d
@@ -235,6 +249,11 @@ else
     # Remove the hot file so the built assets are used
     docker compose exec -T dixlase.test rm -f public/hot
     docker compose exec -T dixlase.test npm run build
+    # Restart web so nginx sees freshly built assets. Docker Desktop bind
+    # mounts on macOS sometimes hide files that appeared after the container
+    # started; restarting forces nginx to re-read the mounted directory.
+    echo "  Restarting web to refresh asset mount..."
+    docker compose restart web
 fi
 
 # -------------------------------------------------
