@@ -13,7 +13,7 @@ For Japanese, see [README.ja.md](./README.ja.md).
 ## Quick Start
 
 ```bash
-git clone https://github.com/Dixlase/dixlase-installer-docker.git dixlase
+git clone https://github.com/Dixlase/dixlase-docker-installer.git dixlase
 cd dixlase
 ./setup.sh
 ```

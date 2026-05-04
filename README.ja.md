@@ -13,7 +13,7 @@ For English, see [README.md](./README.md).
 ## クイックスタート
 
 ```bash
-git clone https://github.com/Dixlase/dixlase-installer-docker.git dixlase
+git clone https://github.com/Dixlase/dixlase-docker-installer.git dixlase
 cd dixlase
 ./setup.sh
 ```
