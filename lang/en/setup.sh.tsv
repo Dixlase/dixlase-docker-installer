@@ -11,12 +11,12 @@
 # 1.5. Fetch submodules (themes etc.)	# 1.5. Fetch submodules (themes etc.)
 # Clone directly instead of using a submodule (handles commits the core may not reach)	# Clone directly instead of using a submodule (handles commits the core may not reach)
 # git clone of core left an empty placeholder directory for every	# git clone of core left an empty placeholder directory for every
-# submodule listed in core's .gitmodules. Plugins are not auto-installed	# submodule listed in core's .gitmodules. Plugins are not auto-installed
-# by setup.sh; the install wizard installs them. Remove the empty	# by setup.sh; the install wizard installs them. Remove the empty
-# placeholders so html/ does not look half-installed. rmdir is safe:	# placeholders so html/ does not look half-installed. rmdir is safe:
-# it only deletes empty directories, so any submodule we have already	# it only deletes empty directories, so any submodule we have already
-# populated (themes/DixlaseOnePage above, or anything the wizard added	# populated (themes/DixlaseOnePage above, or anything the wizard added
-# on a re-run) is left untouched.	# on a re-run) is left untouched.
+# submodule listed in core's .gitmodules. Anything not explicitly	# submodule listed in core's .gitmodules. Anything not explicitly
+# cloned above (plugins, additional themes) is left to the install	# cloned above (plugins, additional themes) is left to the install
+# wizard. Remove the empty placeholders so html/ does not look	# wizard. Remove the empty placeholders so html/ does not look
+# half-installed. rmdir is safe: it only deletes empty directories,	# half-installed. rmdir is safe: it only deletes empty directories,
+# so any submodule we have already populated (themes/DixlaseOnePage	# so any submodule we have already populated (themes/DixlaseOnePage
+# above, or anything the wizard added on a re-run) is left untouched.	# above, or anything the wizard added on a re-run) is left untouched.
 # 2. Set up .env	# 2. Set up .env
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)	# Root .env (used by Docker Compose to interpolate ports / DB credentials)
 # 3. Generate SSL certificate	# 3. Generate SSL certificate

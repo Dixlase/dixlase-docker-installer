@@ -76,12 +76,12 @@ echo "  Fetching themes/DixlaseOnePage..."
 git clone "$THEME_REPO_URL" themes/DixlaseOnePage
 
 # git clone of core left an empty placeholder directory for every
-# submodule listed in core's .gitmodules. Plugins are not auto-installed
-# by setup.sh; the install wizard installs them. Remove the empty
-# placeholders so html/ does not look half-installed. rmdir is safe:
-# it only deletes empty directories, so any submodule we have already
-# populated (themes/DixlaseOnePage above, or anything the wizard added
-# on a re-run) is left untouched.
+# submodule listed in core's .gitmodules. Anything not explicitly
+# cloned above (plugins, additional themes) is left to the install
+# wizard. Remove the empty placeholders so html/ does not look
+# half-installed. rmdir is safe: it only deletes empty directories,
+# so any submodule we have already populated (themes/DixlaseOnePage
+# above, or anything the wizard added on a re-run) is left untouched.
 if [ -f .gitmodules ]; then
     while IFS= read -r submodule_path; do
         if [ -d "$submodule_path" ] && rmdir "$submodule_path" 2>/dev/null; then
