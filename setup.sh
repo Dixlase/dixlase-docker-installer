@@ -71,9 +71,26 @@ echo ""
 echo "[1.5/6] Initializing submodules..."
 cd html
 # Clone directly instead of using a submodule (handles commits the core may not reach)
-rm -rf themes/DixlaseOnePage
-echo "  Fetching themes/DixlaseOnePage..."
-git clone "$THEME_REPO_URL" themes/DixlaseOnePage
+# Mirror the html/ prompt: if themes/DixlaseOnePage already has content
+# (user kept html/ above, or has local theme work), ask before
+# overwriting; otherwise (fresh clone or empty submodule placeholder)
+# just clone.
+if [ -d "themes/DixlaseOnePage" ] && [ -n "$(ls -A themes/DixlaseOnePage 2>/dev/null)" ]; then
+    echo "  themes/DixlaseOnePage already exists."
+    read -r -p "  Delete and re-clone? (y/N): " confirm
+    if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+        echo "  Deleting themes/DixlaseOnePage..."
+        rm -rf themes/DixlaseOnePage
+        echo "  Fetching themes/DixlaseOnePage..."
+        git clone "$THEME_REPO_URL" themes/DixlaseOnePage
+    else
+        echo "  Keeping existing themes/DixlaseOnePage."
+    fi
+else
+    rm -rf themes/DixlaseOnePage
+    echo "  Fetching themes/DixlaseOnePage..."
+    git clone "$THEME_REPO_URL" themes/DixlaseOnePage
+fi
 
 # git clone of core left an empty placeholder directory for every
 # submodule listed in core's .gitmodules. Anything not explicitly

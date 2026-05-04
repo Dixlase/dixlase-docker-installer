@@ -10,6 +10,10 @@
 # 1. Clone the core from GitHub	# 1. GitHub からコアをクローン
 # 1.5. Fetch submodules (themes etc.)	# 1.5. サブモジュール（テーマ等）を取得
 # Clone directly instead of using a submodule (handles commits the core may not reach)	# サブモジュールではなく直接クローン（コアが参照するコミットが存在しない場合に対応）
+# Mirror the html/ prompt: if themes/DixlaseOnePage already has content	# html/ と同じ作法: themes/DixlaseOnePage に内容があれば (html/ を残した
+# (user kept html/ above, or has local theme work), ask before	# り、テーマにローカル作業があったり) 上書き前に確認する。空のプレース
+# overwriting; otherwise (fresh clone or empty submodule placeholder)	# ホルダーまたは未存在の場合 (新規クローン直後、サブモジュールの空ディ
+# just clone.	# レクトリ) はそのままクローンする。
 # git clone of core left an empty placeholder directory for every	# core の git clone は core の .gitmodules に列挙されたサブモジュール
 # submodule listed in core's .gitmodules. Anything not explicitly	# ごとに空のプレースホルダーディレクトリを残します。上で明示的にクローン
 # cloned above (plugins, additional themes) is left to the install	# したもの以外 (プラグイン、追加のテーマ) はインストールウィザードに任せ、
@@ -49,6 +53,9 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
   Keeping existing html/.	  既存の html/ をそのまま使用します。
 [1/6] Cloning from GitHub...	[1/6] GitHub からクローン中...
 [1.5/6] Initializing submodules...	[1.5/6] サブモジュールを初期化中...
+  themes/DixlaseOnePage already exists.	  themes/DixlaseOnePage は既に存在します。
+  Deleting themes/DixlaseOnePage...	  themes/DixlaseOnePage を削除中...
+  Keeping existing themes/DixlaseOnePage.	  既存の themes/DixlaseOnePage をそのまま使用します。
   Fetching themes/DixlaseOnePage...	  themes/DixlaseOnePage を取得中...
   Removed empty submodule placeholder: $submodule_path	  空のサブモジュールプレースホルダーを削除: $submodule_path
   Submodule fetch complete.	  サブモジュールの取得が完了しました。

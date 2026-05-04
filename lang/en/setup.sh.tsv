@@ -10,6 +10,10 @@
 # 1. Clone the core from GitHub	# 1. Clone the core from GitHub
 # 1.5. Fetch submodules (themes etc.)	# 1.5. Fetch submodules (themes etc.)
 # Clone directly instead of using a submodule (handles commits the core may not reach)	# Clone directly instead of using a submodule (handles commits the core may not reach)
+# Mirror the html/ prompt: if themes/DixlaseOnePage already has content	# Mirror the html/ prompt: if themes/DixlaseOnePage already has content
+# (user kept html/ above, or has local theme work), ask before	# (user kept html/ above, or has local theme work), ask before
+# overwriting; otherwise (fresh clone or empty submodule placeholder)	# overwriting; otherwise (fresh clone or empty submodule placeholder)
+# just clone.	# just clone.
 # git clone of core left an empty placeholder directory for every	# git clone of core left an empty placeholder directory for every
 # submodule listed in core's .gitmodules. Anything not explicitly	# submodule listed in core's .gitmodules. Anything not explicitly
 # cloned above (plugins, additional themes) is left to the install	# cloned above (plugins, additional themes) is left to the install
@@ -49,6 +53,9 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
   Keeping existing html/.	  Keeping existing html/.
 [1/6] Cloning from GitHub...	[1/6] Cloning from GitHub...
 [1.5/6] Initializing submodules...	[1.5/6] Initializing submodules...
+  themes/DixlaseOnePage already exists.	  themes/DixlaseOnePage already exists.
+  Deleting themes/DixlaseOnePage...	  Deleting themes/DixlaseOnePage...
+  Keeping existing themes/DixlaseOnePage.	  Keeping existing themes/DixlaseOnePage.
   Fetching themes/DixlaseOnePage...	  Fetching themes/DixlaseOnePage...
   Removed empty submodule placeholder: $submodule_path	  Removed empty submodule placeholder: $submodule_path
   Submodule fetch complete.	  Submodule fetch complete.
