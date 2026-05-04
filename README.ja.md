@@ -67,13 +67,13 @@ VITE=false                   # true にすると Vite dev サーバーを起動 
 REDIS=false                  # true にすると Redis コンテナを起動する
 CONTAINER_PREFIX=dixlase     # コンテナ名を <prefix>-app, <prefix>-mysql, ... にする
 COMPOSE_PROJECT_NAME=dixlase # Docker Desktop や `docker compose ls` でのグループ名
-APP_PORT=80
-APP_SSL_PORT=443
-FORWARD_DB_PORT=3306
-FORWARD_ADMINER_PORT=8081
-FORWARD_MAILPIT_PORT=8025
-FORWARD_REDIS_PORT=6379
-FORWARD_VITE_PORT=5173
+APP_PORT=40080         # "4" = D = Dixlase の頭文字 (アルファベット 4 番目)
+APP_SSL_PORT=40443
+FORWARD_DB_PORT=43306
+FORWARD_ADMINER_PORT=48081
+FORWARD_MAILPIT_PORT=48025
+FORWARD_REDIS_PORT=46379
+FORWARD_VITE_PORT=45173
 
 DB_DATABASE=dixlase
 DB_USERNAME=dixlase
@@ -85,7 +85,7 @@ DB_ROOT_PASSWORD=root
 
 `REDIS` を有効化する場合は Laravel 側の `CACHE_STORE` / `SESSION_DRIVER` も `redis` に向けてください。
 
-ローカルマシンで `80` / `443` ポートが既に使われている場合 (Apache / IIS など) は、`setup.sh` を実行する前に `.env` で `APP_PORT=8080` / `APP_SSL_PORT=8443` などの空きポートに変更してください。
+デフォルトは `4xxxx` 名前空間 ("4" = D = Dixlase の頭文字、アルファベット 4 番目) を使っていて、標準ポートを既に他サービスで使っていても衝突しません。衝突がなく標準ポートで動かしたければ、`setup.sh` 実行前に `.env` で `APP_PORT=80` / `APP_SSL_PORT=443` に書き換えてください。
 
 ### リポジトリ URL の上書き
 
