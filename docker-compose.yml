@@ -31,7 +31,7 @@ services:
     restart: always
     volumes:
       - ./html:/var/www/html
-      # NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.
+      # NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.
       - ./nginx/nginx.${NGINX_VARIANT:-http}.conf:/etc/nginx/conf.d/default.conf
       - ./certs:/etc/ssl/private
     ports:
@@ -84,7 +84,7 @@ services:
     container_name: ${CONTAINER_PREFIX:-dixlase}-redis
     image: redis:latest
     restart: always
-    # Activated by the "redis" profile (see COMPOSE_PROFILES in .env).
+    # Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).
     profiles: ["redis"]
     ports:
       - "${FORWARD_REDIS_PORT:-6379}:6379"
