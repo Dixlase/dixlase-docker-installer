@@ -10,6 +10,13 @@
 # 1. Clone the core from GitHub	# 1. GitHub からコアをクローン
 # 1.5. Fetch submodules (themes etc.)	# 1.5. サブモジュール（テーマ等）を取得
 # Clone directly instead of using a submodule (handles commits the core may not reach)	# サブモジュールではなく直接クローン（コアが参照するコミットが存在しない場合に対応）
+# git clone of core left an empty placeholder directory for every	# core の git clone は core の .gitmodules に列挙されたサブモジュール
+# submodule listed in core's .gitmodules. Plugins are not auto-installed	# ごとに空のプレースホルダーディレクトリを残します。プラグインは
+# by setup.sh; the install wizard installs them. Remove the empty	# setup.sh では自動インストールせず、インストールウィザードで導入する
+# placeholders so html/ does not look half-installed. rmdir is safe:	# 方針のため、html/ が半端に見えないよう空のプレースホルダーを削除します。
+# it only deletes empty directories, so any submodule we have already	# rmdir は空ディレクトリしか削除しないため、既に展開済みのサブモジュール
+# populated (themes/DixlaseOnePage above, or anything the wizard added	# (上で展開した themes/DixlaseOnePage や、再実行時にウィザードが
+# on a re-run) is left untouched.	# 配置したもの) はそのまま残ります。
 # 2. Set up .env	# 2. .env のセットアップ
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)	# ルート .env (Docker Compose 用) — ポート/DB認証情報の補間に使用
 # 3. Generate SSL certificate	# 3. SSL 証明書の生成
@@ -44,6 +51,7 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 [1/6] Cloning from GitHub...	[1/6] GitHub からクローン中...
 [1.5/6] Initializing submodules...	[1.5/6] サブモジュールを初期化中...
   Fetching themes/DixlaseOnePage...	  themes/DixlaseOnePage を取得中...
+  Removed empty submodule placeholder: $submodule_path	  空のサブモジュールプレースホルダーを削除: $submodule_path
   Submodule fetch complete.	  サブモジュールの取得が完了しました。
 [2/6] Setting up .env...	[2/6] .env をセットアップ中...
   Copied .env.example -> .env (for Docker Compose).	  .env.example → .env (Docker Compose 用) にコピーしました。

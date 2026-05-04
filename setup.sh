@@ -74,6 +74,22 @@ cd html
 rm -rf themes/DixlaseOnePage
 echo "  Fetching themes/DixlaseOnePage..."
 git clone "$THEME_REPO_URL" themes/DixlaseOnePage
+
+# git clone of core left an empty placeholder directory for every
+# submodule listed in core's .gitmodules. Plugins are not auto-installed
+# by setup.sh; the install wizard installs them. Remove the empty
+# placeholders so html/ does not look half-installed. rmdir is safe:
+# it only deletes empty directories, so any submodule we have already
+# populated (themes/DixlaseOnePage above, or anything the wizard added
+# on a re-run) is left untouched.
+if [ -f .gitmodules ]; then
+    while IFS= read -r submodule_path; do
+        if [ -d "$submodule_path" ] && rmdir "$submodule_path" 2>/dev/null; then
+            echo "  Removed empty submodule placeholder: $submodule_path"
+        fi
+    done < <(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
+fi
+
 cd ..
 echo "  Submodule fetch complete."
 
