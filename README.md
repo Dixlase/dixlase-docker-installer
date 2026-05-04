@@ -81,7 +81,9 @@ DB_PASSWORD=dixlase
 DB_ROOT_PASSWORD=root
 ```
 
-After flipping `HTTPS`, `VITE`, or `REDIS`, re-run `./setup.sh` so Docker Compose picks up the matching nginx config and active compose profiles. When you enable `REDIS`, also point Laravel's `CACHE_STORE` and `SESSION_DRIVER` at `redis`.
+After flipping `HTTPS`, `VITE`, or `REDIS`, re-run `./setup.sh` so Docker Compose picks up the matching nginx config and active compose profiles. The derived `NGINX_VARIANT` / `COMPOSE_PROFILES` are exported by `setup.sh` for its own `docker compose up` call and are *not* written back to `.env` — `.env` stays user-owned. The same applies after `docker compose down`: raw `docker compose up -d` from a fresh shell will skip profiled services (Vite, Redis), so prefer `./setup.sh` (idempotent) to bring everything back up.
+
+When you enable `REDIS`, also point Laravel's `CACHE_STORE` and `SESSION_DRIVER` at `redis`.
 
 If port `80` or `443` is already in use on your machine (Apache, IIS, etc.), set `APP_PORT=8080` and `APP_SSL_PORT=8443` (or any free ports) in `.env` before running `setup.sh`.
 

@@ -107,45 +107,35 @@ else
     echo "  .env already exists (skipped)."
 fi
 
-# Derive NGINX_VARIANT from the HTTPS flag so docker-compose mounts the
-# matching nginx config. Re-derive on every run so toggling HTTPS in
-# .env takes effect on the next setup.sh.
+# Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from
+# VITE / REDIS. Values are exported to setup.sh's process environment
+# so docker-compose picks them up below; we deliberately do NOT write
+# them back to .env (.env is user-owned). --dev forces VITE on.
 HTTPS_VAL=$(grep '^HTTPS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 if [ "$HTTPS_VAL" = "true" ] || [ "$HTTPS_VAL" = "1" ]; then
     NGINX_VARIANT=https
 else
     NGINX_VARIANT=http
 fi
-if grep -q '^NGINX_VARIANT=' .env; then
-    sed -i.bak "s|^NGINX_VARIANT=.*|NGINX_VARIANT=$NGINX_VARIANT|" .env
-    rm -f .env.bak
-else
-    printf 'NGINX_VARIANT=%s\n' "$NGINX_VARIANT" >> .env
-fi
-echo "  Selected nginx variant: nginx.$NGINX_VARIANT.conf (HTTPS=$HTTPS_VAL)"
 
-# Derive COMPOSE_PROFILES from VITE / REDIS so docker-compose starts the
-# right optional containers. CLI --dev forces VITE on for this run.
 VITE_VAL=$(grep '^VITE=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 REDIS_VAL=$(grep '^REDIS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 if [ "$DEV_MODE" = true ]; then
     VITE_VAL=true
 fi
-PROFILES_LIST=""
+COMPOSE_PROFILES=""
 if [ "$VITE_VAL" = "true" ] || [ "$VITE_VAL" = "1" ]; then
-    PROFILES_LIST="dev"
+    COMPOSE_PROFILES="dev"
 fi
 # REDIS defaults to false when unset/empty.
 if [ "$REDIS_VAL" = "true" ] || [ "$REDIS_VAL" = "1" ]; then
-    [ -n "$PROFILES_LIST" ] && PROFILES_LIST="${PROFILES_LIST},redis" || PROFILES_LIST="redis"
+    [ -n "$COMPOSE_PROFILES" ] && COMPOSE_PROFILES="${COMPOSE_PROFILES},redis" || COMPOSE_PROFILES="redis"
 fi
-if grep -q '^COMPOSE_PROFILES=' .env; then
-    sed -i.bak "s|^COMPOSE_PROFILES=.*|COMPOSE_PROFILES=$PROFILES_LIST|" .env
-    rm -f .env.bak
-else
-    printf 'COMPOSE_PROFILES=%s\n' "$PROFILES_LIST" >> .env
-fi
-echo "  Active compose profiles: ${PROFILES_LIST:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-false})"
+
+export NGINX_VARIANT COMPOSE_PROFILES
+
+echo "  Selected nginx variant: nginx.$NGINX_VARIANT.conf (HTTPS=$HTTPS_VAL)"
+echo "  Active compose profiles: ${COMPOSE_PROFILES:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-false})"
 
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other
 # downstream logic reflect what actually runs.
@@ -180,7 +170,7 @@ fi
 # -------------------------------------------------
 echo ""
 echo "[4/6] Building and starting Docker containers..."
-# Active profiles are picked up via COMPOSE_PROFILES in .env.
+# Active profiles are picked up from COMPOSE_PROFILES exported above.
 docker compose build
 docker compose up -d
 

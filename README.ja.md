@@ -81,7 +81,9 @@ DB_PASSWORD=dixlase
 DB_ROOT_PASSWORD=root
 ```
 
-`HTTPS` / `VITE` / `REDIS` を切り替えたあとは `./setup.sh` を再実行してください。Docker Compose が対応する nginx 設定とアクティブな compose profile を反映します。`REDIS` を有効化する場合は Laravel 側の `CACHE_STORE` / `SESSION_DRIVER` も `redis` に向けてください。
+`HTTPS` / `VITE` / `REDIS` を切り替えたあとは `./setup.sh` を再実行してください。派生する `NGINX_VARIANT` / `COMPOSE_PROFILES` は `setup.sh` が自身の `docker compose up` 呼び出し向けに export するだけで、`.env` には書き戻しません — `.env` はユーザー所有領域です。`docker compose down` のあとも同様で、素の `docker compose up -d` では profile 配下のサービス (Vite / Redis) が起動しないため、再起動には `./setup.sh` (idempotent) を使うのが確実です。
+
+`REDIS` を有効化する場合は Laravel 側の `CACHE_STORE` / `SESSION_DRIVER` も `redis` に向けてください。
 
 ローカルマシンで `80` / `443` ポートが既に使われている場合 (Apache / IIS など) は、`setup.sh` を実行する前に `.env` で `APP_PORT=8080` / `APP_SSL_PORT=8443` などの空きポートに変更してください。
 

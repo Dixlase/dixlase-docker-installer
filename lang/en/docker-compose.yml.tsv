@@ -2,5 +2,5 @@
 # Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.	# Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.
 # Development mode (Vite hot-reload):	# Development mode (Vite hot-reload):
 # Production mode (pre-built assets):	# Production mode (pre-built assets):
-# NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.	# NGINX_VARIANT is derived by setup.sh from the HTTPS flag in .env.
-# Activated by the "redis" profile (see COMPOSE_PROFILES in .env).	# Activated by the "redis" profile (see COMPOSE_PROFILES in .env).
+# NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.	# NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.
+# Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).	# Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).

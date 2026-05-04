@@ -29,15 +29,14 @@
 # 6. Build assets (production mode only)	# 6. アセットのビルド (本番モードのみ)
 # Remove the hot file so the built assets are used	# hot ファイルを削除してビルド済みアセットを使用させる
 # Done	# 完了
-# Derive NGINX_VARIANT from the HTTPS flag so docker-compose mounts the	# HTTPS フラグから NGINX_VARIANT を導出し、docker-compose に対応する
-# matching nginx config. Re-derive on every run so toggling HTTPS in	# nginx 設定をマウントさせる。.env の HTTPS を切り替えた次回実行時に
-# .env takes effect on the next setup.sh.	# 反映されるよう、毎回再導出する。
-# Derive COMPOSE_PROFILES from VITE / REDIS so docker-compose starts the	# VITE / REDIS から COMPOSE_PROFILES を導出し、docker-compose に対応する
-# right optional containers. CLI --dev forces VITE on for this run.	# 任意コンテナを起動させる。CLI の --dev は今回の実行に限り VITE を強制 ON。
+# Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from	# HTTPS フラグから NGINX_VARIANT を、VITE / REDIS から COMPOSE_PROFILES を
+# VITE / REDIS. Values are exported to setup.sh's process environment	# 導出して setup.sh のプロセス環境に export し、以降の docker-compose に
+# so docker-compose picks them up below; we deliberately do NOT write	# 渡します。.env はユーザー所有領域とみなし、これらの派生値を書き戻す
+# them back to .env (.env is user-owned). --dev forces VITE on.	# ことはしません。--dev は今回の実行に限り VITE を強制 ON にします。
 # REDIS defaults to false when unset/empty.	# REDIS は空 / 未設定のとき false 扱い。
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other	# 実際に動く内容と一致するよう、有効な VITE フラグと DEV_MODE を同期させる
 # downstream logic reflect what actually runs.	# (ステップ [6/6] と以降のロジックの整合)。
-# Active profiles are picked up via COMPOSE_PROFILES in .env.	# 有効な profile は .env の COMPOSE_PROFILES から自動的に拾われる。
+# Active profiles are picked up from COMPOSE_PROFILES exported above.	# 有効な profile は上で export した COMPOSE_PROFILES から拾われる。
 # Read the actual ports from .env and display them	# .env から実際のポートを読み取って表示
 # Build CMS URL based on the HTTPS flag; omit the port when it is the	# HTTPS フラグに応じて CMS の URL を構築。選択したスキームの標準ポート
 # standard 80 / 443 for the chosen scheme.	# (80 / 443) のときは URL からポート番号を省略する。
