@@ -104,6 +104,11 @@ services:
       - ./certs:/etc/ssl/private
     ports:
       - "${FORWARD_VITE_PORT:-5173}:5173"
+    environment:
+      # Tell vite.config.js which host-side port the browser will connect
+      # to for HMR. The container still binds 5173 internally; this is just
+      # the URL announced to the client.
+      VITE_HMR_CLIENT_PORT: "${FORWARD_VITE_PORT:-5173}"
     networks:
       - dixlase
 
