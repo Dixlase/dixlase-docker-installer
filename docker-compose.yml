@@ -52,7 +52,11 @@ services:
       MYSQL_USER: "${DB_USERNAME:-dixlase}"
       MYSQL_PASSWORD: "${DB_PASSWORD:-password}"
     ports:
-      - "${FORWARD_DB_PORT:-3306}:3306"
+      # Bind to 127.0.0.1 by default so the DB is reachable only from this
+      # host (TablePlus / Sequel Ace on the host machine still work). Override
+      # DB_BIND_ADDRESS to 0.0.0.0 only if you intentionally need LAN-wide
+      # access — that is what akiramysql-style bots scan for. See SECURITY.md.
+      - "${DB_BIND_ADDRESS:-127.0.0.1}:${FORWARD_DB_PORT:-3306}:3306"
     volumes:
       - ./mysql:/var/lib/mysql
     networks:
