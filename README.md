@@ -34,8 +34,8 @@ After setup completes, open `http://localhost` in your browser. The first visit 
 | Service | URL |
 | --- | --- |
 | Dixlase CMS | `http://localhost` (or `https://localhost` when `HTTPS=true`) |
-| Adminer (DB GUI) | `http://localhost:8081` |
-| Mailpit (mail catcher) | `http://localhost:8025` |
+| Adminer (DB GUI) | `http://localhost:40081` |
+| Mailpit (mail catcher) | `http://localhost:40025` |
 
 ## Modes
 
@@ -69,11 +69,11 @@ CONTAINER_PREFIX=dixlase     # name containers <prefix>-app, <prefix>-mysql, ...
 COMPOSE_PROJECT_NAME=dixlase # group label in Docker Desktop / `docker compose ls`
 APP_PORT=40080         # "4" = D = Dixlase, alphabetically the 4th letter
 APP_SSL_PORT=40443
-FORWARD_DB_PORT=43306
-FORWARD_ADMINER_PORT=48081
-FORWARD_MAILPIT_PORT=48025
-FORWARD_REDIS_PORT=46379
-FORWARD_VITE_PORT=45173
+FORWARD_DB_PORT=40306
+FORWARD_ADMINER_PORT=40081
+FORWARD_MAILPIT_PORT=40025
+FORWARD_REDIS_PORT=40379
+FORWARD_VITE_PORT=40173
 
 DB_DATABASE=dixlase
 DB_USERNAME=dixlase
