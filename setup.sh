@@ -249,6 +249,21 @@ else
     # Remove the hot file so the built assets are used
     docker compose exec -T dixlase.test rm -f public/hot
     docker compose exec -T dixlase.test npm run build
+
+    # Build theme assets. Each Dixlase theme ships its own package.json
+    # / vite.config.js because themes are independent of core's build
+    # pipeline. The theme outputs to themes/<name>/resources/assets/,
+    # which is then exposed under public/assets/themes/<name> via the
+    # symlink below. Without this step, theme front-end JS (e.g.
+    # appearanceTheme on the public site) is missing and Alpine throws
+    # "is not defined" errors on the rendered page.
+    if [ -f html/themes/DixlaseOnePage/package.json ]; then
+        echo "  Building theme assets (themes/DixlaseOnePage)..."
+        docker compose exec -T dixlase.test bash -c "cd themes/DixlaseOnePage && npm install && npm run build"
+        echo "  Linking theme assets into public/..."
+        docker compose exec -T dixlase.test php artisan dls:theme:symlink create DixlaseOnePage 2>/dev/null || true
+    fi
+
     # Restart web so nginx sees freshly built assets. Docker Desktop bind
     # mounts on macOS sometimes hide files that appeared after the container
     # started; restarting forces nginx to re-read the mounted directory.
