@@ -84,6 +84,15 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 [6/6] Development mode: Vite dev server is running in the vite container...	[6/6] 開発モード: Vite dev サーバーが vite コンテナで起動中...
       Build skipped (hot-reload enabled).	      ビルドはスキップされます (hot-reload 有効)。
 [6/6] Building frontend assets...	[6/6] フロントエンドアセットをビルド中...
+  Building theme assets (themes/DixlaseOnePage)...	  テーマアセットをビルド中 (themes/DixlaseOnePage)...
+  Linking theme assets into public/...	  テーマアセットを public/ にリンク中...
+# Build theme assets. Each Dixlase theme ships its own package.json	# テーマアセットをビルド。Dixlase の各テーマは独自の package.json /
+# / vite.config.js because themes are independent of core's build	# vite.config.js を持ち、コアのビルドパイプラインから独立している。
+# pipeline. The theme outputs to themes/<name>/resources/assets/,	# テーマは themes/<name>/resources/assets/ に出力し、下のシンボリック
+# which is then exposed under public/assets/themes/<name> via the	# リンクで public/assets/themes/<name> として公開される。このステップが
+# symlink below. Without this step, theme front-end JS (e.g.	# 無いと、テーマのフロントエンド JS (公開ページの appearanceTheme 等) が
+# appearanceTheme on the public site) is missing and Alpine throws	# 欠落し、Alpine が描画後のページで "is not defined" エラーを投げる。
+# "is not defined" errors on the rendered page.	# "is not defined" errors on the rendered page.
 # Restart web so nginx sees freshly built assets. Docker Desktop bind	# nginx に新規ビルドされたアセットを認識させるため web を再起動。Docker Desktop の
 # mounts on macOS sometimes hide files that appeared after the container	# macOS バインドマウントは、コンテナ起動後に追加されたファイルが見えない
 # started; restarting forces nginx to re-read the mounted directory.	# ことがあるため、再起動によりマウントを読み直す。

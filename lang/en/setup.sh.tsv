@@ -84,6 +84,15 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 [6/6] Development mode: Vite dev server is running in the vite container...	[6/6] Development mode: Vite dev server is running in the vite container...
       Build skipped (hot-reload enabled).	      Build skipped (hot-reload enabled).
 [6/6] Building frontend assets...	[6/6] Building frontend assets...
+  Building theme assets (themes/DixlaseOnePage)...	  Building theme assets (themes/DixlaseOnePage)...
+  Linking theme assets into public/...	  Linking theme assets into public/...
+# Build theme assets. Each Dixlase theme ships its own package.json	# Build theme assets. Each Dixlase theme ships its own package.json
+# / vite.config.js because themes are independent of core's build	# / vite.config.js because themes are independent of core's build
+# pipeline. The theme outputs to themes/<name>/resources/assets/,	# pipeline. The theme outputs to themes/<name>/resources/assets/,
+# which is then exposed under public/assets/themes/<name> via the	# which is then exposed under public/assets/themes/<name> via the
+# symlink below. Without this step, theme front-end JS (e.g.	# symlink below. Without this step, theme front-end JS (e.g.
+# appearanceTheme on the public site) is missing and Alpine throws	# appearanceTheme on the public site) is missing and Alpine throws
+# "is not defined" errors on the rendered page.	# "is not defined" errors on the rendered page.
 # Restart web so nginx sees freshly built assets. Docker Desktop bind	# Restart web so nginx sees freshly built assets. Docker Desktop bind
 # mounts on macOS sometimes hide files that appeared after the container	# mounts on macOS sometimes hide files that appeared after the container
 # started; restarting forces nginx to re-read the mounted directory.	# started; restarting forces nginx to re-read the mounted directory.
