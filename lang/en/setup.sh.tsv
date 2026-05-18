@@ -42,10 +42,11 @@
 # Generate APP_KEY only if missing. key:generate --force rewrites the	# Generate APP_KEY only if missing. key:generate --force rewrites the
 # key every run, which would invalidate sessions and any encrypted	# key every run, which would invalidate sessions and any encrypted
 # data; gate on the actual value so re-runs are no-ops.	# data; gate on the actual value so re-runs are no-ops.
-# Run migrations so DB-backed artisan commands (notably the theme	# Run migrations so DB-backed artisan commands (notably the theme
-# build's dls:tailwind:regenerate-plugin-sources, which reads	# build's dls:tailwind:regenerate-plugin-sources, which reads
-# dls_plugins) can run before the wizard is completed. migrate is	# dls_plugins) can run before the wizard is completed. migrate is
-# idempotent — re-running after the wizard finishes is a no-op.	# idempotent — re-running after the wizard finishes is a no-op.
+# Run migrations FIRST so DB-backed artisan commands (cache:clear with	# Run migrations FIRST so DB-backed artisan commands (cache:clear with
+# CACHE_STORE=database, and the theme build's	# CACHE_STORE=database, and the theme build's
+# dls:tailwind:regenerate-plugin-sources which reads dls_plugins) have	# dls:tailwind:regenerate-plugin-sources which reads dls_plugins) have
+# their tables. migrate is idempotent — re-running after the wizard	# their tables. migrate is idempotent — re-running after the wizard
+# finishes is a no-op.	# finishes is a no-op.
 # 6. Build assets (production mode only)	# 6. Build assets (production mode only)
 # Remove the hot file so the built assets are used	# Remove the hot file so the built assets are used
 # Done	# Done

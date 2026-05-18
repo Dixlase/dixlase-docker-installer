@@ -42,10 +42,11 @@
 # Generate APP_KEY only if missing. key:generate --force rewrites the	# APP_KEY は未設定時のみ生成する。key:generate --force は実行毎にキーを
 # key every run, which would invalidate sessions and any encrypted	# 上書きしてしまい、セッションや暗号化済みデータが無効化されるため、実値
 # data; gate on the actual value so re-runs are no-ops.	# を確認して再実行時は no-op になるようにガードする。
-# Run migrations so DB-backed artisan commands (notably the theme	# DB を参照する artisan コマンド (テーマビルドの
-# build's dls:tailwind:regenerate-plugin-sources, which reads	# dls:tailwind:regenerate-plugin-sources は dls_plugins を読む) が
-# dls_plugins) can run before the wizard is completed. migrate is	# ウィザード完了前でも動くようマイグレーションを流す。migrate は
-# idempotent — re-running after the wizard finishes is a no-op.	# 冪等で、ウィザード完了後の再実行も no-op になる。
+# Run migrations FIRST so DB-backed artisan commands (cache:clear with	# DB を参照する artisan コマンド (CACHE_STORE=database での cache:clear、
+# CACHE_STORE=database, and the theme build's	# およびテーマビルドの dls:tailwind:regenerate-plugin-sources は
+# dls:tailwind:regenerate-plugin-sources which reads dls_plugins) have	# dls_plugins を読む) が必要とするテーブルを先に用意するため
+# their tables. migrate is idempotent — re-running after the wizard	# マイグレーションを最初に流す。migrate は冪等で、ウィザード完了後の
+# finishes is a no-op.	# 再実行も no-op になる。
 # 6. Build assets (production mode only)	# 6. アセットのビルド (本番モードのみ)
 # Remove the hot file so the built assets are used	# hot ファイルを削除してビルド済みアセットを使用させる
 # Done	# 完了
