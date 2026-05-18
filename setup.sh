@@ -210,10 +210,15 @@ echo "  Waiting for containers to start..."
 sleep 5
 
 # -------------------------------------------------
-# 5. Set up Laravel
+# 5. Install Laravel dependencies
 # -------------------------------------------------
+# composer/npm install are the only things setup.sh has to do before
+# the wizard runs — everything else (.env, key:generate, migrate,
+# storage:link, cache:clear, dls:tailwind:regenerate-plugin-sources)
+# is handled by core's CheckInstallationReady middleware and
+# InstallConfirmController during the wizard flow.
 echo ""
-echo "[5/6] Setting up Laravel..."
+echo "[5/6] Installing Laravel dependencies..."
 
 # Reinstall because vendor/node_modules are missing on the host due to the volume mount
 echo "  Running composer install..."
@@ -221,86 +226,56 @@ docker compose exec -T dixlase.test composer install --no-interaction
 echo "  Running npm install..."
 docker compose exec -T dixlase.test npm install
 
-# Seed html/.env so artisan can boot Laravel before the install wizard
-# runs. Core's CheckInstallationReady middleware treats an existing
-# html/.env as authoritative (no overwrite — only specific keys are
-# appended / updated during the wizard), so opening the install URL
-# afterwards behaves the same as a fresh install. Without this seed,
-# artisan falls back to the .env defaults (DB_HOST=127.0.0.1) and the
-# theme build's dls:tailwind:regenerate-plugin-sources step fails with
-# "Connection refused" because the container cannot reach 127.0.0.1.
-if [ ! -f html/.env ]; then
-    echo "  Seeding html/.env from html/.env.example..."
-    docker compose exec -T dixlase.test cp .env.example .env
-    # Mirror the DB credentials we passed to the mysql container so
-    # Laravel can connect from inside the app container. Values come
-    # from the root .env that docker-compose already interpolated.
-    DB_DATABASE_VAL=$(grep '^DB_DATABASE=' .env | cut -d'=' -f2-)
-    DB_USERNAME_VAL=$(grep '^DB_USERNAME=' .env | cut -d'=' -f2-)
-    DB_PASSWORD_VAL=$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2-)
-    docker compose exec -T dixlase.test sed -i.bak \
-        -e "s|^DB_HOST=.*|DB_HOST=mysql|" \
-        -e "s|^DB_PORT=.*|DB_PORT=3306|" \
-        -e "s|^DB_DATABASE=.*|DB_DATABASE=${DB_DATABASE_VAL:-dixlase}|" \
-        -e "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USERNAME_VAL:-dixlase}|" \
-        -e "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD_VAL:-dixlase}|" \
-        .env
-    docker compose exec -T dixlase.test rm -f .env.bak
-fi
-
-# Generate APP_KEY only if missing. key:generate --force rewrites the
-# key every run, which would invalidate sessions and any encrypted
-# data; gate on the actual value so re-runs are no-ops.
-if ! docker compose exec -T dixlase.test grep -qE '^APP_KEY=base64:' .env; then
-    docker compose exec -T dixlase.test php artisan key:generate --force
-    echo "  Generated APP_KEY."
-fi
-
-docker compose exec -T dixlase.test php artisan storage:link 2>/dev/null || true
-echo "  Created storage symlink."
-
-# Run migrations FIRST so DB-backed artisan commands (cache:clear with
-# CACHE_STORE=database, and the theme build's
-# dls:tailwind:regenerate-plugin-sources which reads dls_plugins) have
-# their tables. migrate is idempotent — re-running after the wizard
-# finishes is a no-op.
-docker compose exec -T dixlase.test php artisan migrate --force
-echo "  Ran migrations."
-
-docker compose exec -T dixlase.test php artisan config:clear
-docker compose exec -T dixlase.test php artisan cache:clear
-echo "  Cleared caches."
-
 # -------------------------------------------------
 # 6. Build assets (production mode only)
 # -------------------------------------------------
+# Compute APP_URL once so the wizard-completion prompt below and the
+# final summary can both show it. Omit the port when it is the standard
+# 80 / 443 for the chosen scheme.
+APP_PORT_VAL=$(grep '^APP_PORT=' .env | cut -d'=' -f2)
+APP_SSL_PORT_VAL=$(grep '^APP_SSL_PORT=' .env | cut -d'=' -f2)
+FORWARD_ADMINER_PORT_VAL=$(grep '^FORWARD_ADMINER_PORT=' .env | cut -d'=' -f2)
+FORWARD_MAILPIT_PORT_VAL=$(grep '^FORWARD_MAILPIT_PORT=' .env | cut -d'=' -f2)
+
+if [ "$NGINX_VARIANT" = "https" ]; then
+    [ "$APP_SSL_PORT_VAL" = "443" ] && APP_URL="https://localhost" || APP_URL="https://localhost:$APP_SSL_PORT_VAL"
+else
+    [ "$APP_PORT_VAL" = "80" ] && APP_URL="http://localhost" || APP_URL="http://localhost:$APP_PORT_VAL"
+fi
+
 echo ""
 if [ "$DEV_MODE" = true ]; then
     echo "[6/6] Development mode: Vite dev server is running in the vite container..."
     echo "      Build skipped (hot-reload enabled)."
 else
+    # Wait for the user to complete the install wizard before building
+    # theme assets. The wizard generates html/.env, runs migrations, and
+    # calls dls:tailwind:regenerate-plugin-sources — all prerequisites
+    # for the theme's vite build (its tailwind.css @imports the plugin
+    # source aggregator CSS). Without this pause the theme build would
+    # race the wizard and fail on missing DB tables or CSS imports.
+    echo "================================================================"
+    echo "  Open the install wizard in your browser to set up Dixlase:"
+    echo "    $APP_URL"
+    echo "  Complete the wizard (DB / admin user / site settings)."
+    echo "================================================================"
+    read -r -p "  Press Enter once the wizard is complete to build theme assets: " _
+
+    echo ""
     echo "[6/6] Building frontend assets..."
     # Remove the hot file so the built assets are used
     docker compose exec -T dixlase.test rm -f public/hot
     docker compose exec -T dixlase.test npm run build
 
-    # Build theme assets. Each Dixlase theme ships its own package.json
-    # / vite.config.js because themes are independent of core's build
-    # pipeline. The theme outputs to themes/<name>/resources/assets/,
-    # which is then exposed under public/assets/themes/<name> via the
-    # symlink below. Without this step, theme front-end JS (e.g.
-    # appearanceTheme on the public site) is missing and Alpine throws
-    # "is not defined" errors on the rendered page.
-    # html/.env and migrations are guaranteed by step [5/6] above, so
-    # dls:tailwind:regenerate-plugin-sources can run on a fresh install
-    # too — no need for an html/.env guard here anymore.
+    # Build theme assets via core's dls:theme:build artisan: it runs
+    # npm install + npm run build inside themes/<name>/ and creates the
+    # public/assets/themes/<name> symlink. The plugin tailwind aggregator
+    # that the theme's tailwind.css @imports was already generated by
+    # the wizard (InstallConfirmController calls
+    # dls:tailwind:regenerate-plugin-sources after migrate).
     if [ -f html/themes/DixlaseOnePage/package.json ]; then
-        echo "  Regenerating plugin tailwind sources..."
-        docker compose exec -T dixlase.test php artisan dls:tailwind:regenerate-plugin-sources
         echo "  Building theme assets (themes/DixlaseOnePage)..."
-        docker compose exec -T dixlase.test bash -c "cd themes/DixlaseOnePage && npm install && npm run build"
-        echo "  Linking theme assets into public/..."
-        docker compose exec -T dixlase.test php artisan dls:theme:symlink create DixlaseOnePage 2>/dev/null || true
+        docker compose exec -T dixlase.test php artisan dls:theme:build DixlaseOnePage
     fi
 
     # Restart web so nginx sees freshly built assets. Docker Desktop bind
@@ -313,19 +288,8 @@ fi
 # -------------------------------------------------
 # Done
 # -------------------------------------------------
-# Read the actual ports from .env and display them
-APP_PORT_VAL=$(grep '^APP_PORT=' .env | cut -d'=' -f2)
-APP_SSL_PORT_VAL=$(grep '^APP_SSL_PORT=' .env | cut -d'=' -f2)
-FORWARD_ADMINER_PORT_VAL=$(grep '^FORWARD_ADMINER_PORT=' .env | cut -d'=' -f2)
-FORWARD_MAILPIT_PORT_VAL=$(grep '^FORWARD_MAILPIT_PORT=' .env | cut -d'=' -f2)
-
-# Build CMS URL based on the HTTPS flag; omit the port when it is the
-# standard 80 / 443 for the chosen scheme.
-if [ "$NGINX_VARIANT" = "https" ]; then
-    [ "$APP_SSL_PORT_VAL" = "443" ] && APP_URL="https://localhost" || APP_URL="https://localhost:$APP_SSL_PORT_VAL"
-else
-    [ "$APP_PORT_VAL" = "80" ] && APP_URL="http://localhost" || APP_URL="http://localhost:$APP_PORT_VAL"
-fi
+# APP_URL / port values were already computed before [6/6] above so the
+# wizard-completion prompt could show the URL; reuse them here.
 
 echo ""
 echo "========================================"
@@ -338,9 +302,14 @@ echo "    Adminer:    http://localhost:$FORWARD_ADMINER_PORT_VAL"
 echo "    Mailpit:    http://localhost:$FORWARD_MAILPIT_PORT_VAL"
 echo ""
 echo "  Next steps:"
-echo "    1. Open $APP_URL in your browser."
-echo "    2. The install wizard will appear."
-echo "    3. After install, start operations in the admin panel."
+if [ "$DEV_MODE" = true ]; then
+    echo "    1. Open $APP_URL in your browser."
+    echo "    2. The install wizard will appear."
+    echo "    3. After install, start operations in the admin panel."
+else
+    echo "    1. Open $APP_URL in your browser."
+    echo "    2. Sign in to the admin panel and start operations."
+fi
 echo ""
 echo "  Useful commands:"
 echo "    docker compose logs -f                  # View logs"
