@@ -259,16 +259,17 @@ fi
 docker compose exec -T dixlase.test php artisan storage:link 2>/dev/null || true
 echo "  Created storage symlink."
 
-docker compose exec -T dixlase.test php artisan config:clear
-docker compose exec -T dixlase.test php artisan cache:clear 2>/dev/null || true
-echo "  Cleared caches."
-
-# Run migrations so DB-backed artisan commands (notably the theme
-# build's dls:tailwind:regenerate-plugin-sources, which reads
-# dls_plugins) can run before the wizard is completed. migrate is
-# idempotent — re-running after the wizard finishes is a no-op.
+# Run migrations FIRST so DB-backed artisan commands (cache:clear with
+# CACHE_STORE=database, and the theme build's
+# dls:tailwind:regenerate-plugin-sources which reads dls_plugins) have
+# their tables. migrate is idempotent — re-running after the wizard
+# finishes is a no-op.
 docker compose exec -T dixlase.test php artisan migrate --force
 echo "  Ran migrations."
+
+docker compose exec -T dixlase.test php artisan config:clear
+docker compose exec -T dixlase.test php artisan cache:clear
+echo "  Cleared caches."
 
 # -------------------------------------------------
 # 6. Build assets (production mode only)
