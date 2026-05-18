@@ -23,33 +23,6 @@
 # above, or anything the wizard added on a re-run) is left untouched.	# above, or anything the wizard added on a re-run) is left untouched.
 # 2. Set up .env	# 2. Set up .env
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)	# Root .env (used by Docker Compose to interpolate ports / DB credentials)
-# 3. Generate SSL certificate	# 3. Generate SSL certificate
-# 4. Build and start Docker containers	# 4. Build and start Docker containers
-# Wait for containers to start	# Wait for containers to start
-# 5. Set up Laravel	# 5. Set up Laravel
-# Reinstall because vendor/node_modules are missing on the host due to the volume mount	# Reinstall because vendor/node_modules are missing on the host due to the volume mount
-# Seed html/.env so artisan can boot Laravel before the install wizard	# Seed html/.env so artisan can boot Laravel before the install wizard
-# runs. Core's CheckInstallationReady middleware treats an existing	# runs. Core's CheckInstallationReady middleware treats an existing
-# html/.env as authoritative (no overwrite — only specific keys are	# html/.env as authoritative (no overwrite — only specific keys are
-# appended / updated during the wizard), so opening the install URL	# appended / updated during the wizard), so opening the install URL
-# afterwards behaves the same as a fresh install. Without this seed,	# afterwards behaves the same as a fresh install. Without this seed,
-# artisan falls back to the .env defaults (DB_HOST=127.0.0.1) and the	# artisan falls back to the .env defaults (DB_HOST=127.0.0.1) and the
-# theme build's dls:tailwind:regenerate-plugin-sources step fails with	# theme build's dls:tailwind:regenerate-plugin-sources step fails with
-# "Connection refused" because the container cannot reach 127.0.0.1.	# "Connection refused" because the container cannot reach 127.0.0.1.
-# Mirror the DB credentials we passed to the mysql container so	# Mirror the DB credentials we passed to the mysql container so
-# Laravel can connect from inside the app container. Values come	# Laravel can connect from inside the app container. Values come
-# from the root .env that docker-compose already interpolated.	# from the root .env that docker-compose already interpolated.
-# Generate APP_KEY only if missing. key:generate --force rewrites the	# Generate APP_KEY only if missing. key:generate --force rewrites the
-# key every run, which would invalidate sessions and any encrypted	# key every run, which would invalidate sessions and any encrypted
-# data; gate on the actual value so re-runs are no-ops.	# data; gate on the actual value so re-runs are no-ops.
-# Run migrations FIRST so DB-backed artisan commands (cache:clear with	# Run migrations FIRST so DB-backed artisan commands (cache:clear with
-# CACHE_STORE=database, and the theme build's	# CACHE_STORE=database, and the theme build's
-# dls:tailwind:regenerate-plugin-sources which reads dls_plugins) have	# dls:tailwind:regenerate-plugin-sources which reads dls_plugins) have
-# their tables. migrate is idempotent — re-running after the wizard	# their tables. migrate is idempotent — re-running after the wizard
-# finishes is a no-op.	# finishes is a no-op.
-# 6. Build assets (production mode only)	# 6. Build assets (production mode only)
-# Remove the hot file so the built assets are used	# Remove the hot file so the built assets are used
-# Done	# Done
 # Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from	# Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from
 # VITE / REDIS. Values are exported to setup.sh's process environment	# VITE / REDIS. Values are exported to setup.sh's process environment
 # so docker-compose picks them up below; we deliberately do NOT write	# so docker-compose picks them up below; we deliberately do NOT write
@@ -57,14 +30,47 @@
 # REDIS defaults to false when unset/empty.	# REDIS defaults to false when unset/empty.
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other	# Sync DEV_MODE with the effective VITE flag so step [6/6] and other
 # downstream logic reflect what actually runs.	# downstream logic reflect what actually runs.
+# 3. Generate SSL certificate	# 3. Generate SSL certificate
+# 4. Build and start Docker containers	# 4. Build and start Docker containers
+# If containers from a previous run exist, offer to recreate them.	# If containers from a previous run exist, offer to recreate them.
+# Recreation guarantees a clean state and avoids Docker Desktop bind-mount	# Recreation guarantees a clean state and avoids Docker Desktop bind-mount
+# caching where freshly built host files are not visible to running containers.	# caching where freshly built host files are not visible to running containers.
 # Active profiles are picked up from COMPOSE_PROFILES exported above.	# Active profiles are picked up from COMPOSE_PROFILES exported above.
-# Read the actual ports from .env and display them	# Read the actual ports from .env and display them
-# Build CMS URL based on the HTTPS flag; omit the port when it is the	# Build CMS URL based on the HTTPS flag; omit the port when it is the
-# standard 80 / 443 for the chosen scheme.	# standard 80 / 443 for the chosen scheme.
+# Wait for containers to start	# Wait for containers to start
+# 5. Install Laravel dependencies	# 5. Install Laravel dependencies
+# composer/npm install are the only things setup.sh has to do before	# composer/npm install are the only things setup.sh has to do before
+# the wizard runs — everything else (.env, key:generate, migrate,	# the wizard runs — everything else (.env, key:generate, migrate,
+# storage:link, cache:clear, dls:tailwind:regenerate-plugin-sources)	# storage:link, cache:clear, dls:tailwind:regenerate-plugin-sources)
+# is handled by core's CheckInstallationReady middleware and	# is handled by core's CheckInstallationReady middleware and
+# InstallConfirmController during the wizard flow.	# InstallConfirmController during the wizard flow.
+# Reinstall because vendor/node_modules are missing on the host due to the volume mount	# Reinstall because vendor/node_modules are missing on the host due to the volume mount
+# 6. Build assets (production mode only)	# 6. Build assets (production mode only)
+# Compute APP_URL once so the wizard-completion prompt below and the	# Compute APP_URL once so the wizard-completion prompt below and the
+# final summary can both show it. Omit the port when it is the standard	# final summary can both show it. Omit the port when it is the standard
+# 80 / 443 for the chosen scheme.	# 80 / 443 for the chosen scheme.
+# Wait for the user to complete the install wizard before building	# Wait for the user to complete the install wizard before building
+# theme assets. The wizard generates html/.env, runs migrations, and	# theme assets. The wizard generates html/.env, runs migrations, and
+# calls dls:tailwind:regenerate-plugin-sources — all prerequisites	# calls dls:tailwind:regenerate-plugin-sources — all prerequisites
+# for the theme's vite build (its tailwind.css @imports the plugin	# for the theme's vite build (its tailwind.css @imports the plugin
+# source aggregator CSS). Without this pause the theme build would	# source aggregator CSS). Without this pause the theme build would
+# race the wizard and fail on missing DB tables or CSS imports.	# race the wizard and fail on missing DB tables or CSS imports.
+# Remove the hot file so the built assets are used	# Remove the hot file so the built assets are used
+# Build theme assets via core's dls:theme:build artisan: it runs	# Build theme assets via core's dls:theme:build artisan: it runs
+# npm install + npm run build inside themes/<name>/ and creates the	# npm install + npm run build inside themes/<name>/ and creates the
+# public/assets/themes/<name> symlink. The plugin tailwind aggregator	# public/assets/themes/<name> symlink. The plugin tailwind aggregator
+# that the theme's tailwind.css @imports was already generated by	# that the theme's tailwind.css @imports was already generated by
+# the wizard (InstallConfirmController calls	# the wizard (InstallConfirmController calls
+# dls:tailwind:regenerate-plugin-sources after migrate).	# dls:tailwind:regenerate-plugin-sources after migrate).
+# Restart web so nginx sees freshly built assets. Docker Desktop bind	# Restart web so nginx sees freshly built assets. Docker Desktop bind
+# mounts on macOS sometimes hide files that appeared after the container	# mounts on macOS sometimes hide files that appeared after the container
+# started; restarting forces nginx to re-read the mounted directory.	# started; restarting forces nginx to re-read the mounted directory.
+# Done	# Done
+# APP_URL / port values were already computed before [6/6] above so the	# APP_URL / port values were already computed before [6/6] above so the
+# wizard-completion prompt could show the URL; reuse them here.	# wizard-completion prompt could show the URL; reuse them here.
 Development mode (Vite hot-reload)	Development mode (Vite hot-reload)
 Production mode (pre-built assets)	Production mode (pre-built assets)
 [1/6] html/ already exists.	[1/6] html/ already exists.
-  Delete and re-clone? (y/N): 	  Delete and re-clone? (y/N): 
+  Delete and re-clone? (y/N): 	  Delete and re-clone? (y/N):
   Deleting html/...	  Deleting html/...
   Cloning from GitHub...	  Cloning from GitHub...
   Keeping existing html/.	  Keeping existing html/.
@@ -83,41 +89,21 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
   Certificate already exists (skipped).	  Certificate already exists (skipped).
   Certificate generated.	  Certificate generated.
 [4/6] Building and starting Docker containers...	[4/6] Building and starting Docker containers...
-# If containers from a previous run exist, offer to recreate them.	# If containers from a previous run exist, offer to recreate them.
-# Recreation guarantees a clean state and avoids Docker Desktop bind-mount	# Recreation guarantees a clean state and avoids Docker Desktop bind-mount
-# caching where freshly built host files are not visible to running containers.	# caching where freshly built host files are not visible to running containers.
   Existing containers detected ($EXISTING_CONTAINERS).	  Existing containers detected ($EXISTING_CONTAINERS).
   Recreate them for a clean start? (y/N): 	  Recreate them for a clean start? (y/N):
   Removing existing containers...	  Removing existing containers...
   Keeping existing containers (in-place restart).	  Keeping existing containers (in-place restart).
   Waiting for containers to start...	  Waiting for containers to start...
-[5/6] Setting up Laravel...	[5/6] Setting up Laravel...
+[5/6] Installing Laravel dependencies...	[5/6] Installing Laravel dependencies...
   Running composer install...	  Running composer install...
   Running npm install...	  Running npm install...
-  Generated APP_KEY.	  Generated APP_KEY.
-  Created storage symlink.	  Created storage symlink.
-  Cleared caches.	  Cleared caches.
-  Seeding html/.env from html/.env.example...	  Seeding html/.env from html/.env.example...
-  Ran migrations.	  Ran migrations.
 [6/6] Development mode: Vite dev server is running in the vite container...	[6/6] Development mode: Vite dev server is running in the vite container...
       Build skipped (hot-reload enabled).	      Build skipped (hot-reload enabled).
+  Open the install wizard in your browser to set up Dixlase:	  Open the install wizard in your browser to set up Dixlase:
+  Complete the wizard (DB / admin user / site settings).	  Complete the wizard (DB / admin user / site settings).
+  Press Enter once the wizard is complete to build theme assets: 	  Press Enter once the wizard is complete to build theme assets:
 [6/6] Building frontend assets...	[6/6] Building frontend assets...
-  Regenerating plugin tailwind sources...	  Regenerating plugin tailwind sources...
   Building theme assets (themes/DixlaseOnePage)...	  Building theme assets (themes/DixlaseOnePage)...
-  Linking theme assets into public/...	  Linking theme assets into public/...
-# Build theme assets. Each Dixlase theme ships its own package.json	# Build theme assets. Each Dixlase theme ships its own package.json
-# / vite.config.js because themes are independent of core's build	# / vite.config.js because themes are independent of core's build
-# pipeline. The theme outputs to themes/<name>/resources/assets/,	# pipeline. The theme outputs to themes/<name>/resources/assets/,
-# which is then exposed under public/assets/themes/<name> via the	# which is then exposed under public/assets/themes/<name> via the
-# symlink below. Without this step, theme front-end JS (e.g.	# symlink below. Without this step, theme front-end JS (e.g.
-# appearanceTheme on the public site) is missing and Alpine throws	# appearanceTheme on the public site) is missing and Alpine throws
-# "is not defined" errors on the rendered page.	# "is not defined" errors on the rendered page.
-# html/.env and migrations are guaranteed by step [5/6] above, so	# html/.env and migrations are guaranteed by step [5/6] above, so
-# dls:tailwind:regenerate-plugin-sources can run on a fresh install	# dls:tailwind:regenerate-plugin-sources can run on a fresh install
-# too — no need for an html/.env guard here anymore.	# too — no need for an html/.env guard here anymore.
-# Restart web so nginx sees freshly built assets. Docker Desktop bind	# Restart web so nginx sees freshly built assets. Docker Desktop bind
-# mounts on macOS sometimes hide files that appeared after the container	# mounts on macOS sometimes hide files that appeared after the container
-# started; restarting forces nginx to re-read the mounted directory.	# started; restarting forces nginx to re-read the mounted directory.
   Restarting web to refresh asset mount...	  Restarting web to refresh asset mount...
   Setup complete!	  Setup complete!
   Access URLs:	  Access URLs:
@@ -125,6 +111,7 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
     1. Open $APP_URL in your browser.	    1. Open $APP_URL in your browser.
     2. The install wizard will appear.	    2. The install wizard will appear.
     3. After install, start operations in the admin panel.	    3. After install, start operations in the admin panel.
+    2. Sign in to the admin panel and start operations.	    2. Sign in to the admin panel and start operations.
   Useful commands:	  Useful commands:
 # View logs	# View logs
 # Open a shell in the container	# Open a shell in the container

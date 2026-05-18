@@ -23,33 +23,6 @@
 # above, or anything the wizard added on a re-run) is left untouched.	# 配置したもの) はそのまま残ります。
 # 2. Set up .env	# 2. .env のセットアップ
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)	# ルート .env (Docker Compose 用) — ポート/DB認証情報の補間に使用
-# 3. Generate SSL certificate	# 3. SSL 証明書の生成
-# 4. Build and start Docker containers	# 4. Docker イメージのビルドと起動
-# Wait for containers to start	# コンテナの起動を待つ
-# 5. Set up Laravel	# 5. Laravel のセットアップ
-# Reinstall because vendor/node_modules are missing on the host due to the volume mount	# ボリュームマウントにより vendor/node_modules がホスト側で欠落しているため再インストール
-# Seed html/.env so artisan can boot Laravel before the install wizard	# html/.env を先に用意し、インストールウィザード実行前でも artisan が Laravel
-# runs. Core's CheckInstallationReady middleware treats an existing	# を boot できるようにする。コアの CheckInstallationReady ミドルウェアは
-# html/.env as authoritative (no overwrite — only specific keys are	# 既存の html/.env を上書きせず、ウィザード進行中に特定キーだけ追記 / 更新
-# appended / updated during the wizard), so opening the install URL	# する設計のため、後からインストール URL を開いてもクリーンインストール時
-# afterwards behaves the same as a fresh install. Without this seed,	# と同じ挙動になる。このシードを入れないと、artisan は .env のデフォルト
-# artisan falls back to the .env defaults (DB_HOST=127.0.0.1) and the	# (DB_HOST=127.0.0.1) にフォールバックし、テーマビルドの
-# theme build's dls:tailwind:regenerate-plugin-sources step fails with	# dls:tailwind:regenerate-plugin-sources がコンテナから 127.0.0.1 に到達
-# "Connection refused" because the container cannot reach 127.0.0.1.	# できず "Connection refused" で失敗する。
-# Mirror the DB credentials we passed to the mysql container so	# mysql コンテナに渡したのと同じ DB 認証情報を反映し、app コンテナ内の
-# Laravel can connect from inside the app container. Values come	# Laravel が接続できるようにする。値は docker-compose が既に補間した
-# from the root .env that docker-compose already interpolated.	# ルート .env から取得する。
-# Generate APP_KEY only if missing. key:generate --force rewrites the	# APP_KEY は未設定時のみ生成する。key:generate --force は実行毎にキーを
-# key every run, which would invalidate sessions and any encrypted	# 上書きしてしまい、セッションや暗号化済みデータが無効化されるため、実値
-# data; gate on the actual value so re-runs are no-ops.	# を確認して再実行時は no-op になるようにガードする。
-# Run migrations FIRST so DB-backed artisan commands (cache:clear with	# DB を参照する artisan コマンド (CACHE_STORE=database での cache:clear、
-# CACHE_STORE=database, and the theme build's	# およびテーマビルドの dls:tailwind:regenerate-plugin-sources は
-# dls:tailwind:regenerate-plugin-sources which reads dls_plugins) have	# dls_plugins を読む) が必要とするテーブルを先に用意するため
-# their tables. migrate is idempotent — re-running after the wizard	# マイグレーションを最初に流す。migrate は冪等で、ウィザード完了後の
-# finishes is a no-op.	# 再実行も no-op になる。
-# 6. Build assets (production mode only)	# 6. アセットのビルド (本番モードのみ)
-# Remove the hot file so the built assets are used	# hot ファイルを削除してビルド済みアセットを使用させる
-# Done	# 完了
 # Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from	# HTTPS フラグから NGINX_VARIANT を、VITE / REDIS から COMPOSE_PROFILES を
 # VITE / REDIS. Values are exported to setup.sh's process environment	# 導出して setup.sh のプロセス環境に export し、以降の docker-compose に
 # so docker-compose picks them up below; we deliberately do NOT write	# 渡します。.env はユーザー所有領域とみなし、これらの派生値を書き戻す
@@ -57,10 +30,43 @@
 # REDIS defaults to false when unset/empty.	# REDIS は空 / 未設定のとき false 扱い。
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other	# 実際に動く内容と一致するよう、有効な VITE フラグと DEV_MODE を同期させる
 # downstream logic reflect what actually runs.	# (ステップ [6/6] と以降のロジックの整合)。
+# 3. Generate SSL certificate	# 3. SSL 証明書の生成
+# 4. Build and start Docker containers	# 4. Docker イメージのビルドと起動
+# If containers from a previous run exist, offer to recreate them.	# 既存コンテナがあればリクリエイト（再作成）するか確認する。
+# Recreation guarantees a clean state and avoids Docker Desktop bind-mount	# リクリエイトすればクリーンな状態を保証でき、Docker Desktop のバインドマウント
+# caching where freshly built host files are not visible to running containers.	# キャッシュ問題（ホストで新規作成したファイルが既存コンテナから見えない事象）も回避できる。
 # Active profiles are picked up from COMPOSE_PROFILES exported above.	# 有効な profile は上で export した COMPOSE_PROFILES から拾われる。
-# Read the actual ports from .env and display them	# .env から実際のポートを読み取って表示
-# Build CMS URL based on the HTTPS flag; omit the port when it is the	# HTTPS フラグに応じて CMS の URL を構築。選択したスキームの標準ポート
-# standard 80 / 443 for the chosen scheme.	# (80 / 443) のときは URL からポート番号を省略する。
+# Wait for containers to start	# コンテナの起動を待つ
+# 5. Install Laravel dependencies	# 5. Laravel 依存関係のインストール
+# composer/npm install are the only things setup.sh has to do before	# ウィザード実行前に setup.sh がやるべきことは composer / npm install
+# the wizard runs — everything else (.env, key:generate, migrate,	# のみ。それ以外 (.env、key:generate、migrate、storage:link、
+# storage:link, cache:clear, dls:tailwind:regenerate-plugin-sources)	# cache:clear、dls:tailwind:regenerate-plugin-sources) はすべて
+# is handled by core's CheckInstallationReady middleware and	# コアの CheckInstallationReady ミドルウェアと
+# InstallConfirmController during the wizard flow.	# InstallConfirmController がウィザード進行中に処理する。
+# Reinstall because vendor/node_modules are missing on the host due to the volume mount	# ボリュームマウントにより vendor/node_modules がホスト側で欠落しているため再インストール
+# 6. Build assets (production mode only)	# 6. アセットのビルド (本番モードのみ)
+# Compute APP_URL once so the wizard-completion prompt below and the	# 下のウィザード完了プロンプトと最後のサマリーで再利用するため、
+# final summary can both show it. Omit the port when it is the standard	# APP_URL をここで一度だけ算出する。選択したスキームの標準ポート
+# 80 / 443 for the chosen scheme.	# (80 / 443) のときは URL からポート番号を省略する。
+# Wait for the user to complete the install wizard before building	# テーマアセットをビルドする前に、ユーザーがインストールウィザードを
+# theme assets. The wizard generates html/.env, runs migrations, and	# 完了するまで待機する。ウィザードは html/.env を生成し migrate を流し
+# calls dls:tailwind:regenerate-plugin-sources — all prerequisites	# dls:tailwind:regenerate-plugin-sources を呼ぶ — これらはテーマの
+# for the theme's vite build (its tailwind.css @imports the plugin	# vite ビルド (tailwind.css がプラグインソース集約 CSS を @import) の
+# source aggregator CSS). Without this pause the theme build would	# 前提条件すべて。この待機を入れないとテーマビルドがウィザードと
+# race the wizard and fail on missing DB tables or CSS imports.	# レースして DB テーブル / CSS import 不在で失敗する。
+# Remove the hot file so the built assets are used	# hot ファイルを削除してビルド済みアセットを使用させる
+# Build theme assets via core's dls:theme:build artisan: it runs	# コアの dls:theme:build artisan でテーマアセットをビルド: themes/<name>/
+# npm install + npm run build inside themes/<name>/ and creates the	# 内で npm install + npm run build を実行し、public/assets/themes/<name>
+# public/assets/themes/<name> symlink. The plugin tailwind aggregator	# のシンボリックリンクを作成する。テーマの tailwind.css が @import する
+# that the theme's tailwind.css @imports was already generated by	# プラグイン tailwind 集約ファイルは、ウィザードが既に生成済み
+# the wizard (InstallConfirmController calls	# (InstallConfirmController が migrate 直後に
+# dls:tailwind:regenerate-plugin-sources after migrate).	# dls:tailwind:regenerate-plugin-sources を呼出)。
+# Restart web so nginx sees freshly built assets. Docker Desktop bind	# nginx に新規ビルドされたアセットを認識させるため web を再起動。Docker Desktop の
+# mounts on macOS sometimes hide files that appeared after the container	# macOS バインドマウントは、コンテナ起動後に追加されたファイルが見えない
+# started; restarting forces nginx to re-read the mounted directory.	# ことがあるため、再起動によりマウントを読み直す。
+# Done	# 完了
+# APP_URL / port values were already computed before [6/6] above so the	# APP_URL / ポート値は上の [6/6] 前で既に算出済み (ウィザード完了
+# wizard-completion prompt could show the URL; reuse them here.	# プロンプトでの URL 表示用)。ここではそれをそのまま再利用する。
 Development mode (Vite hot-reload)	開発モード (Vite hot-reload)
 Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 [1/6] html/ already exists.	[1/6] html/ が既に存在します。
@@ -83,41 +89,21 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
   Certificate already exists (skipped).	  証明書は既に存在します（スキップ）。
   Certificate generated.	  証明書を生成しました。
 [4/6] Building and starting Docker containers...	[4/6] Docker コンテナをビルド・起動中...
-# If containers from a previous run exist, offer to recreate them.	# 既存コンテナがあればリクリエイト（再作成）するか確認する。
-# Recreation guarantees a clean state and avoids Docker Desktop bind-mount	# リクリエイトすればクリーンな状態を保証でき、Docker Desktop のバインドマウント
-# caching where freshly built host files are not visible to running containers.	# キャッシュ問題（ホストで新規作成したファイルが既存コンテナから見えない事象）も回避できる。
   Existing containers detected ($EXISTING_CONTAINERS).	  既存コンテナを検出しました ($EXISTING_CONTAINERS 個)。
   Recreate them for a clean start? (y/N): 	  クリーンに作り直しますか? (y/N):
   Removing existing containers...	  既存コンテナを削除中...
   Keeping existing containers (in-place restart).	  既存コンテナを維持します（その場で再起動）。
   Waiting for containers to start...	  コンテナの起動を待機中...
-[5/6] Setting up Laravel...	[5/6] Laravel をセットアップ中...
+[5/6] Installing Laravel dependencies...	[5/6] Laravel 依存関係をインストール中...
   Running composer install...	  composer install 実行中...
   Running npm install...	  npm install 実行中...
-  Generated APP_KEY.	  APP_KEY を生成しました。
-  Created storage symlink.	  ストレージリンクを作成しました。
-  Cleared caches.	  キャッシュをクリアしました。
-  Seeding html/.env from html/.env.example...	  html/.env を html/.env.example からシード中...
-  Ran migrations.	  マイグレーションを実行しました。
 [6/6] Development mode: Vite dev server is running in the vite container...	[6/6] 開発モード: Vite dev サーバーが vite コンテナで起動中...
       Build skipped (hot-reload enabled).	      ビルドはスキップされます (hot-reload 有効)。
+  Open the install wizard in your browser to set up Dixlase:	  ブラウザでインストールウィザードを開き Dixlase をセットアップしてください:
+  Complete the wizard (DB / admin user / site settings).	  ウィザードを最後まで進めてください (DB / 管理者ユーザー / サイト設定)。
+  Press Enter once the wizard is complete to build theme assets: 	  ウィザードが完了したら Enter を押してテーマアセットをビルドします:
 [6/6] Building frontend assets...	[6/6] フロントエンドアセットをビルド中...
-  Regenerating plugin tailwind sources...	  プラグインの tailwind ソースを再生成中...
   Building theme assets (themes/DixlaseOnePage)...	  テーマアセットをビルド中 (themes/DixlaseOnePage)...
-  Linking theme assets into public/...	  テーマアセットを public/ にリンク中...
-# Build theme assets. Each Dixlase theme ships its own package.json	# テーマアセットをビルド。Dixlase の各テーマは独自の package.json /
-# / vite.config.js because themes are independent of core's build	# vite.config.js を持ち、コアのビルドパイプラインから独立している。
-# pipeline. The theme outputs to themes/<name>/resources/assets/,	# テーマは themes/<name>/resources/assets/ に出力し、下のシンボリック
-# which is then exposed under public/assets/themes/<name> via the	# リンクで public/assets/themes/<name> として公開される。このステップが
-# symlink below. Without this step, theme front-end JS (e.g.	# 無いと、テーマのフロントエンド JS (公開ページの appearanceTheme 等) が
-# appearanceTheme on the public site) is missing and Alpine throws	# 欠落し、Alpine が描画後のページで "is not defined" エラーを投げる。
-# "is not defined" errors on the rendered page.	# "is not defined" errors on the rendered page.
-# html/.env and migrations are guaranteed by step [5/6] above, so	# html/.env とマイグレーションは上の [5/6] ステップで保証済みのため、
-# dls:tailwind:regenerate-plugin-sources can run on a fresh install	# dls:tailwind:regenerate-plugin-sources は新規インストール時にも
-# too — no need for an html/.env guard here anymore.	# 実行できる — ここでの html/.env ガードはもう不要。
-# Restart web so nginx sees freshly built assets. Docker Desktop bind	# nginx に新規ビルドされたアセットを認識させるため web を再起動。Docker Desktop の
-# mounts on macOS sometimes hide files that appeared after the container	# macOS バインドマウントは、コンテナ起動後に追加されたファイルが見えない
-# started; restarting forces nginx to re-read the mounted directory.	# ことがあるため、再起動によりマウントを読み直す。
   Restarting web to refresh asset mount...	  アセットマウントを再読込するため web を再起動中...
   Setup complete!	  セットアップ完了!
   Access URLs:	  アクセス URL:
@@ -125,6 +111,7 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
     1. Open $APP_URL in your browser.	    1. $APP_URL にアクセス
     2. The install wizard will appear.	    2. インストールウィザードが表示されます
     3. After install, start operations in the admin panel.	    3. セットアップ完了後、管理画面で運用開始
+    2. Sign in to the admin panel and start operations.	    2. 管理画面にサインインして運用開始
   Useful commands:	  便利なコマンド:
 # View logs	# ログを確認
 # Open a shell in the container	# コンテナに入る
