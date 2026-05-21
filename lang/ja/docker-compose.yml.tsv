@@ -2,5 +2,8 @@
 # Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.	# 他のサービスと競合する場合は .env で APP_PORT / FORWARD_DB_PORT 等を上書き可能。
 # Development mode (Vite hot-reload):	# 開発モード (Vite hot-reload) で起動する場合:
 # Production mode (pre-built assets):	# 本番モード (ビルド済みアセット) で起動する場合:
+# Mount host SSH keys read-only so the DixlaseDeploy plugin's CLI	# DixlaseDeploy プラグインの CLI が
+# (php artisan deploy:push/pull) can authenticate to remote hosts.	# (php artisan deploy:push/pull) でリモートホストへ認証できるよう、ホストの SSH 鍵を読み取り専用でマウント。
+# The plugin keeps its own UserKnownHostsFile, so :ro is fine.	# プラグインは独自の UserKnownHostsFile を持つため :ro で問題ありません。
 # NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.	# NGINX_VARIANT は setup.sh が .env の HTTPS フラグを基に export します。
 # Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).	# "redis" プロファイル (setup.sh が export する COMPOSE_PROFILES) で有効化されます。
