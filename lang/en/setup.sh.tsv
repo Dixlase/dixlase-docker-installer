@@ -28,6 +28,10 @@
 # so docker-compose picks them up below; we deliberately do NOT write	# so docker-compose picks them up below; we deliberately do NOT write
 # them back to .env (.env is user-owned). --dev forces VITE on.	# them back to .env (.env is user-owned). --dev forces VITE on.
 # REDIS defaults to false when unset/empty.	# REDIS defaults to false when unset/empty.
+# CRON defaults to true when unset/empty so the Laravel scheduler runs	# CRON defaults to true when unset/empty so the Laravel scheduler runs
+# out of the box (required for automatic extension update checks).	# out of the box (required for automatic extension update checks).
+# Operators that already invoke `php artisan schedule:run` from a host	# Operators that already invoke `php artisan schedule:run` from a host
+# cron set CRON=false to opt out.	# cron set CRON=false to opt out.
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other	# Sync DEV_MODE with the effective VITE flag so step [6/6] and other
 # downstream logic reflect what actually runs.	# downstream logic reflect what actually runs.
 # 3. Generate SSL certificate	# 3. Generate SSL certificate
