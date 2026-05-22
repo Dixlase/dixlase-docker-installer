@@ -4,3 +4,18 @@
 # Production mode (pre-built assets):	# Production mode (pre-built assets):
 # NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.	# NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.
 # Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).	# Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).
+# Activated by the "cron" profile (COMPOSE_PROFILES exported by	# Activated by the "cron" profile (COMPOSE_PROFILES exported by
+# setup.sh from the CRON flag in .env). Default is on so Laravel's	# setup.sh from the CRON flag in .env). Default is on so Laravel's
+# scheduler — and therefore the `extension_update_check_interval`	# scheduler — and therefore the `extension_update_check_interval`
+# security setting — actually fires. Operators who run	# security setting — actually fires. Operators who run
+# `php artisan schedule:run` from a host cron can set CRON=false to	# `php artisan schedule:run` from a host cron can set CRON=false to
+# opt out of the container.	# opt out of the container.
+# Laravel's scheduler is designed to be invoked every minute; the	# Laravel's scheduler is designed to be invoked every minute; the
+# actual cadence of individual jobs (dls:source:check, integrity	# actual cadence of individual jobs (dls:source:check, integrity
+# scan, etc.) is decided inside routes/console.php on each tick. We	# scan, etc.) is decided inside routes/console.php on each tick. We
+# use a sleep loop instead of a real cron daemon because the only	# use a sleep loop instead of a real cron daemon because the only
+# job here is `schedule:run` itself — installing cron / supervisor	# job here is `schedule:run` itself — installing cron / supervisor
+# just to invoke one command every minute is more moving parts than	# just to invoke one command every minute is more moving parts than
+# the benefit. `set -e` is intentionally omitted: scheduled job	# the benefit. `set -e` is intentionally omitted: scheduled job
+# failures should not tear the loop down, since schedule:run	# failures should not tear the loop down, since schedule:run
+# already catches per-job exceptions internally.	# already catches per-job exceptions internally.

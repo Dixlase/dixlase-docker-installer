@@ -97,6 +97,43 @@ services:
     volumes:
       - redis:/data
 
+  cron:
+    container_name: ${CONTAINER_PREFIX:-dixlase}-cron
+    # Activated by the "cron" profile (COMPOSE_PROFILES exported by
+    # setup.sh from the CRON flag in .env). Default is on so Laravel's
+    # scheduler — and therefore the `extension_update_check_interval`
+    # security setting — actually fires. Operators who run
+    # `php artisan schedule:run` from a host cron can set CRON=false to
+    # opt out of the container.
+    profiles: ["cron"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./html:/var/www/html
+    depends_on:
+      - mysql
+    networks:
+      - dixlase
+    # Laravel's scheduler is designed to be invoked every minute; the
+    # actual cadence of individual jobs (dls:source:check, integrity
+    # scan, etc.) is decided inside routes/console.php on each tick. We
+    # use a sleep loop instead of a real cron daemon because the only
+    # job here is `schedule:run` itself — installing cron / supervisor
+    # just to invoke one command every minute is more moving parts than
+    # the benefit. `set -e` is intentionally omitted: scheduled job
+    # failures should not tear the loop down, since schedule:run
+    # already catches per-job exceptions internally.
+    command:
+      - sh
+      - -c
+      - |
+        while :; do
+          php /var/www/html/artisan schedule:run --no-interaction >> /var/www/html/storage/logs/cron.log 2>&1 || true
+          sleep 60
+        done
+
   vite:
     container_name: ${CONTAINER_PREFIX:-dixlase}-vite
     profiles: ["dev"]
