@@ -22,7 +22,10 @@ RUN apt-get update --allow-releaseinfo-change && apt-get install -y --allow-unau
     libcurl4-openssl-dev \
     pkg-config \
     libssl-dev \
-    libicu-dev
+    libicu-dev \
+    openssh-client \
+    rsync \
+    default-mysql-client
 
 # Install Node.js 20 (NodeSource)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \

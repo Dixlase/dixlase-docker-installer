@@ -17,6 +17,10 @@ services:
     volumes:
       - ./html:/var/www/html
       - ./certs:/etc/ssl/private
+      # Mount host SSH keys read-only so the DixlaseDeploy plugin's CLI
+      # (php artisan deploy:push/pull) can authenticate to remote hosts.
+      # The plugin keeps its own UserKnownHostsFile, so :ro is fine.
+      - ${HOME}/.ssh:/root/.ssh:ro
     environment:
       - PHP_FPM_LISTEN_MODE=666
     depends_on:
