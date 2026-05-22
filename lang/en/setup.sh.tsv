@@ -55,13 +55,14 @@
 # Build theme assets via core's dls:theme:build artisan: it runs	# Build theme assets via core's dls:theme:build artisan: it runs
 # npm install + npm run build inside themes/<name>/ and creates the	# npm install + npm run build inside themes/<name>/ and creates the
 # public/assets/themes/<name> symlink. The theme's tailwind.css	# public/assets/themes/<name> symlink. The theme's tailwind.css
-# @imports resources/css/dixlase-tailwind-plugin-sources.css, which	# @imports resources/css/dixlase-tailwind-plugin-sources.css, which
-# core's dls:tailwind:regenerate-plugin-sources rewrites every time	# core's dls:tailwind:regenerate-plugin-sources rewrites every time
-# plugins change (and the install wizard calls it after migrate).	# plugins change (and the install wizard calls it after migrate).
+# @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,	# @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,
+# which core's dls:tailwind:regenerate-plugin-sources rewrites every	# which core's dls:tailwind:regenerate-plugin-sources rewrites every
+# time plugins change (and the install wizard calls it after migrate).	# time plugins change (and the install wizard calls it after migrate).
 # On a fresh clone neither has happened yet, so seed an empty stub	# On a fresh clone neither has happened yet, so seed an empty stub
 # in the exact format core emits when no plugin contributes sources	# in the exact format core emits when no plugin contributes sources
 # — the wizard / lifecycle commands overwrite it later with the	# — the wizard / lifecycle commands overwrite it later with the
-# real aggregator output.	# real aggregator output.
+# real aggregator output. Keep PLUGIN_SOURCES in sync with core's	# real aggregator output. Keep PLUGIN_SOURCES in sync with core's
+# PluginSourceAggregator::OUTPUT_PATH.	# PluginSourceAggregator::OUTPUT_PATH.
 # Restart web so nginx sees freshly built assets. Docker Desktop bind	# Restart web so nginx sees freshly built assets. Docker Desktop bind
 # mounts on macOS sometimes hide files that appeared after the container	# mounts on macOS sometimes hide files that appeared after the container
 # started; restarting forces nginx to re-read the mounted directory.	# started; restarting forces nginx to re-read the mounted directory.
