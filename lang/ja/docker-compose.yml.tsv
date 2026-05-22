@@ -4,3 +4,18 @@
 # Production mode (pre-built assets):	# 本番モード (ビルド済みアセット) で起動する場合:
 # NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.	# NGINX_VARIANT は setup.sh が .env の HTTPS フラグを基に export します。
 # Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).	# "redis" プロファイル (setup.sh が export する COMPOSE_PROFILES) で有効化されます。
+# Activated by the "cron" profile (COMPOSE_PROFILES exported by	# "cron" プロファイル (setup.sh が .env の CRON フラグから export する
+# setup.sh from the CRON flag in .env). Default is on so Laravel's	# COMPOSE_PROFILES) で有効化されます。デフォルトは on で、Laravel の
+# scheduler — and therefore the `extension_update_check_interval`	# スケジューラ — ひいては extension_update_check_interval セキュリティ
+# security setting — actually fires. Operators who run	# 設定 — が実際に発火します。ホストの cron で `php artisan schedule:run`
+# `php artisan schedule:run` from a host cron can set CRON=false to	# を実行している運用者は CRON=false にしてこのコンテナをオプトアウト
+# opt out of the container.	# できます。
+# Laravel's scheduler is designed to be invoked every minute; the	# Laravel のスケジューラは毎分呼び出される前提で設計されており、
+# actual cadence of individual jobs (dls:source:check, integrity	# 個々のジョブ (dls:source:check、整合性スキャン等) の実際の実行
+# scan, etc.) is decided inside routes/console.php on each tick. We	# 間隔は毎 tick ごとに routes/console.php 内で決まる。ここで動かす
+# use a sleep loop instead of a real cron daemon because the only	# ジョブは `schedule:run` 自身だけなので、本物の cron デーモンでは
+# job here is `schedule:run` itself — installing cron / supervisor	# なく sleep ループを使う。1 コマンドを毎分呼ぶためだけに cron /
+# just to invoke one command every minute is more moving parts than	# supervisor を入れるのは、利点に対して可動部が多すぎる。
+# the benefit. `set -e` is intentionally omitted: scheduled job	# `set -e` は意図的に省略している: スケジュールジョブの失敗で
+# failures should not tear the loop down, since schedule:run	# ループを止めるべきではない。schedule:run は各ジョブの例外を
+# already catches per-job exceptions internally.	# 内部で既に捕捉しているためである。

@@ -137,6 +137,7 @@ fi
 
 VITE_VAL=$(grep '^VITE=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 REDIS_VAL=$(grep '^REDIS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
+CRON_VAL=$(grep '^CRON=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 if [ "$DEV_MODE" = true ]; then
     VITE_VAL=true
 fi
@@ -148,11 +149,18 @@ fi
 if [ "$REDIS_VAL" = "true" ] || [ "$REDIS_VAL" = "1" ]; then
     [ -n "$COMPOSE_PROFILES" ] && COMPOSE_PROFILES="${COMPOSE_PROFILES},redis" || COMPOSE_PROFILES="redis"
 fi
+# CRON defaults to true when unset/empty so the Laravel scheduler runs
+# out of the box (required for automatic extension update checks).
+# Operators that already invoke `php artisan schedule:run` from a host
+# cron set CRON=false to opt out.
+if [ -z "$CRON_VAL" ] || [ "$CRON_VAL" = "true" ] || [ "$CRON_VAL" = "1" ]; then
+    [ -n "$COMPOSE_PROFILES" ] && COMPOSE_PROFILES="${COMPOSE_PROFILES},cron" || COMPOSE_PROFILES="cron"
+fi
 
 export NGINX_VARIANT COMPOSE_PROFILES
 
 echo "  Selected nginx variant: nginx.$NGINX_VARIANT.conf (HTTPS=$HTTPS_VAL)"
-echo "  Active compose profiles: ${COMPOSE_PROFILES:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-false})"
+echo "  Active compose profiles: ${COMPOSE_PROFILES:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-false} CRON=${CRON_VAL:-true})"
 
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other
 # downstream logic reflect what actually runs.

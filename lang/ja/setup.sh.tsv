@@ -28,6 +28,10 @@
 # so docker-compose picks them up below; we deliberately do NOT write	# 渡します。.env はユーザー所有領域とみなし、これらの派生値を書き戻す
 # them back to .env (.env is user-owned). --dev forces VITE on.	# ことはしません。--dev は今回の実行に限り VITE を強制 ON にします。
 # REDIS defaults to false when unset/empty.	# REDIS は空 / 未設定のとき false 扱い。
+# CRON defaults to true when unset/empty so the Laravel scheduler runs	# CRON は空 / 未設定のとき true 扱いとし、Laravel スケジューラが
+# out of the box (required for automatic extension update checks).	# 標準で動くようにする (拡張機能の自動アップデートチェックに必要)。
+# Operators that already invoke `php artisan schedule:run` from a host	# ホストの cron で既に `php artisan schedule:run` を実行している
+# cron set CRON=false to opt out.	# 運用者は CRON=false でオプトアウトする。
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other	# 実際に動く内容と一致するよう、有効な VITE フラグと DEV_MODE を同期させる
 # downstream logic reflect what actually runs.	# (ステップ [6/6] と以降のロジックの整合)。
 # 3. Generate SSL certificate	# 3. SSL 証明書の生成
