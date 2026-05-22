@@ -55,13 +55,14 @@
 # Build theme assets via core's dls:theme:build artisan: it runs	# コアの dls:theme:build artisan でテーマアセットをビルド: themes/<name>/
 # npm install + npm run build inside themes/<name>/ and creates the	# 内で npm install + npm run build を実行し、public/assets/themes/<name>
 # public/assets/themes/<name> symlink. The theme's tailwind.css	# のシンボリックリンクを作成する。テーマの tailwind.css は
-# @imports resources/css/dixlase-tailwind-plugin-sources.css, which	# resources/css/dixlase-tailwind-plugin-sources.css を @import しており、
-# core's dls:tailwind:regenerate-plugin-sources rewrites every time	# このファイルはコアの dls:tailwind:regenerate-plugin-sources が
-# plugins change (and the install wizard calls it after migrate).	# プラグイン更新のたびに書き直す (ウィザードも migrate 直後に呼ぶ)。
+# @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,	# resources/src/common/css/dixlase-tailwind-plugin-sources.css を @import
+# which core's dls:tailwind:regenerate-plugin-sources rewrites every	# しており、このファイルはコアの dls:tailwind:regenerate-plugin-sources が
+# time plugins change (and the install wizard calls it after migrate).	# プラグイン更新のたびに書き直す (ウィザードも migrate 直後に呼ぶ)。
 # On a fresh clone neither has happened yet, so seed an empty stub	# 新規 clone 時はどちらもまだ走っていないため、プラグインソースが
 # in the exact format core emits when no plugin contributes sources	# 何もない状態でコアが出力するのと同じ形式の空 stub をここで配置し、
 # — the wizard / lifecycle commands overwrite it later with the	# 後でウィザード / ライフサイクルコマンドが本物のアグリゲータ出力で
-# real aggregator output.	# 上書きする。
+# real aggregator output. Keep PLUGIN_SOURCES in sync with core's	# 上書きする。PLUGIN_SOURCES はコアの
+# PluginSourceAggregator::OUTPUT_PATH.	# PluginSourceAggregator::OUTPUT_PATH と同期させること。
 # Restart web so nginx sees freshly built assets. Docker Desktop bind	# nginx に新規ビルドされたアセットを認識させるため web を再起動。Docker Desktop の
 # mounts on macOS sometimes hide files that appeared after the container	# macOS バインドマウントは、コンテナ起動後に追加されたファイルが見えない
 # started; restarting forces nginx to re-read the mounted directory.	# ことがあるため、再起動によりマウントを読み直す。

@@ -263,15 +263,16 @@ else
     # Build theme assets via core's dls:theme:build artisan: it runs
     # npm install + npm run build inside themes/<name>/ and creates the
     # public/assets/themes/<name> symlink. The theme's tailwind.css
-    # @imports resources/css/dixlase-tailwind-plugin-sources.css, which
-    # core's dls:tailwind:regenerate-plugin-sources rewrites every time
-    # plugins change (and the install wizard calls it after migrate).
+    # @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,
+    # which core's dls:tailwind:regenerate-plugin-sources rewrites every
+    # time plugins change (and the install wizard calls it after migrate).
     # On a fresh clone neither has happened yet, so seed an empty stub
     # in the exact format core emits when no plugin contributes sources
     # — the wizard / lifecycle commands overwrite it later with the
-    # real aggregator output.
+    # real aggregator output. Keep PLUGIN_SOURCES in sync with core's
+    # PluginSourceAggregator::OUTPUT_PATH.
     if [ -f html/themes/DixlaseOnePage/package.json ]; then
-        PLUGIN_SOURCES=html/resources/css/dixlase-tailwind-plugin-sources.css
+        PLUGIN_SOURCES=html/resources/src/common/css/dixlase-tailwind-plugin-sources.css
         if [ ! -f "$PLUGIN_SOURCES" ]; then
             mkdir -p "$(dirname "$PLUGIN_SOURCES")"
             cat > "$PLUGIN_SOURCES" <<'EOF'
