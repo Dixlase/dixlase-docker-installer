@@ -2,6 +2,9 @@
 # Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.	# Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.
 # Development mode (Vite hot-reload):	# Development mode (Vite hot-reload):
 # Production mode (pre-built assets):	# Production mode (pre-built assets):
+# Mount host SSH keys read-only so the DixlaseDeploy plugin's CLI	# Mount host SSH keys read-only so the DixlaseDeploy plugin's CLI
+# (php artisan deploy:push/pull) can authenticate to remote hosts.	# (php artisan deploy:push/pull) can authenticate to remote hosts.
+# The plugin keeps its own UserKnownHostsFile, so :ro is fine.	# The plugin keeps its own UserKnownHostsFile, so :ro is fine.
 # NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.	# NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.
 # Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).	# Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).
 # Activated by the "cron" profile (COMPOSE_PROFILES exported by	# Activated by the "cron" profile (COMPOSE_PROFILES exported by
