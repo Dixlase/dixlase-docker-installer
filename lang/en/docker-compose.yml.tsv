@@ -22,3 +22,9 @@
 # the benefit. `set -e` is intentionally omitted: scheduled job	# the benefit. `set -e` is intentionally omitted: scheduled job
 # failures should not tear the loop down, since schedule:run	# failures should not tear the loop down, since schedule:run
 # already catches per-job exceptions internally.	# already catches per-job exceptions internally.
+# Build-time secrets. The composer_auth file is mounted only during	# Build-time secrets. The composer_auth file is mounted only during
+# `docker compose build` (never into running containers and never into	# `docker compose build` (never into running containers and never into
+# the final image). It carries the GitHub OAuth token used by composer	# the final image). It carries the GitHub OAuth token used by composer
+# to clone the private `dixlase/dixlase-onepage` theme. Operators must	# to clone the private `dixlase/dixlase-onepage` theme. Operators must
+# create ~/.composer/auth.json on the host with the standard	# create ~/.composer/auth.json on the host with the standard
+# composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.	# composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.

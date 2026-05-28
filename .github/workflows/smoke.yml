@@ -34,6 +34,22 @@ jobs:
           token: ${{ secrets.CORE_REPO_TOKEN }}
           path: html
 
+      # Dockerfile mounts ~/.composer/auth.json as a BuildKit secret so
+      # composer can authenticate against the private theme-dixlase-onepage
+      # VCS repo during `composer install`. Without this file the secret
+      # mount resolves to nothing (required=false) and composer falls back
+      # to anonymous access, which 401s on the private repo. Write it from
+      # CORE_REPO_TOKEN — the same PAT the workflow already uses for git
+      # clones. The runner is ephemeral so no extra teardown is needed.
+      - name: Bootstrap composer auth for private theme dep
+        env:
+          CORE_REPO_TOKEN: ${{ secrets.CORE_REPO_TOKEN }}
+        run: |
+          set -e
+          mkdir -p "$HOME/.composer"
+          printf '{"github-oauth":{"github.com":"%s"}}\n' "$CORE_REPO_TOKEN" > "$HOME/.composer/auth.json"
+          chmod 600 "$HOME/.composer/auth.json"
+
       - name: Run setup.sh (html/ pre-placed; answer "n" to skip re-clone prompt)
         env:
           DIXLASE_THEME_REPO_URL: https://x-access-token:${{ secrets.CORE_REPO_TOKEN }}@github.com/Dixlase/theme-dixlase-onepage.git

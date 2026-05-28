@@ -22,3 +22,9 @@
 # the benefit. `set -e` is intentionally omitted: scheduled job	# `set -e` は意図的に省略している: スケジュールジョブの失敗で
 # failures should not tear the loop down, since schedule:run	# ループを止めるべきではない。schedule:run は各ジョブの例外を
 # already catches per-job exceptions internally.	# 内部で既に捕捉しているためである。
+# Build-time secrets. The composer_auth file is mounted only during	# build 時の secret 群。composer_auth ファイルは `docker compose build`
+# `docker compose build` (never into running containers and never into	# の間だけマウントされ、起動中のコンテナにも最終 image にも残らない。
+# the final image). It carries the GitHub OAuth token used by composer	# composer が private な `dixlase/dixlase-onepage` テーマを clone する
+# to clone the private `dixlase/dixlase-onepage` theme. Operators must	# ために使う GitHub OAuth トークンが入っている。運用者はホスト側に
+# create ~/.composer/auth.json on the host with the standard	# 標準の composer auth JSON 形式
+# composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.	# {"github-oauth":{"github.com":"<PAT>"}} で ~/.composer/auth.json を作る必要がある。
