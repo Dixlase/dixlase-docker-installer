@@ -9,6 +9,12 @@
 # Install Composer	# Composerをインストール
 # Set working directory	# 作業ディレクトリを設定
 # Install dependencies (only if html/ exists)	# 依存関係をインストール（html/ が存在する場合のみ）
+# Core's composer.json requires the private `dixlase/dixlase-onepage`	# コアの composer.json は private な GitHub リポジトリにある
+# theme from a private GitHub repo. Mount the host's	# `dixlase/dixlase-onepage` テーマを要求する。ホストの
+# ~/.composer/auth.json as a BuildKit secret so the token is available	# ~/.composer/auth.json を BuildKit secret としてマウントし、トークンが
+# only at build time (never baked into the resulting image). The	# build 時のみ利用可能になるようにする (image には焼き付かない)。
+# `required=false` keeps builds that do not need private deps working	# `required=false` のおかげで、private 依存を必要としない build はホストに
+# without an auth.json on the host.	# auth.json が無くても動作し続ける。
 # Install npm packages	# パッケージをインストール
 # Copy application source code	# アプリケーションのソースコードをコピー
 # Build the application	# アプリケーションをビルド
