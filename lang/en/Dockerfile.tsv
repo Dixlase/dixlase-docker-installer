@@ -9,6 +9,12 @@
 # Install Composer	# Install Composer
 # Set working directory	# Set working directory
 # Install dependencies (only if html/ exists)	# Install dependencies (only if html/ exists)
+# Core's composer.json requires the private `dixlase/dixlase-onepage`	# Core's composer.json requires the private `dixlase/dixlase-onepage`
+# theme from a private GitHub repo. Mount the host's	# theme from a private GitHub repo. Mount the host's
+# ~/.composer/auth.json as a BuildKit secret so the token is available	# ~/.composer/auth.json as a BuildKit secret so the token is available
+# only at build time (never baked into the resulting image). The	# only at build time (never baked into the resulting image). The
+# `required=false` keeps builds that do not need private deps working	# `required=false` keeps builds that do not need private deps working
+# without an auth.json on the host.	# without an auth.json on the host.
 # Install npm packages	# Install npm packages
 # Copy application source code	# Copy application source code
 # Build the application	# Build the application

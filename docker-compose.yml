@@ -14,6 +14,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      secrets:
+        - composer_auth
     volumes:
       - ./html:/var/www/html
       - ./certs:/etc/ssl/private
@@ -113,6 +115,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      secrets:
+        - composer_auth
     restart: always
     volumes:
       - ./html:/var/www/html
@@ -160,6 +164,16 @@ services:
 networks:
   dixlase:
     driver: bridge
+
+# Build-time secrets. The composer_auth file is mounted only during
+# `docker compose build` (never into running containers and never into
+# the final image). It carries the GitHub OAuth token used by composer
+# to clone the private `dixlase/dixlase-onepage` theme. Operators must
+# create ~/.composer/auth.json on the host with the standard
+# composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.
+secrets:
+  composer_auth:
+    file: ${HOME}/.composer/auth.json
 
 volumes:
   redis:
