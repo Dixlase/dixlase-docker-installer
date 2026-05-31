@@ -57,6 +57,15 @@ services:
       MYSQL_DATABASE: "${DB_DATABASE:-dixlase}"
       MYSQL_USER: "${DB_USERNAME:-dixlase}"
       MYSQL_PASSWORD: "${DB_PASSWORD:-password}"
+      # Optional migrator user (opt-in DB privilege separation).
+      # When both are set, mysql-initdb/01-permissions.sh fires on
+      # first init: strips DDL from ${DB_USERNAME} and creates
+      # ${DB_MIGRATE_USERNAME} with ALL PRIVILEGES. Migrations must
+      # then run with `php artisan migrate --database=mysql_migrate`.
+      # See docs/operations/db-privilege-separation.md in the Core
+      # repo for the rationale and the operator procedure.
+      DB_MIGRATE_USERNAME: "${DB_MIGRATE_USERNAME:-}"
+      DB_MIGRATE_PASSWORD: "${DB_MIGRATE_PASSWORD:-}"
     ports:
       # Bind to 127.0.0.1 by default so the DB is reachable only from this
       # host (TablePlus / Sequel Ace on the host machine still work). Override
@@ -65,6 +74,10 @@ services:
       - "${DB_BIND_ADDRESS:-127.0.0.1}:${FORWARD_DB_PORT:-3306}:3306"
     volumes:
       - ./mysql:/var/lib/mysql
+      # Init scripts only fire when the data dir is empty (first boot).
+      # 01-permissions.sh applies the privilege split iff DB_MIGRATE_*
+      # are set — otherwise it is a no-op.
+      - ./mysql-initdb:/docker-entrypoint-initdb.d:ro
     networks:
       - dixlase
 
