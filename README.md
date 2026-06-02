@@ -137,6 +137,39 @@ docker compose exec dixlase.test bash   # open a shell inside the app container
 └── lang/{en,ja}/           # Translation dictionaries (TSV)
 ```
 
+## Troubleshooting
+
+### The install wizard does not start; the front page shows `No hint path defined for [themes]` instead
+
+Symptom: after wiping `html/`, re-extracting the source, and running `composer install` + `npm install` + `npm run build`, opening `http://localhost:<port>/` returns a 500 with `InvalidArgumentException: No hint path defined for [themes]` (or skips the install wizard and tries to render the front page).
+
+Cause: the **MariaDB data volume / `mysql/` directory was not wiped along with `html/`**. The core's `CheckInstallationReady` middleware detects the leftover migrations, decides "the database already shows a completed install", and **self-heals `.env` by writing `INSTALLED=true`** — preventing the install wizard from running. The middleware logs a warning to `storage/logs/laravel.log` whenever this happens:
+
+```
+CheckInstallationReady: database shows an installed application
+but the INSTALLED env flag was false. .env has been auto-restored
+to INSTALLED=true...
+```
+
+This behaviour is intentional and correct for production (it recovers from an accidentally deleted `.env`), but it gets in the way when you intentionally want to re-test the install flow from a clean state.
+
+Fix: also wipe the database when re-testing. The canonical one-shot path is:
+
+```bash
+./reset.sh                              # destroys containers, named volumes, html/, AND mysql/, then re-runs setup
+```
+
+If you prefer to wipe manually:
+
+```bash
+docker compose down -v                  # stop and delete THIS project's containers + named volumes
+rm -rf mysql                            # delete the bind-mounted MariaDB data
+find html -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+docker compose up -d                    # restart so the wizard can boot against an empty DB
+```
+
+After this, opening `/` redirects to `/install` and the wizard runs against an empty database.
+
 ## License
 
 This installer (Dockerfiles, shell scripts, configuration templates) is released under the [MIT License](./LICENSE) so it can be freely forked, modified, and adapted for custom deployments.

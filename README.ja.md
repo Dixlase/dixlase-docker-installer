@@ -137,6 +137,39 @@ docker compose exec dixlase.test bash   # アプリコンテナ内でシェル�
 └── lang/{en,ja}/           # 翻訳辞書 (TSV)
 ```
 
+## トラブルシューティング
+
+### インストールウィザードが起動せず、フロントページに `No hint path defined for [themes]` が出る
+
+症状: `html/` を消して、ソースを再展開し、`composer install` + `npm install` + `npm run build` を実行した後で `http://localhost:<port>/` を開くと、500 エラーで `InvalidArgumentException: No hint path defined for [themes]` が返る（あるいはインストールウィザードがスキップされてフロントページの描画が試みられる）。
+
+原因: **MariaDB のデータボリューム / `mysql/` ディレクトリが `html/` と一緒に消されていない**。コアの `CheckInstallationReady` ミドルウェアが残存マイグレーションを検出し、「データベースは既にインストール完了の状態」と判断して、**`.env` に `INSTALLED=true` を自動書き込み（self-heal）**するため、インストールウィザードが起動しない状態になる。発火時は `storage/logs/laravel.log` に必ず警告が出力される:
+
+```
+CheckInstallationReady: database shows an installed application
+but the INSTALLED env flag was false. .env has been auto-restored
+to INSTALLED=true...
+```
+
+これは「`.env` が誤って削除されたケースから本番運用を救済する」ための意図的な挙動であり、production としては正しい設計だが、意図的にクリーン状態から install フローを再検証したい場合には邪魔になる。
+
+対処: 再検証時は DB も一緒に wipe する。正規のワンショット手段は次の通り:
+
+```bash
+./reset.sh                              # コンテナ・named volumes・html/・mysql/ をすべて削除して setup を再実行
+```
+
+手動で wipe したい場合:
+
+```bash
+docker compose down -v                  # 本プロジェクトのコンテナと named volumes を停止・削除
+rm -rf mysql                            # bind mount されている MariaDB データを削除
+find html -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+docker compose up -d                    # 空 DB に対してウィザードが起動できるように再起動
+```
+
+その後 `/` にアクセスすると `/install` にリダイレクトされ、空 DB に対してウィザードが走る。
+
 ## ライセンス
 
 本インストーラー (Dockerfile / シェルスクリプト / 設定テンプレート) は [MIT ライセンス](./LICENSE) の下で配布されます。フォーク・改変・カスタムデプロイに自由に利用できます。
