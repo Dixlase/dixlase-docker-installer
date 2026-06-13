@@ -1,8 +1,9 @@
+For English, see [README.md](./README.md).
+
 # Dixlase Docker インストーラー
 
-[Dixlase](https://github.com/Dixlase/dixlase-core) を Docker で簡単に立ち上げるためのインストーラーです。1 コマンドで PHP-FPM / Nginx / MariaDB / Redis / Mailpit / Adminer を一括起動します。
-
-For English, see [README.md](./README.md).
+[Dixlase](https://github.com/Dixlase/dixlase-core) を Docker で簡単に立ち上げるためのインストーラーです。  
+1 コマンドで PHP-FPM / Nginx / MariaDB / Redis / Mailpit / Adminer を一括起動し、コアとデフォルトテーマの clone、自己署名 TLS 証明書の生成、PHP / JS 依存関係のコンテナ内インストールまでをまとめて行います。
 
 ## 動作要件
 
@@ -18,22 +19,15 @@ cd dixlase
 ./setup.sh
 ```
 
-セットアップ完了後、ブラウザで `http://localhost` にアクセスしてください。初回アクセス時には Dixlase のインストールウィザードが表示されます。 (`.env` で `HTTPS=true` に変更して `./setup.sh` を再実行すると、同梱の自己署名証明書を使った HTTPS に切り替わります。)
-
-## setup.sh が行う処理
-
-1. Dixlase コアリポジトリを `./html/` にクローン
-2. デフォルトテーマを `./html/themes/DixlaseOnePage/` にクローン
-3. `.env.example` を `./.env` (Docker Compose のポート / DB 認証情報用) にコピー。Laravel 側の `./html/.env` はブラウザで初回アクセスした際に Dixlase インストールウィザードが生成します。
-4. 自己署名 TLS 証明書を `./certs/` に生成
-5. Docker コンテナをビルド・起動
-6. `composer install`、`npm install`、(本番モードの場合) `npm run build` を実行
+セットアップ完了後、ブラウザで `http://localhost:40080` にアクセスしてください。  
+初回アクセス時には Dixlase のインストールウィザードが表示されます。  
+(`.env` で `HTTPS=true` に変更して `./setup.sh` を再実行すると、同梱の自己署名証明書を使った HTTPS に切り替わります。)
 
 ## デフォルトの URL
 
 | サービス | URL |
 | --- | --- |
-| Dixlase CMS | `http://localhost` (`HTTPS=true` のときは `https://localhost`) |
+| Dixlase | `http://localhost:40080` (`HTTPS=true` のときは `https://localhost:40443`) |
 | Adminer (DB GUI) | `http://localhost:40081` |
 | Mailpit (メール受信) | `http://localhost:40025` |
 
@@ -53,7 +47,7 @@ cd dixlase
 ./setup.sh --dev
 ```
 
-Docker Compose の `dev` プロファイルで `vite` コンテナを追加起動します。フロントエンドのソースを編集すると `http://localhost` (`HTTPS=true` のときは `https://localhost`) に hot-reload されます。
+Docker Compose の `dev` プロファイルで `vite` コンテナを追加起動します。フロントエンドのソースを編集すると `http://localhost:40080` (`HTTPS=true` のときは `https://localhost:40443`) に hot-reload されます。
 
 既存のセットアップでモードを切り替える場合は `./reset.sh --dev` または `./reset.sh` を実行してください。
 
@@ -81,11 +75,10 @@ DB_PASSWORD=dixlase
 DB_ROOT_PASSWORD=root
 ```
 
-`HTTPS` / `VITE` / `REDIS` を切り替えたあとは `./setup.sh` を再実行してください。派生する `NGINX_VARIANT` / `COMPOSE_PROFILES` は `setup.sh` が自身の `docker compose up` 呼び出し向けに export するだけで、`.env` には書き戻しません — `.env` はユーザー所有領域です。`docker compose down` のあとも同様で、素の `docker compose up -d` では profile 配下のサービス (Vite / Redis) が起動しないため、再起動には `./setup.sh` (idempotent) を使うのが確実です。
+`HTTPS` / `VITE` / `REDIS` を切り替えたあとは `./setup.sh` を再実行してください。派生する `NGINX_VARIANT` / `COMPOSE_PROFILES` を反映させるためです。  
+`.env` はユーザー所有領域なので、派生値は `setup.sh` が export するだけで書き戻しません。`docker compose down` のあとも同じで、profile 配下のサービス (Vite / Redis) を確実に戻すには `./setup.sh` (idempotent) を使ってください。
 
-`REDIS` を有効化する場合は Laravel 側の `CACHE_STORE` / `SESSION_DRIVER` も `redis` に向けてください。
-
-デフォルトは `4xxxx` 名前空間 ("4" = D = Dixlase の頭文字、アルファベット 4 番目) を使っていて、標準ポートを既に他サービスで使っていても衝突しません。衝突がなく標準ポートで動かしたければ、`setup.sh` 実行前に `.env` で `APP_PORT=80` / `APP_SSL_PORT=443` に書き換えてください。
+`REDIS` を有効化する場合は Laravel 側の `CACHE_STORE` / `SESSION_DRIVER` も `redis` に向けてください。`4xxxx` 名前空間 ("4" = D = Dixlase の頭文字、アルファベット 4 番目) は標準ポートと衝突しないためのデフォルトです。衝突がなく標準ポートで動かしたい場合は、`setup.sh` 実行前に `.env` で `APP_PORT=80` / `APP_SSL_PORT=443` に書き換えてください。
 
 ### リポジトリ URL の上書き
 
@@ -103,11 +96,12 @@ export DIXLASE_THEME_REPO_URL=https://github.com/your-org/theme-dixlase-onepage.
 
 ```bash
 ./convert-comments.sh ja              # 全ファイル: 英語 → 日本語
-./convert-comments.sh ja setup.sh     # 単一ファイル: 英語 → 日本語
+./convert-comments.sh ja setup.sh     # 単一ファイル
 ./convert-comments.sh ja --reverse    # 全ファイル: 日本語 → 英語 (復元)
 ```
 
-翻訳辞書は `lang/<locale>/<source-path>.tsv` に配置されます (タブ区切りの `<英語テキスト>\t<ロケール側テキスト>` ペア)。新しいロケールを追加したり既存のものを拡張する場合は、既存ファイルと同じ場所に新しい TSV を置いてください。フォーマットの詳細は [CLAUDE.md](./CLAUDE.md) を参照してください。
+翻訳辞書は `lang/<locale>/<source-path>.tsv` に配置されます (タブ区切りの `<英語テキスト>\t<ロケール側テキスト>` ペア)。  
+フォーマットや新規ロケール追加方法は [CLAUDE.md](./CLAUDE.md) を参照してください。
 
 ## 便利なコマンド
 
@@ -118,32 +112,11 @@ docker compose exec dixlase.test bash   # アプリコンテナ内でシェル�
 ./reset.sh                              # DB / ソース / ボリュームを削除して再セットアップ
 ```
 
-## リポジトリ構成
-
-```
-.
-├── Dockerfile              # PHP-FPM 8.3 + Composer + Node 20
-├── Dockerfile.vite         # Vite dev サーバー (--dev 指定時のみ使用)
-├── docker-compose.yml      # サービス定義
-├── nginx/nginx.http.conf   # Nginx vhost — HTTP のみ・リダイレクトなし (HTTPS=false)
-├── nginx/nginx.https.conf  # Nginx vhost — HTTP→HTTPS リダイレクト + TLS (HTTPS=true)
-├── php/php.ini             # PHP ランタイム設定 (アップロードサイズ、メモリ等)
-├── .env.example            # 環境変数テンプレート (setup 時に .env にコピーされる)
-├── setup.sh                # 初回セットアップ
-├── update.sh               # コアを最新化してマイグレーションを実行
-├── reset.sh                # 全状態を削除して再セットアップ
-├── convert-comments.sh     # スクリプトのコメント / メッセージをロケール間で切り替える
-├── entrypoint.sh           # Vite コンテナのエントリポイント
-└── lang/{en,ja}/           # 翻訳辞書 (TSV)
-```
-
 ## トラブルシューティング
 
-### インストールウィザードが起動せず、フロントページに `No hint path defined for [themes]` が出る
+### ウィザードが起動せず、フロントページに `No hint path defined for [themes]` が出る
 
-症状: `html/` を消して、ソースを再展開し、`composer install` + `npm install` + `npm run build` を実行した後で `http://localhost:<port>/` を開くと、500 エラーで `InvalidArgumentException: No hint path defined for [themes]` が返る（あるいはインストールウィザードがスキップされてフロントページの描画が試みられる）。
-
-原因: **MariaDB のデータボリューム / `mysql/` ディレクトリが `html/` と一緒に消されていない**。コアの `CheckInstallationReady` ミドルウェアが残存マイグレーションを検出し、「データベースは既にインストール完了の状態」と判断して、**`.env` に `INSTALLED=true` を自動書き込み（self-heal）**するため、インストールウィザードが起動しない状態になる。発火時は `storage/logs/laravel.log` に必ず警告が出力される:
+原因: `html/` は消したが **MariaDB のデータ (`mysql/` ディレクトリまたは named volume) は残したまま** だった。コアの `CheckInstallationReady` ミドルウェアが残存マイグレーションを検出し「インストール完了状態」と判断、**`.env` に `INSTALLED=true` を自動書き込み (self-heal)** するためウィザードが起動しなくなる。発火時は `storage/logs/laravel.log` に必ず警告が出力される:
 
 ```
 CheckInstallationReady: database shows an installed application
@@ -151,24 +124,7 @@ but the INSTALLED env flag was false. .env has been auto-restored
 to INSTALLED=true...
 ```
 
-これは「`.env` が誤って削除されたケースから本番運用を救済する」ための意図的な挙動であり、production としては正しい設計だが、意図的にクリーン状態から install フローを再検証したい場合には邪魔になる。
-
-対処: 再検証時は DB も一緒に wipe する。正規のワンショット手段は次の通り:
-
-```bash
-./reset.sh                              # コンテナ・named volumes・html/・mysql/ をすべて削除して setup を再実行
-```
-
-手動で wipe したい場合:
-
-```bash
-docker compose down -v                  # 本プロジェクトのコンテナと named volumes を停止・削除
-rm -rf mysql                            # bind mount されている MariaDB データを削除
-find html -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-docker compose up -d                    # 空 DB に対してウィザードが起動できるように再起動
-```
-
-その後 `/` にアクセスすると `/install` にリダイレクトされ、空 DB に対してウィザードが走る。
+対処: DB も一緒に wipe する。`./reset.sh` がコンテナ・named volumes・`html/`・`mysql/` を全部消して setup を再実行する正規ルートです。実行後 `/` を開くと `/install` にリダイレクトされ、空 DB に対してウィザードが走ります。
 
 ## ライセンス
 
