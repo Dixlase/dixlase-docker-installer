@@ -5,3 +5,7 @@
 # File upload size limit	# ファイルアップロードサイズ制限
 # WebSocket support	# WebSocket対応
 # Skip SSL verification (development only)	# SSL検証をスキップ（開発環境のみ）
+# Resolve the app upstream per request (resolver + variable) so an	# resolver と変数でアプリ upstream をリクエスト毎に解決し、
+# app-container restart with a new IP does not strand nginx on the	# アプリコンテナが新しい IP で再起動しても nginx が古いアドレスに張り付き、
+# dead address and 502 until web restarts. Same pattern as /vite.	# web 再起動まで 502 になるのを防ぎます。/vite と同じ方式です。
+# Core updates can exceed nginx's default 60s; allow PHP's 300s.	# コア更新は nginx 既定の 60s を超え得るため PHP の 300s まで許可します。
