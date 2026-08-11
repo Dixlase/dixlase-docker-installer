@@ -6,3 +6,7 @@
 # File upload size limit	# File upload size limit
 # WebSocket support	# WebSocket support
 # Skip SSL verification (development only)	# Skip SSL verification (development only)
+# Resolve the app upstream per request (resolver + variable) so an	# Resolve the app upstream per request (resolver + variable) so an
+# app-container restart with a new IP does not strand nginx on the	# app-container restart with a new IP does not strand nginx on the
+# dead address and 502 until web restarts. Same pattern as /vite.	# dead address and 502 until web restarts. Same pattern as /vite.
+# Core updates can exceed nginx's default 60s; allow PHP's 300s.	# Core updates can exceed nginx's default 60s; allow PHP's 300s.
