@@ -29,7 +29,9 @@
 #    the release-ZIP seeding path). Chowned non-recursively on purpose:
 #    only the container dir must be writable for the rename, and recursing
 #    would chown a theme's node_modules/ on every start. mkdir -p first so
-#    the roots exist before the first install.
+#    the roots exist before the first install; both the mkdir and the
+#    chown are best-effort (like every other step here) so a malformed
+#    html/ tree can never stop php-fpm from starting.
 #
 # 3. public/storage must be a symlink to storage/app/public/ so the
 #    media manager's /storage/<path> URLs can serve uploaded files.
@@ -49,8 +51,10 @@ for d in storage bootstrap/cache resources/src/common/css; do
 done
 
 for d in plugins themes; do
-  mkdir -p "$d"
-  chown www-data:www-data "$d" 2>/dev/null || true
+  mkdir -p "$d" 2>/dev/null || true
+  if [ -d "$d" ]; then
+    chown www-data:www-data "$d" 2>/dev/null || true
+  fi
 done
 
 if [ ! -e public/storage ] && [ -d storage/app/public ]; then

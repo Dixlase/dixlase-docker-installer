@@ -14,6 +14,7 @@ on:
       - 'php/**'
       - '.env.example'
       - 'entrypoint.sh'
+      - 'app-entrypoint.sh'
       - '.github/workflows/smoke.yml'
 
 jobs:
