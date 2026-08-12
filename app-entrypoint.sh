@@ -4,7 +4,7 @@
 #
 # Entrypoint for the dixlase.test (php-fpm) container.
 #
-# Two self-healing steps run on every container start:
+# Three self-healing steps run on every container start:
 #
 # 1. storage/, bootstrap/cache/ and resources/src/common/css/ are
 #    bind-mounted from the host and inherit host UIDs. php-fpm workers
@@ -19,7 +19,19 @@
 #    Chown them so the container works regardless of which user created
 #    the files on the host.
 #
-# 2. public/storage must be a symlink to storage/app/public/ so the
+# 2. plugins/ and themes/ are the extension roots. The plugin/theme
+#    install / update / rollback commands rename plugin and theme
+#    directories in and out of these two dirs (a rename only needs write
+#    on the PARENT dir), so www-data must own plugins/ and themes/
+#    themselves. Without this an extension update fails with
+#    `rename(.../staging/X, plugins/X): Permission denied` and rolls back
+#    (seen when the roots were created by a non-www-data host user, e.g.
+#    the release-ZIP seeding path). Chowned non-recursively on purpose:
+#    only the container dir must be writable for the rename, and recursing
+#    would chown a theme's node_modules/ on every start. mkdir -p first so
+#    the roots exist before the first install.
+#
+# 3. public/storage must be a symlink to storage/app/public/ so the
 #    media manager's /storage/<path> URLs can serve uploaded files.
 #    Without the symlink, uploads succeed and rows land in dls_media,
 #    but every thumbnail and preview returns 404. The symlink is
@@ -34,6 +46,11 @@ for d in storage bootstrap/cache resources/src/common/css; do
   if [ -d "$d" ]; then
     chown -R www-data:www-data "$d" 2>/dev/null || true
   fi
+done
+
+for d in plugins themes; do
+  mkdir -p "$d"
+  chown www-data:www-data "$d" 2>/dev/null || true
 done
 
 if [ ! -e public/storage ] && [ -d storage/app/public ]; then
