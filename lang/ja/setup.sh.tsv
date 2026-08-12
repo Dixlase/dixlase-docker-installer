@@ -116,3 +116,11 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 # Open a shell in the container	# コンテナに入る
 # Full reset of the environment	# 環境を完全リセット
 # Pull latest from GitHub	# GitHub から最新を取得
+# Seed the Tailwind plugin-sources stub the theme build @imports.	# テーマビルドが @import する Tailwind plugin-sources のスタブを配置する。
+# Core's dls:tailwind:regenerate-plugin-sources normally writes it.	# 通常は core の dls:tailwind:regenerate-plugin-sources が書き出す。
+# This has to happen before step [4/6] starts the containers:	# これは [4/6] でコンテナを起動する前に実行する必要がある:
+# app-entrypoint.sh chowns resources/src/common/css to www-data so the	# app-entrypoint.sh は install ウィザードがアトミックに書き換えられるよう
+# install wizard can rewrite the file atomically, after which this	# resources/src/common/css を www-data に chown する。それ以降、この
+# host-side write fails with "Permission denied" on hosts that do not	# ホスト側の書き込みは bind mount の所有権を仮想化しないホスト (Linux) では
+# virtualize bind-mount ownership (Linux).	# "Permission denied" で失敗する。
+# The stub it needs on a fresh clone was seeded in step [1.5/6].	# 新規クローン時に必要なスタブは [1.5/6] で配置済み。
