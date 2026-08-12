@@ -18,6 +18,19 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Once the containers have run, app-entrypoint.sh owns several paths
+# under html/ as www-data (storage/, bootstrap/cache/,
+# resources/src/common/css/, plugins/, themes/) so php-fpm can write
+# there. On hosts that do not virtualize bind-mount ownership (Linux)
+# the host user can then no longer delete those paths or create entries
+# inside them, which breaks re-running this script. Run such operations
+# through a throwaway root container instead — the same approach
+# reset.sh uses. Best-effort: a machine without a usable docker daemon
+# has not run the containers either, so the host-side path still works.
+docker_root() {
+    docker run --rm -v "$SCRIPT_DIR:/work" alpine sh -c "$1" 2>/dev/null || true
+}
+
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.
 REPO_URL="${DIXLASE_REPO_URL:-https://github.com/Dixlase/dixlase-core.git}"
 THEME_REPO_URL="${DIXLASE_THEME_REPO_URL:-https://github.com/Dixlase/theme-dixlase-onepage.git}"
@@ -53,6 +66,7 @@ if [ -d "html" ]; then
     read -r -p "  Delete and re-clone? (y/N): " confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
         echo "  Deleting html/..."
+        docker_root 'rm -rf /work/html'
         rm -rf html
         echo "  Cloning from GitHub..."
         git clone -b "$BRANCH" "$REPO_URL" html
@@ -70,6 +84,11 @@ fi
 echo ""
 echo "[1.5/6] Initializing submodules..."
 cd html
+# themes/ itself may be owned by www-data from a previous container run;
+# hand it back to the host user so the git clone below can create the
+# theme directory inside it. app-entrypoint.sh takes ownership again on
+# the next app-container start, which step [4/6] now forces.
+docker_root "chown $(id -u):$(id -g) /work/html/themes"
 # Clone directly instead of using a submodule (handles commits the core may not reach)
 # Mirror the html/ prompt: if themes/DixlaseOnePage already has content
 # (user kept html/ above, or has local theme work), ask before
@@ -80,6 +99,7 @@ if [ -d "themes/DixlaseOnePage" ] && [ -n "$(ls -A themes/DixlaseOnePage 2>/dev/
     read -r -p "  Delete and re-clone? (y/N): " confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
         echo "  Deleting themes/DixlaseOnePage..."
+        docker_root 'rm -rf /work/html/themes/DixlaseOnePage'
         rm -rf themes/DixlaseOnePage
         echo "  Fetching themes/DixlaseOnePage..."
         git clone "$THEME_REPO_URL" themes/DixlaseOnePage
@@ -87,6 +107,7 @@ if [ -d "themes/DixlaseOnePage" ] && [ -n "$(ls -A themes/DixlaseOnePage 2>/dev/
         echo "  Keeping existing themes/DixlaseOnePage."
     fi
 else
+    docker_root 'rm -rf /work/html/themes/DixlaseOnePage'
     rm -rf themes/DixlaseOnePage
     echo "  Fetching themes/DixlaseOnePage..."
     git clone "$THEME_REPO_URL" themes/DixlaseOnePage
@@ -228,6 +249,7 @@ echo "[4/6] Building and starting Docker containers..."
 # If containers from a previous run exist, offer to recreate them.
 # Recreation guarantees a clean state and avoids Docker Desktop bind-mount
 # caching where freshly built host files are not visible to running containers.
+KEPT_CONTAINERS=false
 EXISTING_CONTAINERS=$(docker compose ps -aq 2>/dev/null | wc -l | tr -d ' ')
 if [ "$EXISTING_CONTAINERS" -gt 0 ]; then
     echo "  Existing containers detected ($EXISTING_CONTAINERS)."
@@ -237,11 +259,22 @@ if [ "$EXISTING_CONTAINERS" -gt 0 ]; then
         docker compose down
     else
         echo "  Keeping existing containers (in-place restart)."
+        KEPT_CONTAINERS=true
     fi
 fi
 # Active profiles are picked up from COMPOSE_PROFILES exported above.
 docker compose build
 docker compose up -d
+
+# `up -d` leaves an already-running container untouched, so the
+# entrypoint's self-heal would not run against the html/ tree the steps
+# above just rewrote — and the ownership handed back to the host user
+# for the theme clone would stay that way. Restart the app container to
+# make the promised in-place restart real.
+if [ "$KEPT_CONTAINERS" = true ]; then
+    echo "  Restarting the app container to re-apply container-side ownership..."
+    docker compose restart dixlase.test
+fi
 
 # Wait for containers to start
 echo "  Waiting for containers to start..."

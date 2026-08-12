@@ -124,3 +124,22 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 # host-side write fails with "Permission denied" on hosts that do not	# host-side write fails with "Permission denied" on hosts that do not
 # virtualize bind-mount ownership (Linux).	# virtualize bind-mount ownership (Linux).
 # The stub it needs on a fresh clone was seeded in step [1.5/6].	# The stub it needs on a fresh clone was seeded in step [1.5/6].
+# Once the containers have run, app-entrypoint.sh owns several paths	# Once the containers have run, app-entrypoint.sh owns several paths
+# under html/ as www-data (storage/, bootstrap/cache/,	# under html/ as www-data (storage/, bootstrap/cache/,
+# resources/src/common/css/, plugins/, themes/) so php-fpm can write	# resources/src/common/css/, plugins/, themes/) so php-fpm can write
+# there. On hosts that do not virtualize bind-mount ownership (Linux)	# there. On hosts that do not virtualize bind-mount ownership (Linux)
+# the host user can then no longer delete those paths or create entries	# the host user can then no longer delete those paths or create entries
+# inside them, which breaks re-running this script. Run such operations	# inside them, which breaks re-running this script. Run such operations
+# through a throwaway root container instead — the same approach	# through a throwaway root container instead — the same approach
+# reset.sh uses. Best-effort: a machine without a usable docker daemon	# reset.sh uses. Best-effort: a machine without a usable docker daemon
+# has not run the containers either, so the host-side path still works.	# has not run the containers either, so the host-side path still works.
+# themes/ itself may be owned by www-data from a previous container run;	# themes/ itself may be owned by www-data from a previous container run;
+# hand it back to the host user so the git clone below can create the	# hand it back to the host user so the git clone below can create the
+# theme directory inside it. app-entrypoint.sh takes ownership again on	# theme directory inside it. app-entrypoint.sh takes ownership again on
+# the next app-container start, which step [4/6] now forces.	# the next app-container start, which step [4/6] now forces.
+# `up -d` leaves an already-running container untouched, so the	# `up -d` leaves an already-running container untouched, so the
+# entrypoint's self-heal would not run against the html/ tree the steps	# entrypoint's self-heal would not run against the html/ tree the steps
+# above just rewrote — and the ownership handed back to the host user	# above just rewrote — and the ownership handed back to the host user
+# for the theme clone would stay that way. Restart the app container to	# for the theme clone would stay that way. Restart the app container to
+# make the promised in-place restart real.	# make the promised in-place restart real.
+  Restarting the app container to re-apply container-side ownership...	  Restarting the app container to re-apply container-side ownership...
