@@ -124,3 +124,22 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 # host-side write fails with "Permission denied" on hosts that do not	# ホスト側の書き込みは bind mount の所有権を仮想化しないホスト (Linux) では
 # virtualize bind-mount ownership (Linux).	# "Permission denied" で失敗する。
 # The stub it needs on a fresh clone was seeded in step [1.5/6].	# 新規クローン時に必要なスタブは [1.5/6] で配置済み。
+# Once the containers have run, app-entrypoint.sh owns several paths	# コンテナが一度でも起動すると app-entrypoint.sh は html/ 配下のいくつかの
+# under html/ as www-data (storage/, bootstrap/cache/,	# パス (storage/、bootstrap/cache/、resources/src/common/css/、plugins/、
+# resources/src/common/css/, plugins/, themes/) so php-fpm can write	# themes/) を www-data 所有にする。php-fpm がそこへ書き込めるようにするため
+# there. On hosts that do not virtualize bind-mount ownership (Linux)	# である。bind mount の所有権を仮想化しないホスト (Linux) では、以降ホスト
+# the host user can then no longer delete those paths or create entries	# ユーザーがそれらのパスを削除したり配下にエントリを作成したりできなくなり、
+# inside them, which breaks re-running this script. Run such operations	# 本スクリプトの再実行が壊れる。そうした操作は使い捨ての root コンテナ経由で
+# through a throwaway root container instead — the same approach	# 実行する。reset.sh が採用しているのと同じ方式である。ベストエフォート実装:
+# reset.sh uses. Best-effort: a machine without a usable docker daemon	# docker デーモンが使えないマシンはコンテナも起動していないため、ホスト側の
+# has not run the containers either, so the host-side path still works.	# 経路がそのまま機能する。
+# themes/ itself may be owned by www-data from a previous container run;	# themes/ 自体が前回のコンテナ起動で www-data 所有になっている場合があるため、
+# hand it back to the host user so the git clone below can create the	# 下の git clone がテーマディレクトリを作成できるようホストユーザーに戻す。
+# theme directory inside it. app-entrypoint.sh takes ownership again on	# app-entrypoint.sh は次回の app コンテナ起動時に再び所有権を取得する。その
+# the next app-container start, which step [4/6] now forces.	# 起動は [4/6] で強制するようにした。
+# `up -d` leaves an already-running container untouched, so the	# `up -d` は既に起動中のコンテナに手を触れないため、上の各ステップが書き換えた
+# entrypoint's self-heal would not run against the html/ tree the steps	# html/ ツリーに対してエントリポイントの自己修復が走らず、テーマ clone のために
+# above just rewrote — and the ownership handed back to the host user	# ホストユーザーへ戻した所有権もそのままになってしまう。app コンテナを再起動し、
+# for the theme clone would stay that way. Restart the app container to	# 「in-place restart」という表示どおりの動作を実際に行う。
+# make the promised in-place restart real.	# (再起動の実施)
+  Restarting the app container to re-apply container-side ownership...	  コンテナ側の所有権を再適用するため app コンテナを再起動しています...
