@@ -110,6 +110,36 @@ fi
 cd ..
 echo "  Submodule fetch complete."
 
+# Seed the Tailwind plugin-sources stub the theme build @imports.
+# Core's dls:tailwind:regenerate-plugin-sources normally writes it.
+# On a fresh clone neither has happened yet, so seed an empty stub
+# in the exact format core emits when no plugin contributes sources
+# — the wizard / lifecycle commands overwrite it later with the
+# real aggregator output. Keep PLUGIN_SOURCES in sync with core's
+# PluginSourceAggregator::OUTPUT_PATH.
+#
+# This has to happen before step [4/6] starts the containers:
+# app-entrypoint.sh chowns resources/src/common/css to www-data so the
+# install wizard can rewrite the file atomically, after which this
+# host-side write fails with "Permission denied" on hosts that do not
+# virtualize bind-mount ownership (Linux).
+if [ -f html/themes/DixlaseOnePage/package.json ]; then
+    PLUGIN_SOURCES=html/resources/src/common/css/dixlase-tailwind-plugin-sources.css
+    if [ ! -f "$PLUGIN_SOURCES" ]; then
+        mkdir -p "$(dirname "$PLUGIN_SOURCES")"
+        cat > "$PLUGIN_SOURCES" <<'EOF'
+/*
+ * AUTO-GENERATED placeholder seeded by dixlase-docker-installer.
+ * The Dixlase install wizard and plugin lifecycle commands overwrite
+ * this file via php artisan dls:tailwind:regenerate-plugin-sources.
+ */
+
+/* No enabled plugin currently declares Tailwind content sources. */
+EOF
+        echo "  Seeded $PLUGIN_SOURCES placeholder for theme build."
+    fi
+fi
+
 # -------------------------------------------------
 # 2. Set up .env
 # -------------------------------------------------
@@ -266,26 +296,8 @@ else
     # @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,
     # which core's dls:tailwind:regenerate-plugin-sources rewrites every
     # time plugins change (and the install wizard calls it after migrate).
-    # On a fresh clone neither has happened yet, so seed an empty stub
-    # in the exact format core emits when no plugin contributes sources
-    # — the wizard / lifecycle commands overwrite it later with the
-    # real aggregator output. Keep PLUGIN_SOURCES in sync with core's
-    # PluginSourceAggregator::OUTPUT_PATH.
+    # The stub it needs on a fresh clone was seeded in step [1.5/6].
     if [ -f html/themes/DixlaseOnePage/package.json ]; then
-        PLUGIN_SOURCES=html/resources/src/common/css/dixlase-tailwind-plugin-sources.css
-        if [ ! -f "$PLUGIN_SOURCES" ]; then
-            mkdir -p "$(dirname "$PLUGIN_SOURCES")"
-            cat > "$PLUGIN_SOURCES" <<'EOF'
-/*
- * AUTO-GENERATED placeholder seeded by dixlase-docker-installer.
- * The Dixlase install wizard and plugin lifecycle commands overwrite
- * this file via php artisan dls:tailwind:regenerate-plugin-sources.
- */
-
-/* No enabled plugin currently declares Tailwind content sources. */
-EOF
-            echo "  Seeded $PLUGIN_SOURCES placeholder for theme build."
-        fi
         echo "  Building theme assets (themes/DixlaseOnePage)..."
         docker compose exec -T dixlase.test php artisan dls:theme:build DixlaseOnePage
     fi

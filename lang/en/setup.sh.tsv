@@ -116,3 +116,11 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 # Open a shell in the container	# Open a shell in the container
 # Full reset of the environment	# Full reset of the environment
 # Pull latest from GitHub	# Pull latest from GitHub
+# Seed the Tailwind plugin-sources stub the theme build @imports.	# Seed the Tailwind plugin-sources stub the theme build @imports.
+# Core's dls:tailwind:regenerate-plugin-sources normally writes it.	# Core's dls:tailwind:regenerate-plugin-sources normally writes it.
+# This has to happen before step [4/6] starts the containers:	# This has to happen before step [4/6] starts the containers:
+# app-entrypoint.sh chowns resources/src/common/css to www-data so the	# app-entrypoint.sh chowns resources/src/common/css to www-data so the
+# install wizard can rewrite the file atomically, after which this	# install wizard can rewrite the file atomically, after which this
+# host-side write fails with "Permission denied" on hosts that do not	# host-side write fails with "Permission denied" on hosts that do not
+# virtualize bind-mount ownership (Linux).	# virtualize bind-mount ownership (Linux).
+# The stub it needs on a fresh clone was seeded in step [1.5/6].	# The stub it needs on a fresh clone was seeded in step [1.5/6].
