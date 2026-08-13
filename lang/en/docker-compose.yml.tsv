@@ -35,3 +35,10 @@
 # worker). The image ships clear_env=no, so these reach the fpm	# worker). The image ships clear_env=no, so these reach the fpm
 # workers; Laravel's immutable dotenv keeps them over any html/.env	# workers; Laravel's immutable dotenv keeps them over any html/.env
 # value. The token is generated into the root .env by setup.sh.	# value. The token is generated into the root .env by setup.sh.
+# Drop to www-data (the uid php-fpm workers run as) before invoking	# Drop to www-data (the uid php-fpm workers run as) before invoking
+# the scheduler. The container starts as root so the ENTRYPOINT can	# the scheduler. The container starts as root so the ENTRYPOINT can
+# chown storage, but schedule:run must not run as root: Laravel would	# chown storage, but schedule:run must not run as root: Laravel would
+# otherwise create the shared daily log storage/logs/dixlase-<date>.log	# otherwise create the shared daily log storage/logs/dixlase-<date>.log
+# root-owned, and a later web request (www-data) appending to that same	# root-owned, and a later web request (www-data) appending to that same
+# file fails with "Permission denied" — which can abort a web-triggered	# file fails with "Permission denied" — which can abort a web-triggered
+# core update. Redirect inside the su so cron.log is www-data-owned too.	# core update. Redirect inside the su so cron.log is www-data-owned too.

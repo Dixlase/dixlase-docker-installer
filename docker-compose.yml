@@ -155,12 +155,20 @@ services:
     # the benefit. `set -e` is intentionally omitted: scheduled job
     # failures should not tear the loop down, since schedule:run
     # already catches per-job exceptions internally.
+    #
+    # Drop to www-data (the uid php-fpm workers run as) before invoking
+    # the scheduler. The container starts as root so the ENTRYPOINT can
+    # chown storage, but schedule:run must not run as root: Laravel would
+    # otherwise create the shared daily log storage/logs/dixlase-<date>.log
+    # root-owned, and a later web request (www-data) appending to that same
+    # file fails with "Permission denied" — which can abort a web-triggered
+    # core update. Redirect inside the su so cron.log is www-data-owned too.
     command:
       - sh
       - -c
       - |
         while :; do
-          php /var/www/html/artisan schedule:run --no-interaction >> /var/www/html/storage/logs/cron.log 2>&1 || true
+          su www-data -s /bin/sh -c 'php /var/www/html/artisan schedule:run --no-interaction >> /var/www/html/storage/logs/cron.log 2>&1' || true
           sleep 60
         done
 
