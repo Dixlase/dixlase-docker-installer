@@ -28,3 +28,10 @@
 # to clone the private `dixlase/dixlase-onepage` theme. Operators must	# to clone the private `dixlase/dixlase-onepage` theme. Operators must
 # create ~/.composer/auth.json on the host with the standard	# create ~/.composer/auth.json on the host with the standard
 # composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.	# composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.
+# Drop to www-data (the uid php-fpm workers run as) before invoking	# Drop to www-data (the uid php-fpm workers run as) before invoking
+# the scheduler. The container starts as root so the ENTRYPOINT can	# the scheduler. The container starts as root so the ENTRYPOINT can
+# chown storage, but schedule:run must not run as root: Laravel would	# chown storage, but schedule:run must not run as root: Laravel would
+# otherwise create the shared daily log storage/logs/dixlase-<date>.log	# otherwise create the shared daily log storage/logs/dixlase-<date>.log
+# root-owned, and a later web request (www-data) appending to that same	# root-owned, and a later web request (www-data) appending to that same
+# file fails with "Permission denied" — which can abort a web-triggered	# file fails with "Permission denied" — which can abort a web-triggered
+# core update. Redirect inside the su so cron.log is www-data-owned too.	# core update. Redirect inside the su so cron.log is www-data-owned too.
