@@ -175,6 +175,23 @@ else
     echo "  .env already exists (skipped)."
 fi
 
+# Generate a random php-fpm opcache-reset token if .env does not already
+# carry a non-empty one. docker-compose interpolates it into the app
+# container's CORE_FPM_RESET_TOKEN, and the deployed core reads it on both
+# ends of the /system/fpm-cache-reset call so web-triggered core updates
+# can refresh php-fpm's opcache over HTTP instead of signalling php-fpm
+# (PID 1), which the www-data worker cannot do.
+CORE_FPM_RESET_TOKEN_VAL=$(grep '^CORE_FPM_RESET_TOKEN=' .env | cut -d'=' -f2- | tr -d '[:space:]"')
+if [ -z "$CORE_FPM_RESET_TOKEN_VAL" ]; then
+    NEW_FPM_RESET_TOKEN=$(openssl rand -hex 32)
+    if grep -q '^CORE_FPM_RESET_TOKEN=' .env; then
+        sed -i.bak "s|^CORE_FPM_RESET_TOKEN=.*|CORE_FPM_RESET_TOKEN=${NEW_FPM_RESET_TOKEN}|" .env && rm -f .env.bak
+    else
+        printf 'CORE_FPM_RESET_TOKEN=%s\n' "$NEW_FPM_RESET_TOKEN" >> .env
+    fi
+    echo "  Generated CORE_FPM_RESET_TOKEN for php-fpm opcache reset."
+fi
+
 # Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from
 # VITE / REDIS. Values are exported to setup.sh's process environment
 # so docker-compose picks them up below; we deliberately do NOT write

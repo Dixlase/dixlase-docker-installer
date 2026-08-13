@@ -28,3 +28,10 @@
 # to clone the private `dixlase/dixlase-onepage` theme. Operators must	# ために使う GitHub OAuth トークンが入っている。運用者はホスト側に
 # create ~/.composer/auth.json on the host with the standard	# 標準の composer auth JSON 形式
 # composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.	# {"github-oauth":{"github.com":"<PAT>"}} で ~/.composer/auth.json を作る必要がある。
+# After a web-triggered core update the app refreshes php-fpm's	# web 起点のコア更新後、アプリは php-fpm の opcache を更新する必要がある。
+# opcache by POSTing to /system/fpm-cache-reset on the web service,	# web サービスの /system/fpm-cache-reset に POST し、共有トークンで
+# authenticated with a shared token, instead of signalling php-fpm	# 認証することで行う。php-fpm へのシグナル送出は使わない
+# (which runs as PID 1 and cannot be signalled by the www-data	# (php-fpm は PID 1 で動作し、www-data ワーカーからは
+# worker). The image ships clear_env=no, so these reach the fpm	# シグナルを送れないため)。イメージは clear_env=no を同梱するので
+# workers; Laravel's immutable dotenv keeps them over any html/.env	# これらは fpm ワーカーに届き、Laravel の immutable dotenv が
+# value. The token is generated into the root .env by setup.sh.	# html/.env の値より優先する。トークンは setup.sh が root の .env に生成する。

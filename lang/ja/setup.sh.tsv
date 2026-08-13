@@ -143,3 +143,10 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 # for the theme clone would stay that way. Restart the app container to	# 「in-place restart」という表示どおりの動作を実際に行う。
 # make the promised in-place restart real.	# (再起動の実施)
   Restarting the app container to re-apply container-side ownership...	  コンテナ側の所有権を再適用するため app コンテナを再起動しています...
+# Generate a random php-fpm opcache-reset token if .env does not already	# .env に空でない php-fpm opcache リセット用トークンがまだ無ければ、
+# carry a non-empty one. docker-compose interpolates it into the app	# ランダムに生成する。docker-compose がこれを app コンテナの
+# container's CORE_FPM_RESET_TOKEN, and the deployed core reads it on both	# CORE_FPM_RESET_TOKEN に展開し、デプロイ済みのコアが
+# ends of the /system/fpm-cache-reset call so web-triggered core updates	# /system/fpm-cache-reset 呼び出しの両端で読むため、web 起点のコア更新が
+# can refresh php-fpm's opcache over HTTP instead of signalling php-fpm	# php-fpm (PID 1、www-data ワーカーからはシグナルを送れない) に
+# (PID 1), which the www-data worker cannot do.	# シグナルを送る代わりに HTTP 経由で opcache を更新できる。
+  Generated CORE_FPM_RESET_TOKEN for php-fpm opcache reset.	  php-fpm opcache リセット用の CORE_FPM_RESET_TOKEN を生成しました。
