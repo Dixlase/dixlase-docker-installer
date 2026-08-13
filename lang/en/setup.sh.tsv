@@ -143,3 +143,10 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 # for the theme clone would stay that way. Restart the app container to	# for the theme clone would stay that way. Restart the app container to
 # make the promised in-place restart real.	# make the promised in-place restart real.
   Restarting the app container to re-apply container-side ownership...	  Restarting the app container to re-apply container-side ownership...
+# Generate a random php-fpm opcache-reset token if .env does not already	# Generate a random php-fpm opcache-reset token if .env does not already
+# carry a non-empty one. docker-compose interpolates it into the app	# carry a non-empty one. docker-compose interpolates it into the app
+# container's CORE_FPM_RESET_TOKEN, and the deployed core reads it on both	# container's CORE_FPM_RESET_TOKEN, and the deployed core reads it on both
+# ends of the /system/fpm-cache-reset call so web-triggered core updates	# ends of the /system/fpm-cache-reset call so web-triggered core updates
+# can refresh php-fpm's opcache over HTTP instead of signalling php-fpm	# can refresh php-fpm's opcache over HTTP instead of signalling php-fpm
+# (PID 1), which the www-data worker cannot do.	# (PID 1), which the www-data worker cannot do.
+  Generated CORE_FPM_RESET_TOKEN for php-fpm opcache reset.	  Generated CORE_FPM_RESET_TOKEN for php-fpm opcache reset.

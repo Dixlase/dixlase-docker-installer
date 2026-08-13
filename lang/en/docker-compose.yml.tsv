@@ -28,6 +28,13 @@
 # to clone the private `dixlase/dixlase-onepage` theme. Operators must	# to clone the private `dixlase/dixlase-onepage` theme. Operators must
 # create ~/.composer/auth.json on the host with the standard	# create ~/.composer/auth.json on the host with the standard
 # composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.	# composer auth JSON: {"github-oauth":{"github.com":"<PAT>"}}.
+# After a web-triggered core update the app refreshes php-fpm's	# After a web-triggered core update the app refreshes php-fpm's
+# opcache by POSTing to /system/fpm-cache-reset on the web service,	# opcache by POSTing to /system/fpm-cache-reset on the web service,
+# authenticated with a shared token, instead of signalling php-fpm	# authenticated with a shared token, instead of signalling php-fpm
+# (which runs as PID 1 and cannot be signalled by the www-data	# (which runs as PID 1 and cannot be signalled by the www-data
+# worker). The image ships clear_env=no, so these reach the fpm	# worker). The image ships clear_env=no, so these reach the fpm
+# workers; Laravel's immutable dotenv keeps them over any html/.env	# workers; Laravel's immutable dotenv keeps them over any html/.env
+# value. The token is generated into the root .env by setup.sh.	# value. The token is generated into the root .env by setup.sh.
 # Drop to www-data (the uid php-fpm workers run as) before invoking	# Drop to www-data (the uid php-fpm workers run as) before invoking
 # the scheduler. The container starts as root so the ENTRYPOINT can	# the scheduler. The container starts as root so the ENTRYPOINT can
 # chown storage, but schedule:run must not run as root: Laravel would	# chown storage, but schedule:run must not run as root: Laravel would
