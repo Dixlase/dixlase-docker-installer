@@ -35,3 +35,10 @@
 # worker). The image ships clear_env=no, so these reach the fpm	# シグナルを送れないため)。イメージは clear_env=no を同梱するので
 # workers; Laravel's immutable dotenv keeps them over any html/.env	# これらは fpm ワーカーに届き、Laravel の immutable dotenv が
 # value. The token is generated into the root .env by setup.sh.	# html/.env の値より優先する。トークンは setup.sh が root の .env に生成する。
+# Drop to www-data (the uid php-fpm workers run as) before invoking	# スケジューラを起動する前に www-data (php-fpm ワーカーと同じ uid) に降格する。
+# the scheduler. The container starts as root so the ENTRYPOINT can	# コンテナは ENTRYPOINT が storage を chown できるよう root で起動するが、
+# chown storage, but schedule:run must not run as root: Laravel would	# schedule:run は root で実行してはならない: root だと Laravel が共有の日次ログ
+# otherwise create the shared daily log storage/logs/dixlase-<date>.log	# storage/logs/dixlase-<date>.log を root 所有で作成してしまい、
+# root-owned, and a later web request (www-data) appending to that same	# 後続の web リクエスト (www-data) が同じファイルへ追記しようとして
+# file fails with "Permission denied" — which can abort a web-triggered	# "Permission denied" で失敗する — web 起点のコア更新を中断させ得る。
+# core update. Redirect inside the su so cron.log is www-data-owned too.	# リダイレクトは su 内で行い cron.log も www-data 所有にする。
