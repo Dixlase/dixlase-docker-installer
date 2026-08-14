@@ -17,7 +17,11 @@
 #        user, so without this chown the wizard's write fails with
 #        "Permission denied" and the install finalize 500s.
 #    Chown them so the container works regardless of which user created
-#    the files on the host.
+#    the files on the host. The html root itself is chowned too (non-
+#    recursively): the install wizard creates .env there by copying
+#    .env.example, so www-data must own the root dir to write it, or the
+#    install finalize 500s with "copy(/var/www/html/.env): Permission
+#    denied" when the clone was made by a non-www-data host user.
 #
 # 2. plugins/ and themes/ are the extension roots. The plugin/theme
 #    install / update / rollback commands rename plugin and theme
@@ -56,6 +60,16 @@ for d in plugins themes; do
     chown www-data:www-data "$d" 2>/dev/null || true
   fi
 done
+
+# The install wizard creates .env in the html root by copying .env.example
+# (CheckInstallationReady middleware). www-data must own the root dir
+# itself to create that file, else install finalize 500s with
+# "copy(/var/www/html/.env): Permission denied" when the clone was made by
+# a non-www-data host user (e.g. Linux servers, where bind-mount UIDs are
+# not virtualized). Non-recursive on purpose (cwd is /var/www/html): only
+# the dir entry must be writable to create .env; recursing would chown
+# vendor/ and node_modules/ on every start.
+chown www-data:www-data . 2>/dev/null || true
 
 if [ ! -e public/storage ] && [ -d storage/app/public ]; then
   ln -s ../storage/app/public public/storage
