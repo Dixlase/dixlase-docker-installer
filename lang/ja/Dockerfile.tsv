@@ -19,3 +19,11 @@
 # Copy application source code	# アプリケーションのソースコードをコピー
 # Build the application	# アプリケーションをビルド
 # Default command	# デフォルトコマンド
+# Trust /var/www/html no matter who owns it. app-entrypoint.sh chowns the	# 所有者が誰であれ /var/www/html を信頼する。app-entrypoint.sh は install
+# html root to www-data on every start so the install wizard can create	# ウィザードが .env を作成できるよう、起動毎に html ルートを www-data に
+# .env there, but everything invoked through `docker compose exec` runs as	# chown するが、`docker compose exec` 経由の実行はすべて root である。その
+# root. git then refuses the bind-mounted core checkout with "detected	# ため git が bind mount されたコアのチェックアウトを "detected dubious
+# dubious ownership in repository at '/var/www/html'", which composer	# ownership in repository at '/var/www/html'" として拒否し、composer が
+# surfaces as a fatal-looking block on every install while it probes the	# ルートパッケージのバージョンを調べる際、毎回 fatal に見えるブロックとして
+# root package version. The container is single-tenant and the directory	# 表示してしまう。このコンテナは単一テナントで、当該ディレクトリはアプリ
+# is the app itself, so the ownership check protects nothing here.	# 自身であるため、ここでの所有権チェックは何も守っていない。
