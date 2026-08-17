@@ -66,7 +66,13 @@ jobs:
       - name: Bootstrap html/.env for smoke test (temporary)
         run: |
           set -e
-          cp html/.env.example html/.env
+          # Written inside the app container, not from the runner:
+          # app-entrypoint.sh chowns the html root to www-data on every
+          # start (so the install wizard can create .env there), after
+          # which the runner cannot create files in that directory on a
+          # Linux host. Same reason setup.sh does its html/ mutations
+          # before the containers start.
+          #
           # Align Laravel DB credentials with the MariaDB container the
           # compose stack just bootstrapped (defaults from repo-root
           # .env.example). Without this Laravel boots with whatever
@@ -74,14 +80,19 @@ jobs:
           # 500s on "Access denied for user 'dixlase'".
           # APP_DEBUG=true so a 500 response body carries the stack trace
           # we need to diagnose Laravel-side failures from CI logs.
-          sed -i.bak \
-            -e 's|^DB_HOST=.*|DB_HOST=mysql|' \
-            -e 's|^DB_DATABASE=.*|DB_DATABASE=dixlase|' \
-            -e 's|^DB_USERNAME=.*|DB_USERNAME=dixlase|' \
-            -e 's|^DB_PASSWORD=.*|DB_PASSWORD=dixlase|' \
-            -e 's|^APP_DEBUG=.*|APP_DEBUG=true|' \
-            html/.env
-          rm -f html/.env.bak
+          docker compose exec -T dixlase.test sh -c '
+            set -e
+            cp /var/www/html/.env.example /var/www/html/.env
+            sed -i.bak \
+              -e "s|^DB_HOST=.*|DB_HOST=mysql|" \
+              -e "s|^DB_DATABASE=.*|DB_DATABASE=dixlase|" \
+              -e "s|^DB_USERNAME=.*|DB_USERNAME=dixlase|" \
+              -e "s|^DB_PASSWORD=.*|DB_PASSWORD=dixlase|" \
+              -e "s|^APP_DEBUG=.*|APP_DEBUG=true|" \
+              /var/www/html/.env
+            rm -f /var/www/html/.env.bak
+            chown www-data:www-data /var/www/html/.env
+          '
           docker compose exec -T dixlase.test php artisan key:generate --force
           docker compose exec -T dixlase.test php artisan config:clear
 
@@ -130,5 +141,9 @@ jobs:
         if: always()
         run: |
           docker compose down -v 2>/dev/null || true
-          # Remove the smoke-test-only .env so the installer ships clean
-          rm -f html/.env
+          # Remove the smoke-test-only .env so the installer ships clean.
+          # It is www-data-owned inside a www-data-owned html root by now,
+          # so the runner cannot unlink it — delete through a throwaway
+          # root container, the same approach reset.sh and setup.sh use.
+          docker run --rm -v "$PWD:/work" alpine rm -f /work/html/.env 2>/dev/null || true
+          rm -f html/.env 2>/dev/null || true
