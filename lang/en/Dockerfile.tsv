@@ -19,3 +19,11 @@
 # Copy application source code	# Copy application source code
 # Build the application	# Build the application
 # Default command	# Default command
+# Trust /var/www/html no matter who owns it. app-entrypoint.sh chowns the	# Trust /var/www/html no matter who owns it. app-entrypoint.sh chowns the
+# html root to www-data on every start so the install wizard can create	# html root to www-data on every start so the install wizard can create
+# .env there, but everything invoked through `docker compose exec` runs as	# .env there, but everything invoked through `docker compose exec` runs as
+# root. git then refuses the bind-mounted core checkout with "detected	# root. git then refuses the bind-mounted core checkout with "detected
+# dubious ownership in repository at '/var/www/html'", which composer	# dubious ownership in repository at '/var/www/html'", which composer
+# surfaces as a fatal-looking block on every install while it probes the	# surfaces as a fatal-looking block on every install while it probes the
+# root package version. The container is single-tenant and the directory	# root package version. The container is single-tenant and the directory
+# is the app itself, so the ownership check protects nothing here.	# is the app itself, so the ownership check protects nothing here.
