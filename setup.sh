@@ -359,6 +359,18 @@ else
     docker compose restart web
 fi
 
+# Hand the whole html/ tree to www-data (the container app user). The clone
+# (host user) and the root-run `docker compose exec` build steps above leave
+# files owned by the host user and root; on Linux (no Docker Desktop UID
+# virtualization) the www-data php-fpm workers then cannot write .env,
+# public/ (storage:link + theme asset symlinks) or storage/logs, so the
+# install wizard fails its permission checks and 500s. Chown once here, after
+# every file-creating step, so a fresh install works out of the box (no-op on
+# macOS). Best-effort so one odd file cannot abort the install.
+echo ""
+echo "  Setting html/ ownership to www-data (container app user)..."
+docker compose exec -T dixlase.test chown -R www-data:www-data /var/www/html || true
+
 # -------------------------------------------------
 # Done
 # -------------------------------------------------

@@ -150,3 +150,12 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 # can refresh php-fpm's opcache over HTTP instead of signalling php-fpm	# php-fpm (PID 1、www-data ワーカーからはシグナルを送れない) に
 # (PID 1), which the www-data worker cannot do.	# シグナルを送る代わりに HTTP 経由で opcache を更新できる。
   Generated CORE_FPM_RESET_TOKEN for php-fpm opcache reset.	  php-fpm opcache リセット用の CORE_FPM_RESET_TOKEN を生成しました。
+# Hand the whole html/ tree to www-data (the container app user). The clone	# html/ ツリー全体を www-data (コンテナのアプリユーザー) に渡す。clone
+# (host user) and the root-run `docker compose exec` build steps above leave	# (ホストユーザー) と上の root 実行の `docker compose exec` ビルド手順は
+# files owned by the host user and root; on Linux (no Docker Desktop UID	# ファイルをホストユーザーと root 所有のまま残す。Linux では (Docker Desktop の
+# virtualization) the www-data php-fpm workers then cannot write .env,	# UID 仮想化が無いため) www-data の php-fpm ワーカーが .env、
+# public/ (storage:link + theme asset symlinks) or storage/logs, so the	# public/ (storage:link + テーマアセットのシンボリックリンク)、storage/logs に
+# install wizard fails its permission checks and 500s. Chown once here, after	# 書き込めず、インストールウィザードがパーミッションチェックに失敗し 500 になる。
+# every file-creating step, so a fresh install works out of the box (no-op on	# ファイル生成の全手順の後にここで一度 chown し、新規インストールが箱出しで動く
+# macOS). Best-effort so one odd file cannot abort the install.	# ようにする (macOS では no-op)。1つの変なファイルでインストールが中断しないよう best-effort。
+  Setting html/ ownership to www-data (container app user)...	  html/ の所有権を www-data (コンテナのアプリユーザー) に設定中...
