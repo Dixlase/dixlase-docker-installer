@@ -52,6 +52,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
+# Trust /var/www/html no matter who owns it. app-entrypoint.sh chowns the
+# html root to www-data on every start so the install wizard can create
+# .env there, but everything invoked through `docker compose exec` runs as
+# root. git then refuses the bind-mounted core checkout with "detected
+# dubious ownership in repository at '/var/www/html'", which composer
+# surfaces as a fatal-looking block on every install while it probes the
+# root package version. The container is single-tenant and the directory
+# is the app itself, so the ownership check protects nothing here.
+RUN git config --global --add safe.directory /var/www/html
+
 # Install dependencies (only if html/ exists)
 COPY ./html/composer.json ./html/composer.lock ./
 COPY ./html/patches ./patches
