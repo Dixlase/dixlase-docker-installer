@@ -8,7 +8,6 @@
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.	# リポジトリ URL は環境変数で上書き可能。デフォルトは公開 HTTPS。
 # Parse arguments: --dev flag and branch name	# 引数パース: --dev フラグとブランチ名
 # 1. Clone the core from GitHub	# 1. GitHub からコアをクローン
-# 1.5. Fetch submodules (themes etc.)	# 1.5. サブモジュール（テーマ等）を取得
 # git clone of core left an empty placeholder directory for every	# core の git clone は core の .gitmodules に列挙されたサブモジュール
 # wizard. Remove the empty placeholders so html/ does not look	# html/ が半端に見えないよう空のプレースホルダーを削除します。rmdir は
 # half-installed. rmdir is safe: it only deletes empty directories,	# 空ディレクトリしか削除しないため、既に展開済みのサブモジュール
@@ -68,9 +67,7 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
   Cloning from GitHub...	  GitHub からクローン中...
   Keeping existing html/.	  既存の html/ をそのまま使用します。
 [1/6] Cloning from GitHub...	[1/6] GitHub からクローン中...
-[1.5/6] Initializing submodules...	[1.5/6] サブモジュールを初期化中...
   Removed empty submodule placeholder: $submodule_path	  空のサブモジュールプレースホルダーを削除: $submodule_path
-  Submodule fetch complete.	  サブモジュールの取得が完了しました。
 [2/6] Setting up .env...	[2/6] .env をセットアップ中...
   Copied .env.example -> .env (for Docker Compose).	  .env.example → .env (Docker Compose 用) にコピーしました。
   .env already exists (skipped).	  .env は既に存在します（スキップ）。
