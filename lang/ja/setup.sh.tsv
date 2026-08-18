@@ -9,18 +9,9 @@
 # Parse arguments: --dev flag and branch name	# 引数パース: --dev フラグとブランチ名
 # 1. Clone the core from GitHub	# 1. GitHub からコアをクローン
 # 1.5. Fetch submodules (themes etc.)	# 1.5. サブモジュール（テーマ等）を取得
-# Clone directly instead of using a submodule (handles commits the core may not reach)	# サブモジュールではなく直接クローン（コアが参照するコミットが存在しない場合に対応）
-# Mirror the html/ prompt: if themes/DixlaseOnePage already has content	# html/ と同じ作法: themes/DixlaseOnePage に内容があれば (html/ を残した
-# (user kept html/ above, or has local theme work), ask before	# り、テーマにローカル作業があったり) 上書き前に確認する。空のプレース
-# overwriting; otherwise (fresh clone or empty submodule placeholder)	# ホルダーまたは未存在の場合 (新規クローン直後、サブモジュールの空ディ
-# just clone.	# レクトリ) はそのままクローンする。
 # git clone of core left an empty placeholder directory for every	# core の git clone は core の .gitmodules に列挙されたサブモジュール
-# submodule listed in core's .gitmodules. Anything not explicitly	# ごとに空のプレースホルダーディレクトリを残します。上で明示的にクローン
-# cloned above (plugins, additional themes) is left to the install	# したもの以外 (プラグイン、追加のテーマ) はインストールウィザードに任せ、
 # wizard. Remove the empty placeholders so html/ does not look	# html/ が半端に見えないよう空のプレースホルダーを削除します。rmdir は
 # half-installed. rmdir is safe: it only deletes empty directories,	# 空ディレクトリしか削除しないため、既に展開済みのサブモジュール
-# so any submodule we have already populated (themes/DixlaseOnePage	# (上で展開した themes/DixlaseOnePage や、再実行時にウィザードが
-# above, or anything the wizard added on a re-run) is left untouched.	# 配置したもの) はそのまま残ります。
 # 2. Set up .env	# 2. .env のセットアップ
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)	# ルート .env (Docker Compose 用) — ポート/DB認証情報の補間に使用
 # Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from	# HTTPS フラグから NGINX_VARIANT を、VITE / REDIS から COMPOSE_PROFILES を
@@ -78,10 +69,6 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
   Keeping existing html/.	  既存の html/ をそのまま使用します。
 [1/6] Cloning from GitHub...	[1/6] GitHub からクローン中...
 [1.5/6] Initializing submodules...	[1.5/6] サブモジュールを初期化中...
-  themes/DixlaseOnePage already exists.	  themes/DixlaseOnePage は既に存在します。
-  Deleting themes/DixlaseOnePage...	  themes/DixlaseOnePage を削除中...
-  Keeping existing themes/DixlaseOnePage.	  既存の themes/DixlaseOnePage をそのまま使用します。
-  Fetching themes/DixlaseOnePage...	  themes/DixlaseOnePage を取得中...
   Removed empty submodule placeholder: $submodule_path	  空のサブモジュールプレースホルダーを削除: $submodule_path
   Submodule fetch complete.	  サブモジュールの取得が完了しました。
 [2/6] Setting up .env...	[2/6] .env をセットアップ中...
@@ -118,12 +105,6 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 # Pull latest from GitHub	# GitHub から最新を取得
 # Seed the Tailwind plugin-sources stub the theme build @imports.	# テーマビルドが @import する Tailwind plugin-sources のスタブを配置する。
 # Core's dls:tailwind:regenerate-plugin-sources normally writes it.	# 通常は core の dls:tailwind:regenerate-plugin-sources が書き出す。
-# This has to happen before step [4/6] starts the containers:	# これは [4/6] でコンテナを起動する前に実行する必要がある:
-# app-entrypoint.sh chowns resources/src/common/css to www-data so the	# app-entrypoint.sh は install ウィザードがアトミックに書き換えられるよう
-# install wizard can rewrite the file atomically, after which this	# resources/src/common/css を www-data に chown する。それ以降、この
-# host-side write fails with "Permission denied" on hosts that do not	# ホスト側の書き込みは bind mount の所有権を仮想化しないホスト (Linux) では
-# virtualize bind-mount ownership (Linux).	# "Permission denied" で失敗する。
-# The stub it needs on a fresh clone was seeded in step [1.5/6].	# 新規クローン時に必要なスタブは [1.5/6] で配置済み。
 # Once the containers have run, app-entrypoint.sh owns several paths	# コンテナが一度でも起動すると app-entrypoint.sh は html/ 配下のいくつかの
 # under html/ as www-data (storage/, bootstrap/cache/,	# パス (storage/、bootstrap/cache/、resources/src/common/css/、plugins/、
 # resources/src/common/css/, plugins/, themes/) so php-fpm can write	# themes/) を www-data 所有にする。php-fpm がそこへ書き込めるようにするため
@@ -133,10 +114,6 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 # through a throwaway root container instead — the same approach	# 実行する。reset.sh が採用しているのと同じ方式である。ベストエフォート実装:
 # reset.sh uses. Best-effort: a machine without a usable docker daemon	# docker デーモンが使えないマシンはコンテナも起動していないため、ホスト側の
 # has not run the containers either, so the host-side path still works.	# 経路がそのまま機能する。
-# themes/ itself may be owned by www-data from a previous container run;	# themes/ 自体が前回のコンテナ起動で www-data 所有になっている場合があるため、
-# hand it back to the host user so the git clone below can create the	# 下の git clone がテーマディレクトリを作成できるようホストユーザーに戻す。
-# theme directory inside it. app-entrypoint.sh takes ownership again on	# app-entrypoint.sh は次回の app コンテナ起動時に再び所有権を取得する。その
-# the next app-container start, which step [4/6] now forces.	# 起動は [4/6] で強制するようにした。
 # `up -d` leaves an already-running container untouched, so the	# `up -d` は既に起動中のコンテナに手を触れないため、上の各ステップが書き換えた
 # entrypoint's self-heal would not run against the html/ tree the steps	# html/ ツリーに対してエントリポイントの自己修復が走らず、テーマ clone のために
 # above just rewrote — and the ownership handed back to the host user	# ホストユーザーへ戻した所有権もそのままになってしまう。app コンテナを再起動し、
@@ -163,3 +140,13 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 # in html/ as the host user, and git has to write objects and refs under	# pull をホストユーザーとして実行し、git は .git 配下のオブジェクトと ref に
 # .git. update.sh passes its own safe.directory exception so git tolerates	# 書き込む必要があるため。update.sh 側は safe.directory の例外を渡し、
 # the www-data-owned worktree root.	# www-data 所有の作業ツリールートを git に許容させる。
+# submodule listed in core's .gitmodules. themes/DixlaseOnePage now	# 空のプレースホルダディレクトリを残す。themes/DixlaseOnePage は現在
+# arrives with composer install in step [5/6]; plugins are left to the	# [5/6] の composer install で入り、プラグインはインストール
+# so anything already populated by a re-run or local work is left	# 再実行やローカル作業で既に中身があるものは
+# untouched.	# そのまま残る。
+# This runs after composer install, which is what places the theme, and	# これはテーマを配置する composer install の後に実行し、コンテナ経由で
+# writes through the container: the running containers already own	# 書き込む。起動済みのコンテナが既に resources/src/common/css を
+# resources/src/common/css as www-data, so a host-side write there fails	# www-data 所有にしているため、bind mount の所有権を仮想化しないホスト
+# with "Permission denied" on hosts that do not virtualize bind-mount	# (Linux) ではホスト側からの書き込みが "Permission denied" で
+# ownership (Linux).	# 失敗するからである。
+# The stub it needs on a fresh clone was seeded in step [5/6].	# 新規クローン時に必要なスタブは [5/6] で配置済み。
