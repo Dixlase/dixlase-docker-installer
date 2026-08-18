@@ -77,11 +77,6 @@ else
     git clone -b "$BRANCH" "$REPO_URL" html
 fi
 
-# -------------------------------------------------
-# 1.5. Fetch submodules (themes etc.)
-# -------------------------------------------------
-echo ""
-echo "[1.5/6] Initializing submodules..."
 cd html
 
 # git clone of core left an empty placeholder directory for every
@@ -100,7 +95,6 @@ if [ -f .gitmodules ]; then
 fi
 
 cd ..
-echo "  Submodule fetch complete."
 
 # -------------------------------------------------
 # 2. Set up .env
