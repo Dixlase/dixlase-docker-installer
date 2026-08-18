@@ -62,6 +62,17 @@ WORKDIR /var/www/html
 # is the app itself, so the ownership check protects nothing here.
 RUN git config --global --add safe.directory /var/www/html
 
+# php-fpm workers run as www-data, whose home directory is /var/www, but the
+# base image leaves that directory root-owned. Anything following the XDG
+# spec then fails the moment it tries to create state under $HOME: psysh
+# (pulled in by laravel/tinker) throws "Writing to directory
+# /var/www/.config/psysh is not allowed", which core logs as a production
+# error and emails to the operator. Give www-data its own home so
+# $HOME/.config, $HOME/.local/share and friends can be created on demand.
+# Non-recursive: /var/www/html is a bind mount at runtime and keeps the
+# ownership app-entrypoint.sh gives it.
+RUN chown www-data:www-data /var/www
+
 # Install dependencies (only if html/ exists)
 COPY ./html/composer.json ./html/composer.lock ./
 COPY ./html/patches ./patches
