@@ -52,8 +52,6 @@ jobs:
           chmod 600 "$HOME/.composer/auth.json"
 
       - name: Run setup.sh (html/ pre-placed; answer "n" to skip re-clone prompt)
-        env:
-          DIXLASE_THEME_REPO_URL: https://x-access-token:${{ secrets.CORE_REPO_TOKEN }}@github.com/Dixlase/theme-dixlase-onepage.git
         run: |
           set -e
           echo "n" | ./setup.sh

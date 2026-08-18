@@ -33,7 +33,6 @@ docker_root() {
 
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.
 REPO_URL="${DIXLASE_REPO_URL:-https://github.com/Dixlase/dixlase-core.git}"
-THEME_REPO_URL="${DIXLASE_THEME_REPO_URL:-https://github.com/Dixlase/theme-dixlase-onepage.git}"
 
 # Parse arguments: --dev flag and branch name
 DEV_MODE=false
@@ -84,42 +83,14 @@ fi
 echo ""
 echo "[1.5/6] Initializing submodules..."
 cd html
-# themes/ itself may be owned by www-data from a previous container run;
-# hand it back to the host user so the git clone below can create the
-# theme directory inside it. app-entrypoint.sh takes ownership again on
-# the next app-container start, which step [4/6] now forces.
-docker_root "chown $(id -u):$(id -g) /work/html/themes"
-# Clone directly instead of using a submodule (handles commits the core may not reach)
-# Mirror the html/ prompt: if themes/DixlaseOnePage already has content
-# (user kept html/ above, or has local theme work), ask before
-# overwriting; otherwise (fresh clone or empty submodule placeholder)
-# just clone.
-if [ -d "themes/DixlaseOnePage" ] && [ -n "$(ls -A themes/DixlaseOnePage 2>/dev/null)" ]; then
-    echo "  themes/DixlaseOnePage already exists."
-    read -r -p "  Delete and re-clone? (y/N): " confirm
-    if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-        echo "  Deleting themes/DixlaseOnePage..."
-        docker_root 'rm -rf /work/html/themes/DixlaseOnePage'
-        rm -rf themes/DixlaseOnePage
-        echo "  Fetching themes/DixlaseOnePage..."
-        git clone "$THEME_REPO_URL" themes/DixlaseOnePage
-    else
-        echo "  Keeping existing themes/DixlaseOnePage."
-    fi
-else
-    docker_root 'rm -rf /work/html/themes/DixlaseOnePage'
-    rm -rf themes/DixlaseOnePage
-    echo "  Fetching themes/DixlaseOnePage..."
-    git clone "$THEME_REPO_URL" themes/DixlaseOnePage
-fi
 
 # git clone of core left an empty placeholder directory for every
-# submodule listed in core's .gitmodules. Anything not explicitly
-# cloned above (plugins, additional themes) is left to the install
+# submodule listed in core's .gitmodules. themes/DixlaseOnePage now
+# arrives with composer install in step [5/6]; plugins are left to the
 # wizard. Remove the empty placeholders so html/ does not look
 # half-installed. rmdir is safe: it only deletes empty directories,
-# so any submodule we have already populated (themes/DixlaseOnePage
-# above, or anything the wizard added on a re-run) is left untouched.
+# so anything already populated by a re-run or local work is left
+# untouched.
 if [ -f .gitmodules ]; then
     while IFS= read -r submodule_path; do
         if [ -d "$submodule_path" ] && rmdir "$submodule_path" 2>/dev/null; then
@@ -130,36 +101,6 @@ fi
 
 cd ..
 echo "  Submodule fetch complete."
-
-# Seed the Tailwind plugin-sources stub the theme build @imports.
-# Core's dls:tailwind:regenerate-plugin-sources normally writes it.
-# On a fresh clone neither has happened yet, so seed an empty stub
-# in the exact format core emits when no plugin contributes sources
-# — the wizard / lifecycle commands overwrite it later with the
-# real aggregator output. Keep PLUGIN_SOURCES in sync with core's
-# PluginSourceAggregator::OUTPUT_PATH.
-#
-# This has to happen before step [4/6] starts the containers:
-# app-entrypoint.sh chowns resources/src/common/css to www-data so the
-# install wizard can rewrite the file atomically, after which this
-# host-side write fails with "Permission denied" on hosts that do not
-# virtualize bind-mount ownership (Linux).
-if [ -f html/themes/DixlaseOnePage/package.json ]; then
-    PLUGIN_SOURCES=html/resources/src/common/css/dixlase-tailwind-plugin-sources.css
-    if [ ! -f "$PLUGIN_SOURCES" ]; then
-        mkdir -p "$(dirname "$PLUGIN_SOURCES")"
-        cat > "$PLUGIN_SOURCES" <<'EOF'
-/*
- * AUTO-GENERATED placeholder seeded by dixlase-docker-installer.
- * The Dixlase install wizard and plugin lifecycle commands overwrite
- * this file via php artisan dls:tailwind:regenerate-plugin-sources.
- */
-
-/* No enabled plugin currently declares Tailwind content sources. */
-EOF
-        echo "  Seeded $PLUGIN_SOURCES placeholder for theme build."
-    fi
-fi
 
 # -------------------------------------------------
 # 2. Set up .env
@@ -314,6 +255,37 @@ docker compose exec -T dixlase.test composer install --no-interaction
 echo "  Running npm install..."
 docker compose exec -T dixlase.test npm install
 
+# Seed the Tailwind plugin-sources stub the theme build @imports.
+# Core's dls:tailwind:regenerate-plugin-sources normally writes it.
+# On a fresh clone neither has happened yet, so seed an empty stub
+# in the exact format core emits when no plugin contributes sources
+# — the wizard / lifecycle commands overwrite it later with the
+# real aggregator output. Keep PLUGIN_SOURCES in sync with core's
+# PluginSourceAggregator::OUTPUT_PATH.
+#
+# This runs after composer install, which is what places the theme, and
+# writes through the container: the running containers already own
+# resources/src/common/css as www-data, so a host-side write there fails
+# with "Permission denied" on hosts that do not virtualize bind-mount
+# ownership (Linux).
+if [ -f html/themes/DixlaseOnePage/package.json ]; then
+    PLUGIN_SOURCES=html/resources/src/common/css/dixlase-tailwind-plugin-sources.css
+    if [ ! -f "$PLUGIN_SOURCES" ]; then
+        IN_CONTAINER="${PLUGIN_SOURCES#html/}"
+        docker compose exec -T dixlase.test sh -c \
+            "mkdir -p \"\$(dirname '$IN_CONTAINER')\" && cat > '$IN_CONTAINER' && chown www-data:www-data '$IN_CONTAINER'" <<'EOF'
+/*
+ * AUTO-GENERATED placeholder seeded by dixlase-docker-installer.
+ * The Dixlase install wizard and plugin lifecycle commands overwrite
+ * this file via php artisan dls:tailwind:regenerate-plugin-sources.
+ */
+
+/* No enabled plugin currently declares Tailwind content sources. */
+EOF
+        echo "  Seeded $PLUGIN_SOURCES placeholder for theme build."
+    fi
+fi
+
 # -------------------------------------------------
 # 6. Build assets (production mode only)
 # -------------------------------------------------
@@ -346,7 +318,7 @@ else
     # @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,
     # which core's dls:tailwind:regenerate-plugin-sources rewrites every
     # time plugins change (and the install wizard calls it after migrate).
-    # The stub it needs on a fresh clone was seeded in step [1.5/6].
+    # The stub it needs on a fresh clone was seeded in step [5/6].
     if [ -f html/themes/DixlaseOnePage/package.json ]; then
         echo "  Building theme assets (themes/DixlaseOnePage)..."
         docker compose exec -T dixlase.test php artisan dls:theme:build DixlaseOnePage

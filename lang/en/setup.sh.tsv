@@ -9,18 +9,9 @@
 # Parse arguments: --dev flag and branch name	# Parse arguments: --dev flag and branch name
 # 1. Clone the core from GitHub	# 1. Clone the core from GitHub
 # 1.5. Fetch submodules (themes etc.)	# 1.5. Fetch submodules (themes etc.)
-# Clone directly instead of using a submodule (handles commits the core may not reach)	# Clone directly instead of using a submodule (handles commits the core may not reach)
-# Mirror the html/ prompt: if themes/DixlaseOnePage already has content	# Mirror the html/ prompt: if themes/DixlaseOnePage already has content
-# (user kept html/ above, or has local theme work), ask before	# (user kept html/ above, or has local theme work), ask before
-# overwriting; otherwise (fresh clone or empty submodule placeholder)	# overwriting; otherwise (fresh clone or empty submodule placeholder)
-# just clone.	# just clone.
 # git clone of core left an empty placeholder directory for every	# git clone of core left an empty placeholder directory for every
-# submodule listed in core's .gitmodules. Anything not explicitly	# submodule listed in core's .gitmodules. Anything not explicitly
-# cloned above (plugins, additional themes) is left to the install	# cloned above (plugins, additional themes) is left to the install
 # wizard. Remove the empty placeholders so html/ does not look	# wizard. Remove the empty placeholders so html/ does not look
 # half-installed. rmdir is safe: it only deletes empty directories,	# half-installed. rmdir is safe: it only deletes empty directories,
-# so any submodule we have already populated (themes/DixlaseOnePage	# so any submodule we have already populated (themes/DixlaseOnePage
-# above, or anything the wizard added on a re-run) is left untouched.	# above, or anything the wizard added on a re-run) is left untouched.
 # 2. Set up .env	# 2. Set up .env
 # Root .env (used by Docker Compose to interpolate ports / DB credentials)	# Root .env (used by Docker Compose to interpolate ports / DB credentials)
 # Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from	# Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from
@@ -78,10 +69,6 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
   Keeping existing html/.	  Keeping existing html/.
 [1/6] Cloning from GitHub...	[1/6] Cloning from GitHub...
 [1.5/6] Initializing submodules...	[1.5/6] Initializing submodules...
-  themes/DixlaseOnePage already exists.	  themes/DixlaseOnePage already exists.
-  Deleting themes/DixlaseOnePage...	  Deleting themes/DixlaseOnePage...
-  Keeping existing themes/DixlaseOnePage.	  Keeping existing themes/DixlaseOnePage.
-  Fetching themes/DixlaseOnePage...	  Fetching themes/DixlaseOnePage...
   Removed empty submodule placeholder: $submodule_path	  Removed empty submodule placeholder: $submodule_path
   Submodule fetch complete.	  Submodule fetch complete.
 [2/6] Setting up .env...	[2/6] Setting up .env...
@@ -118,12 +105,6 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 # Pull latest from GitHub	# Pull latest from GitHub
 # Seed the Tailwind plugin-sources stub the theme build @imports.	# Seed the Tailwind plugin-sources stub the theme build @imports.
 # Core's dls:tailwind:regenerate-plugin-sources normally writes it.	# Core's dls:tailwind:regenerate-plugin-sources normally writes it.
-# This has to happen before step [4/6] starts the containers:	# This has to happen before step [4/6] starts the containers:
-# app-entrypoint.sh chowns resources/src/common/css to www-data so the	# app-entrypoint.sh chowns resources/src/common/css to www-data so the
-# install wizard can rewrite the file atomically, after which this	# install wizard can rewrite the file atomically, after which this
-# host-side write fails with "Permission denied" on hosts that do not	# host-side write fails with "Permission denied" on hosts that do not
-# virtualize bind-mount ownership (Linux).	# virtualize bind-mount ownership (Linux).
-# The stub it needs on a fresh clone was seeded in step [1.5/6].	# The stub it needs on a fresh clone was seeded in step [1.5/6].
 # Once the containers have run, app-entrypoint.sh owns several paths	# Once the containers have run, app-entrypoint.sh owns several paths
 # under html/ as www-data (storage/, bootstrap/cache/,	# under html/ as www-data (storage/, bootstrap/cache/,
 # resources/src/common/css/, plugins/, themes/) so php-fpm can write	# resources/src/common/css/, plugins/, themes/) so php-fpm can write
@@ -133,10 +114,6 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 # through a throwaway root container instead — the same approach	# through a throwaway root container instead — the same approach
 # reset.sh uses. Best-effort: a machine without a usable docker daemon	# reset.sh uses. Best-effort: a machine without a usable docker daemon
 # has not run the containers either, so the host-side path still works.	# has not run the containers either, so the host-side path still works.
-# themes/ itself may be owned by www-data from a previous container run;	# themes/ itself may be owned by www-data from a previous container run;
-# hand it back to the host user so the git clone below can create the	# hand it back to the host user so the git clone below can create the
-# theme directory inside it. app-entrypoint.sh takes ownership again on	# theme directory inside it. app-entrypoint.sh takes ownership again on
-# the next app-container start, which step [4/6] now forces.	# the next app-container start, which step [4/6] now forces.
 # `up -d` leaves an already-running container untouched, so the	# `up -d` leaves an already-running container untouched, so the
 # entrypoint's self-heal would not run against the html/ tree the steps	# entrypoint's self-heal would not run against the html/ tree the steps
 # above just rewrote — and the ownership handed back to the host user	# above just rewrote — and the ownership handed back to the host user
@@ -163,3 +140,13 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 # in html/ as the host user, and git has to write objects and refs under	# in html/ as the host user, and git has to write objects and refs under
 # .git. update.sh passes its own safe.directory exception so git tolerates	# .git. update.sh passes its own safe.directory exception so git tolerates
 # the www-data-owned worktree root.	# the www-data-owned worktree root.
+# submodule listed in core's .gitmodules. themes/DixlaseOnePage now	# submodule listed in core's .gitmodules. themes/DixlaseOnePage now
+# arrives with composer install in step [5/6]; plugins are left to the	# arrives with composer install in step [5/6]; plugins are left to the
+# so anything already populated by a re-run or local work is left	# so anything already populated by a re-run or local work is left
+# untouched.	# untouched.
+# This runs after composer install, which is what places the theme, and	# This runs after composer install, which is what places the theme, and
+# writes through the container: the running containers already own	# writes through the container: the running containers already own
+# resources/src/common/css as www-data, so a host-side write there fails	# resources/src/common/css as www-data, so a host-side write there fails
+# with "Permission denied" on hosts that do not virtualize bind-mount	# with "Permission denied" on hosts that do not virtualize bind-mount
+# ownership (Linux).	# ownership (Linux).
+# The stub it needs on a fresh clone was seeded in step [5/6].	# The stub it needs on a fresh clone was seeded in step [5/6].
