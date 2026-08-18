@@ -27,3 +27,12 @@
 # surfaces as a fatal-looking block on every install while it probes the	# surfaces as a fatal-looking block on every install while it probes the
 # root package version. The container is single-tenant and the directory	# root package version. The container is single-tenant and the directory
 # is the app itself, so the ownership check protects nothing here.	# is the app itself, so the ownership check protects nothing here.
+# php-fpm workers run as www-data, whose home directory is /var/www, but the	# php-fpm workers run as www-data, whose home directory is /var/www, but the
+# base image leaves that directory root-owned. Anything following the XDG	# base image leaves that directory root-owned. Anything following the XDG
+# spec then fails the moment it tries to create state under $HOME: psysh	# spec then fails the moment it tries to create state under $HOME: psysh
+# (pulled in by laravel/tinker) throws "Writing to directory	# (pulled in by laravel/tinker) throws "Writing to directory
+# /var/www/.config/psysh is not allowed", which core logs as a production	# /var/www/.config/psysh is not allowed", which core logs as a production
+# error and emails to the operator. Give www-data its own home so	# error and emails to the operator. Give www-data its own home so
+# $HOME/.config, $HOME/.local/share and friends can be created on demand.	# $HOME/.config, $HOME/.local/share and friends can be created on demand.
+# Non-recursive: /var/www/html is a bind mount at runtime and keeps the	# Non-recursive: /var/www/html is a bind mount at runtime and keeps the
+# ownership app-entrypoint.sh gives it.	# ownership app-entrypoint.sh gives it.

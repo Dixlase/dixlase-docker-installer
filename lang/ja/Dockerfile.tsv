@@ -27,3 +27,12 @@
 # surfaces as a fatal-looking block on every install while it probes the	# ルートパッケージのバージョンを調べる際、毎回 fatal に見えるブロックとして
 # root package version. The container is single-tenant and the directory	# 表示してしまう。このコンテナは単一テナントで、当該ディレクトリはアプリ
 # is the app itself, so the ownership check protects nothing here.	# 自身であるため、ここでの所有権チェックは何も守っていない。
+# php-fpm workers run as www-data, whose home directory is /var/www, but the	# php-fpm ワーカーは www-data で動作し、そのホームディレクトリは /var/www だが、
+# base image leaves that directory root-owned. Anything following the XDG	# ベースイメージはこのディレクトリを root 所有のまま残す。XDG 仕様に従うものは
+# spec then fails the moment it tries to create state under $HOME: psysh	# $HOME 配下に状態を作ろうとした時点で失敗する。psysh (laravel/tinker が依存)
+# (pulled in by laravel/tinker) throws "Writing to directory	# は "Writing to directory /var/www/.config/psysh is not allowed" を送出し、
+# /var/www/.config/psysh is not allowed", which core logs as a production	# core はこれを production エラーとして記録し運用者へメール送信してしまう。
+# error and emails to the operator. Give www-data its own home so	# www-data に自分のホームを与え、$HOME/.config・$HOME/.local/share などを
+# $HOME/.config, $HOME/.local/share and friends can be created on demand.	# 必要に応じて作成できるようにする。
+# Non-recursive: /var/www/html is a bind mount at runtime and keeps the	# 非再帰である: /var/www/html は実行時には bind mount であり、
+# ownership app-entrypoint.sh gives it.	# app-entrypoint.sh が与える所有権を保持する。
