@@ -159,3 +159,7 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 # every file-creating step, so a fresh install works out of the box (no-op on	# every file-creating step, so a fresh install works out of the box (no-op on
 # macOS). Best-effort so one odd file cannot abort the install.	# macOS). Best-effort so one odd file cannot abort the install.
   Setting html/ ownership to www-data (container app user)...	  Setting html/ ownership to www-data (container app user)...
+# .git is excluded on purpose: update.sh runs git fetch / checkout / pull	# .git is excluded on purpose: update.sh runs git fetch / checkout / pull
+# in html/ as the host user, and git has to write objects and refs under	# in html/ as the host user, and git has to write objects and refs under
+# .git. update.sh passes its own safe.directory exception so git tolerates	# .git. update.sh passes its own safe.directory exception so git tolerates
+# the www-data-owned worktree root.	# the www-data-owned worktree root.

@@ -13,3 +13,8 @@
 [4/4] Clearing caches...	[4/4] Clearing caches...
   Caches cleared.	  Caches cleared.
   Update complete!	  Update complete!
+# setup.sh hands html/ to www-data so the install wizard can write there,	# setup.sh hands html/ to www-data so the install wizard can write there,
+# so git sees a worktree owned by another user and refuses it with	# so git sees a worktree owned by another user and refuses it with
+# "detected dubious ownership in repository". Allow this one path for	# "detected dubious ownership in repository". Allow this one path for
+# these commands instead of touching the operator's global git config.	# these commands instead of touching the operator's global git config.
+# setup.sh leaves .git itself host-owned, so these writes still work.	# setup.sh leaves .git itself host-owned, so these writes still work.
