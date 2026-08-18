@@ -8,7 +8,6 @@
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.	# Repository URLs can be overridden via environment variables. Default is public HTTPS.
 # Parse arguments: --dev flag and branch name	# Parse arguments: --dev flag and branch name
 # 1. Clone the core from GitHub	# 1. Clone the core from GitHub
-# 1.5. Fetch submodules (themes etc.)	# 1.5. Fetch submodules (themes etc.)
 # git clone of core left an empty placeholder directory for every	# git clone of core left an empty placeholder directory for every
 # wizard. Remove the empty placeholders so html/ does not look	# wizard. Remove the empty placeholders so html/ does not look
 # half-installed. rmdir is safe: it only deletes empty directories,	# half-installed. rmdir is safe: it only deletes empty directories,
@@ -68,9 +67,7 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
   Cloning from GitHub...	  Cloning from GitHub...
   Keeping existing html/.	  Keeping existing html/.
 [1/6] Cloning from GitHub...	[1/6] Cloning from GitHub...
-[1.5/6] Initializing submodules...	[1.5/6] Initializing submodules...
   Removed empty submodule placeholder: $submodule_path	  Removed empty submodule placeholder: $submodule_path
-  Submodule fetch complete.	  Submodule fetch complete.
 [2/6] Setting up .env...	[2/6] Setting up .env...
   Copied .env.example -> .env (for Docker Compose).	  Copied .env.example -> .env (for Docker Compose).
   .env already exists (skipped).	  .env already exists (skipped).
