@@ -369,7 +369,12 @@ fi
 # macOS). Best-effort so one odd file cannot abort the install.
 echo ""
 echo "  Setting html/ ownership to www-data (container app user)..."
-docker compose exec -T dixlase.test chown -R www-data:www-data /var/www/html || true
+# .git is excluded on purpose: update.sh runs git fetch / checkout / pull
+# in html/ as the host user, and git has to write objects and refs under
+# .git. update.sh passes its own safe.directory exception so git tolerates
+# the www-data-owned worktree root.
+docker compose exec -T dixlase.test \
+    sh -c 'find /var/www/html -name .git -prune -o -exec chown www-data:www-data {} +' || true
 
 # -------------------------------------------------
 # Done

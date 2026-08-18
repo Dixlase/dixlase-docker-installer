@@ -28,9 +28,15 @@ fi
 # Git pull
 echo "[1/4] Pulling latest from GitHub..."
 cd html
-git fetch origin
-git checkout "$BRANCH"
-git pull origin "$BRANCH"
+# setup.sh hands html/ to www-data so the install wizard can write there,
+# so git sees a worktree owned by another user and refuses it with
+# "detected dubious ownership in repository". Allow this one path for
+# these commands instead of touching the operator's global git config.
+# setup.sh leaves .git itself host-owned, so these writes still work.
+GIT_SAFE=(-c "safe.directory=$(pwd)")
+git "${GIT_SAFE[@]}" fetch origin
+git "${GIT_SAFE[@]}" checkout "$BRANCH"
+git "${GIT_SAFE[@]}" pull origin "$BRANCH"
 cd ..
 
 # Update Composer / npm dependencies

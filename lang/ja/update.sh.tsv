@@ -13,3 +13,8 @@
 [4/4] Clearing caches...	[4/4] キャッシュをクリア中...
   Caches cleared.	  キャッシュクリア完了。
   Update complete!	  更新完了!
+# setup.sh hands html/ to www-data so the install wizard can write there,	# setup.sh は install ウィザードが書き込めるよう html/ を www-data に渡すため、
+# so git sees a worktree owned by another user and refuses it with	# git からは他ユーザー所有の作業ツリーに見え、
+# "detected dubious ownership in repository". Allow this one path for	# "detected dubious ownership in repository" として拒否される。運用者のグローバル
+# these commands instead of touching the operator's global git config.	# git 設定を変更する代わりに、これらのコマンドに限りこのパスを許可する。
+# setup.sh leaves .git itself host-owned, so these writes still work.	# setup.sh は .git 自体をホスト所有のまま残すので、これらの書き込みは成立する。
