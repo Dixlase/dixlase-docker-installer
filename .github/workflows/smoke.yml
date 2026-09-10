@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Checkout installer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Checkout dixlase-core into html/
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: Dixlase/dixlase-core
           ref: main
