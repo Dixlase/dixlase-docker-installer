@@ -10,3 +10,9 @@
 # app-container restart with a new IP does not strand nginx on the	# アプリコンテナが新しい IP で再起動しても nginx が古いアドレスに張り付き、
 # dead address and 502 until web restarts. Same pattern as /vite.	# web 再起動まで 502 になるのを防ぎます。/vite と同じ方式です。
 # Core updates can exceed nginx's default 60s; allow PHP's 300s.	# コア更新は nginx 既定の 60s を超え得るため PHP の 300s まで許可します。
+# Long-lived cache for built assets under /assets/.	# /assets/ 配下のビルド済みアセットに長期キャッシュを設定します。
+# Vite emits content-hashed filenames (`<name>-<hash>.<ext>`) whose	# Vite はコンテンツハッシュ付きのファイル名 (`<name>-<hash>.<ext>`) を出力し、
+# bytes never change for a given URL: a new URL is minted for every	# 特定の URL に対するバイト内容は変わりません。内容が変わるたびに新しい
+# content change. `immutable` tells the browser it never has to	# URL が発行される仕組みです。`immutable` により、ブラウザは再検証を
+# revalidate, and `^~` beats the regex block below so this wins	# 一切行いません。また `^~` が下の正規表現ブロックより優先されるので、
+# for asset requests specifically.	# アセットへのリクエストにのみこの設定が適用されます。
