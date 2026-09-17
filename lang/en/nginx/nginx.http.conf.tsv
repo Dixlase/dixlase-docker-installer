@@ -10,3 +10,9 @@
 # app-container restart with a new IP does not strand nginx on the	# app-container restart with a new IP does not strand nginx on the
 # dead address and 502 until web restarts. Same pattern as /vite.	# dead address and 502 until web restarts. Same pattern as /vite.
 # Core updates can exceed nginx's default 60s; allow PHP's 300s.	# Core updates can exceed nginx's default 60s; allow PHP's 300s.
+# Long-lived cache for built assets under /assets/.	# Long-lived cache for built assets under /assets/.
+# Vite emits content-hashed filenames (`<name>-<hash>.<ext>`) whose	# Vite emits content-hashed filenames (`<name>-<hash>.<ext>`) whose
+# bytes never change for a given URL: a new URL is minted for every	# bytes never change for a given URL: a new URL is minted for every
+# content change. `immutable` tells the browser it never has to	# content change. `immutable` tells the browser it never has to
+# revalidate, and `^~` beats the regex block below so this wins	# revalidate, and `^~` beats the regex block below so this wins
+# for asset requests specifically.	# for asset requests specifically.
