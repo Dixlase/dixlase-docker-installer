@@ -27,8 +27,8 @@ RUN apt-get update --allow-releaseinfo-change && apt-get install -y --allow-unau
     rsync \
     default-mysql-client
 
-# Install Node.js 20 (NodeSource)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+# Install Node.js 24 (NodeSource)
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y nodejs
 
 # Install PHP extensions
