@@ -1,5 +1,5 @@
 # Install system packages	# Install system packages
-# Install Node.js 20 (NodeSource)	# Install Node.js 20 (NodeSource)
+# Install Node.js 24 (NodeSource)	# Install Node.js 24 (NodeSource)
 # Install PHP extensions	# Install PHP extensions
 # Configure GD library	# Configure GD library
 # Install Redis PHP extension (PECL); enables Laravel cache / session / queue	# Install Redis PHP extension (PECL); enables Laravel cache / session / queue
