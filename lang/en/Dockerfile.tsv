@@ -36,3 +36,6 @@
 # $HOME/.config, $HOME/.local/share and friends can be created on demand.	# $HOME/.config, $HOME/.local/share and friends can be created on demand.
 # Non-recursive: /var/www/html is a bind mount at runtime and keeps the	# Non-recursive: /var/www/html is a bind mount at runtime and keeps the
 # ownership app-entrypoint.sh gives it.	# ownership app-entrypoint.sh gives it.
+# Core dropped cweagans/composer-patches and its patches/ directory in the	# Core dropped cweagans/composer-patches and its patches/ directory in the
+# passkeys migration, so there is nothing to copy here any more — and a COPY	# passkeys migration, so there is nothing to copy here any more — and a COPY
+# of a missing path is a hard build failure, not a no-op.	# of a missing path is a hard build failure, not a no-op.

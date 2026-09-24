@@ -36,3 +36,6 @@
 # $HOME/.config, $HOME/.local/share and friends can be created on demand.	# 必要に応じて作成できるようにする。
 # Non-recursive: /var/www/html is a bind mount at runtime and keeps the	# 非再帰である: /var/www/html は実行時には bind mount であり、
 # ownership app-entrypoint.sh gives it.	# app-entrypoint.sh が与える所有権を保持する。
+# Core dropped cweagans/composer-patches and its patches/ directory in the	# パスキー移行でコアが cweagans/composer-patches と patches/ ディレクトリを
+# passkeys migration, so there is nothing to copy here any more — and a COPY	# 撤去したため、ここでコピーするものはもう無い。存在しないパスの COPY は
+# of a missing path is a hard build failure, not a no-op.	# 何もしないのではなく、ビルドをその場で失敗させる。
