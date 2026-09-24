@@ -16,3 +16,6 @@
 [2/3] Removing data...	[2/3] Removing data...
   Removed html/ and mysql/.	  Removed html/ and mysql/.
 [3/3] Re-running setup...	[3/3] Re-running setup...
+# Name every profile: without them `down` leaves the profile-gated services	# Name every profile: without them `down` leaves the profile-gated services
+# (cron / vite / redis) running, and the next setup.sh then stops at its	# (cron / vite / redis) running, and the next setup.sh then stops at its
+# "Existing containers detected" prompt instead of starting from scratch.	# "Existing containers detected" prompt instead of starting from scratch.

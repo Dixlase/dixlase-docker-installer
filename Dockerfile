@@ -74,8 +74,10 @@ RUN git config --global --add safe.directory /var/www/html
 RUN chown www-data:www-data /var/www
 
 # Install dependencies (only if html/ exists)
+# Core dropped cweagans/composer-patches and its patches/ directory in the
+# passkeys migration, so there is nothing to copy here any more — and a COPY
+# of a missing path is a hard build failure, not a no-op.
 COPY ./html/composer.json ./html/composer.lock ./
-COPY ./html/patches ./patches
 # Core's composer.json requires the private `dixlase/dixlase-onepage`
 # theme from a private GitHub repo. Mount the host's
 # ~/.composer/auth.json as a BuildKit secret so the token is available

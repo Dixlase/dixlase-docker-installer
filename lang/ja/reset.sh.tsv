@@ -16,3 +16,6 @@
 [2/3] Removing data...	[2/3] データを削除中...
   Removed html/ and mysql/.	  html/ と mysql/ を削除しました。
 [3/3] Re-running setup...	[3/3] 再セットアップを実行中...
+# Name every profile: without them `down` leaves the profile-gated services	# プロファイルを明示する: 指定しないと profile 付きのサービス (cron / vite /
+# (cron / vite / redis) running, and the next setup.sh then stops at its	# redis) が残り、次の setup.sh が「既存コンテナを検出」のプロンプトで止まって
+# "Existing containers detected" prompt instead of starting from scratch.	# まっさらな状態から始められない。

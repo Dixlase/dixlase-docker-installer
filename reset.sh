@@ -33,7 +33,10 @@ fi
 
 echo ""
 echo "[1/3] Stopping and removing Docker containers..."
-docker compose down -v 2>/dev/null || true
+# Name every profile: without them `down` leaves the profile-gated services
+# (cron / vite / redis) running, and the next setup.sh then stops at its
+# "Existing containers detected" prompt instead of starting from scratch.
+COMPOSE_PROFILES=cron,vite,redis docker compose down -v --remove-orphans 2>/dev/null || true
 
 echo ""
 echo "[2/3] Removing data..."
