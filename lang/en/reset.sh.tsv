@@ -3,19 +3,39 @@
 # Usage:	# Usage:
 #   ./reset.sh             # Re-setup in production mode	#   ./reset.sh             # Re-setup in production mode
 #   ./reset.sh --dev       # Re-setup in development mode	#   ./reset.sh --dev       # Re-setup in development mode
-# Use a throwaway container to remove root-owned files (avoids host-side sudo).	# Use a throwaway container to remove root-owned files (avoids host-side sudo).
-# Final host-side cleanup for any non-root remnants.	# Final host-side cleanup for any non-root remnants.
+#   ./reset.sh --images    # Also remove the images built for this stack	#   ./reset.sh --images    # Also remove the images built for this stack
+#   ./reset.sh -y          # Skip the confirmation prompt	#   ./reset.sh -y          # Skip the confirmation prompt
+# --images and -y are consumed here; everything else (--dev, a branch name)	# --images and -y are consumed here; everything else (--dev, a branch name)
+# is passed on to setup.sh unchanged.	# is passed on to setup.sh unchanged.
   Dixlase - Full reset	  Dixlase - Full reset
   The following will be deleted:	  The following will be deleted:
     - Docker containers and volumes	    - Docker containers and volumes
     - html/ (source code)	    - html/ (source code)
     - mysql/ (database files)	    - mysql/ (database files)
+    - the Docker images built for this stack	    - the Docker images built for this stack
+  Kept: .env, certs/ and everything else in this directory.	  Kept: .env, certs/ and everything else in this directory.
+  Confirmation skipped (-y).	  Confirmation skipped (-y).
   Are you sure you want to reset? (y/N): 	  Are you sure you want to reset? (y/N): 
   Cancelled.	  Cancelled.
 [1/3] Stopping and removing Docker containers...	[1/3] Stopping and removing Docker containers...
-[2/3] Removing data...	[2/3] Removing data...
-  Removed html/ and mysql/.	  Removed html/ and mysql/.
-[3/3] Re-running setup...	[3/3] Re-running setup...
 # Name every profile: without them `down` leaves the profile-gated services	# Name every profile: without them `down` leaves the profile-gated services
 # (cron / vite / redis) running, and the next setup.sh then stops at its	# (cron / vite / redis) running, and the next setup.sh then stops at its
 # "Existing containers detected" prompt instead of starting from scratch.	# "Existing containers detected" prompt instead of starting from scratch.
+# --rmi local drops only the images compose built here, so the next setup.sh	# --rmi local drops only the images compose built here, so the next setup.sh
+# rebuilds them: the way to pick up a changed Dockerfile layer that Docker	# rebuilds them: the way to pick up a changed Dockerfile layer that Docker
+# would otherwise serve from its cache. Pulled images (mysql, adminer,	# would otherwise serve from its cache. Pulled images (mysql, adminer,
+# mailpit) are shared with other stacks and are left alone.	# mailpit) are shared with other stacks and are left alone.
+[2/3] Removing data...	[2/3] Removing data...
+# Use a throwaway container to remove root-owned files (avoids host-side sudo).	# Use a throwaway container to remove root-owned files (avoids host-side sudo).
+# Final host-side cleanup for any non-root remnants.	# Final host-side cleanup for any non-root remnants.
+# Both removals above swallow their errors, so check the result instead of	# Both removals above swallow their errors, so check the result instead of
+# handing setup.sh a half-deleted tree it would only report as "html/	# handing setup.sh a half-deleted tree it would only report as "html/
+# already exists".	# already exists".
+  Could not remove html/ or mysql/ (files left behind):	  Could not remove html/ or mysql/ (files left behind):
+    html/ still exists.	    html/ still exists.
+    mysql/ still exists.	    mysql/ still exists.
+  Remove them by hand, then run ./reset.sh again. If they are	  Remove them by hand, then run ./reset.sh again. If they are
+  root-owned and Docker is not running, start Docker first: the	  root-owned and Docker is not running, start Docker first: the
+  removal above uses a container to avoid asking for sudo.	  removal above uses a container to avoid asking for sudo.
+  Removed html/ and mysql/.	  Removed html/ and mysql/.
+[3/3] Re-running setup...	[3/3] Re-running setup...

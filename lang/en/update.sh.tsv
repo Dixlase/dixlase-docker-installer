@@ -1,20 +1,110 @@
 # Dixlase source update	# Dixlase source update
 # Pulls the latest code from GitHub and refreshes the container.	# Pulls the latest code from GitHub and refreshes the container.
-# Update Composer / npm dependencies	# Update Composer / npm dependencies
-# Run migrations	# Run migrations
-# Clear cache	# Clear cache
+# This advances a git checkout of the core in html/, which is the	# This advances a git checkout of the core in html/, which is the
+# developer path. A site running a released core should update with	# developer path. A site running a released core should update with
+# `php artisan dls:core:update` instead: that takes a backup, holds a	# `php artisan dls:core:update` instead: that takes a backup, holds a
+# maintenance window and can roll back. This script does none of that.	# maintenance window and can roll back. This script does none of that.
+# Usage:	# Usage:
+#   ./update.sh              # update the current branch (default: main)	#   ./update.sh              # update the current branch (default: main)
+#   ./update.sh <branch>     # switch html/ to <branch>, then update	#   ./update.sh <branch>     # switch html/ to <branch>, then update
+#   ./update.sh --dev        # skip the asset build (Vite serves them)	#   ./update.sh --dev        # skip the asset build (Vite serves them)
+  Unknown option: $arg	  Unknown option: $arg
+# Mirror setup.sh: VITE=true in .env means the Vite dev server is the one	# Mirror setup.sh: VITE=true in .env means the Vite dev server is the one
+# serving the assets, so there is nothing to build here.	# serving the assets, so there is nothing to build here.
   Dixlase - Source update	  Dixlase - Source update
+  Branch: $BRANCH	  Branch: $BRANCH
   html/ not found. Run setup.sh first.	  html/ not found. Run setup.sh first.
-[1/4] Pulling latest from GitHub...	[1/4] Pulling latest from GitHub...
-[2/4] Updating dependencies...	[2/4] Updating dependencies...
-  composer install complete.	  composer install complete.
-[3/4] Running migrations...	[3/4] Running migrations...
-  Migrations complete.	  Migrations complete.
-[4/4] Clearing caches...	[4/4] Clearing caches...
-  Caches cleared.	  Caches cleared.
-  Update complete!	  Update complete!
+# Every step after the git pull runs inside the app container, so say so	# Every step after the git pull runs inside the app container, so say so
+# once here instead of letting `docker compose exec` fail six times.	# once here instead of letting `docker compose exec` fail six times.
+  The dixlase.test container is not running.	  The dixlase.test container is not running.
+  Start the stack first, then run ./update.sh again:	  Start the stack first, then run ./update.sh again:
+    docker compose up -d	    docker compose up -d
+# True when the running core provides the named artisan command. Lets this	# True when the running core provides the named artisan command. Lets this
+# script use core's newer maintenance commands without breaking against an	# script use core's newer maintenance commands without breaking against an
+# older checkout that does not have them yet.	# older checkout that does not have them yet.
+# 1. Update the source	# 1. Update the source
+[1/6] Updating html/ from GitHub...	[1/6] Updating html/ from GitHub...
 # setup.sh hands html/ to www-data so the install wizard can write there,	# setup.sh hands html/ to www-data so the install wizard can write there,
 # so git sees a worktree owned by another user and refuses it with	# so git sees a worktree owned by another user and refuses it with
 # "detected dubious ownership in repository". Allow this one path for	# "detected dubious ownership in repository". Allow this one path for
 # these commands instead of touching the operator's global git config.	# these commands instead of touching the operator's global git config.
 # setup.sh leaves .git itself host-owned, so these writes still work.	# setup.sh leaves .git itself host-owned, so these writes still work.
+# A pull cannot do anything useful with local edits to tracked files: git	# A pull cannot do anything useful with local edits to tracked files: git
+# aborts with "Your local changes would be overwritten". Untracked files	# aborts with "Your local changes would be overwritten". Untracked files
+# are not a problem (installed plugins and themes are gitignored), so only	# are not a problem (installed plugins and themes are gitignored), so only
+# tracked changes stop the update.	# tracked changes stop the update.
+  html/ has local changes to tracked files:	  html/ has local changes to tracked files:
+  Keep or discard them, then run ./update.sh again:	  Keep or discard them, then run ./update.sh again:
+    git -C html -c safe.directory=$HTML_DIR stash          # keep for later	    git -C html -c safe.directory=$HTML_DIR stash          # keep for later
+    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard	    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard
+  html/ is on a detached HEAD, so there is no branch to update.	  html/ is on a detached HEAD, so there is no branch to update.
+  Check out a branch first:	  Check out a branch first:
+    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH	    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH
+  Switching html/ from $CURRENT_BRANCH to $BRANCH...	  Switching html/ from $CURRENT_BRANCH to $BRANCH...
+# Fast-forward only. A merge commit in html/ would make every later update	# Fast-forward only. A merge commit in html/ would make every later update
+# diverge further, and `git pull`'s own failure modes ("refusing to merge	# diverge further, and `git pull`'s own failure modes ("refusing to merge
+# unrelated histories", "divergent branches") arrive as a bare fatal: with	# unrelated histories", "divergent branches") arrive as a bare fatal: with
+# no hint of what to do next. Decide the case here and name the remedy.	# no hint of what to do next. Decide the case here and name the remedy.
+  html/ is already at origin/$BRANCH.	  html/ is already at origin/$BRANCH.
+  html/ has diverged from origin/$BRANCH: it carries commits the remote does not have.	  html/ has diverged from origin/$BRANCH: it carries commits the remote does not have.
+  html/ shares no history with origin/$BRANCH, so the remote branch was rewritten.	  html/ shares no history with origin/$BRANCH, so the remote branch was rewritten.
+  To take the remote as it is, discarding local commits in html/:	  To take the remote as it is, discarding local commits in html/:
+    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH	    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH
+  Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git.	  Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git.
+# 2. Update PHP dependencies	# 2. Update PHP dependencies
+[2/6] Updating dependencies...	[2/6] Updating dependencies...
+# composer runs inside the container, where the build-time BuildKit secret	# composer runs inside the container, where the build-time BuildKit secret
+# (docker-compose.yml: secrets.composer_auth) no longer exists, so private	# (docker-compose.yml: secrets.composer_auth) no longer exists, so private
+# packages such as the bundled theme would 404. Hand the host's auth.json	# packages such as the bundled theme would 404. Hand the host's auth.json
+# to this one command through the environment: it stays out of the image	# to this one command through the environment: it stays out of the image
+# and off the container filesystem.	# and off the container filesystem.
+  Using composer credentials from $COMPOSER_AUTH_FILE.	  Using composer credentials from $COMPOSER_AUTH_FILE.
+  composer install failed.	  composer install failed.
+  On a 404 or "Could not authenticate" for a dixlase/* package, the	  On a 404 or "Could not authenticate" for a dixlase/* package, the
+  package is private and composer needs a token. Write one to	  package is private and composer needs a token. Write one to
+  $COMPOSER_AUTH_FILE on the host, then run ./update.sh again:	  $COMPOSER_AUTH_FILE on the host, then run ./update.sh again:
+    {"github-oauth":{"github.com":"<personal access token>"}}	    {"github-oauth":{"github.com":"<personal access token>"}}
+  composer install complete.	  composer install complete.
+# 3. Realign the migration bookkeeping	# 3. Realign the migration bookkeeping
+[3/6] Realigning migration bookkeeping...	[3/6] Realigning migration bookkeeping...
+# Until core's GA its baseline migrations are renumbered in place (core:	# Until core's GA its baseline migrations are renumbered in place (core:
+# docs/operations/upgrading.md, "Beta series only: reconcile renamed	# docs/operations/upgrading.md, "Beta series only: reconcile renamed
+# migrations"). A renumbered file looks new to `migrate`, which then tries	# migrations"). A renumbered file looks new to `migrate`, which then tries
+# to create a table that already exists, so point the ledger at the	# to create a table that already exists, so point the ledger at the
+# current filenames first. This only rewrites the migration column of the	# current filenames first. This only rewrites the migration column of the
+# bookkeeping tables, never a data table, and is a no-op when nothing was	# bookkeeping tables, never a data table, and is a no-op when nothing was
+# renamed. Rows whose file is gone are left alone on purpose; `--prune`	# renamed. Rows whose file is gone are left alone on purpose; `--prune`
+# would delete them.	# would delete them.
+  This core has no dls:migration:resync (skipped).	  This core has no dls:migration:resync (skipped).
+# 4. Run migrations	# 4. Run migrations
+[4/6] Running migrations...	[4/6] Running migrations...
+  Migrations complete.	  Migrations complete.
+# 5. Rebuild the frontend assets	# 5. Rebuild the frontend assets
+[5/6] Development mode: Vite dev server serves the assets, build skipped.	[5/6] Development mode: Vite dev server serves the assets, build skipped.
+[5/6] Rebuilding frontend assets...	[5/6] Rebuilding frontend assets...
+# public/assets/build is gitignored, so the pull above brought new	# public/assets/build is gitignored, so the pull above brought new
+# sources but left the previous build in place. Rebuild it the same way	# sources but left the previous build in place. Rebuild it the same way
+# setup.sh does, or the pages keep asking for asset URLs that the new	# setup.sh does, or the pages keep asking for asset URLs that the new
+# manifest no longer lists.	# manifest no longer lists.
+# The bundled theme has its own build. On a cold npm cache this step	# The bundled theme has its own build. On a cold npm cache this step
+# can take several minutes.	# can take several minutes.
+  Building theme assets (themes/DixlaseOnePage)...	  Building theme assets (themes/DixlaseOnePage)...
+# Restart web so nginx sees freshly built assets. Docker Desktop bind	# Restart web so nginx sees freshly built assets. Docker Desktop bind
+# mounts on macOS sometimes hide files that appeared after the container	# mounts on macOS sometimes hide files that appeared after the container
+# started; restarting forces nginx to re-read the mounted directory.	# started; restarting forces nginx to re-read the mounted directory.
+  Restarting web to refresh asset mount...	  Restarting web to refresh asset mount...
+# 6. Clear caches and reconcile the bookkeeping	# 6. Clear caches and reconcile the bookkeeping
+[6/6] Clearing caches...	[6/6] Clearing caches...
+  Caches cleared.	  Caches cleared.
+# Advancing html/ with git writes no core_version_history row, so the	# Advancing html/ with git writes no core_version_history row, so the
+# ledger still names the version installed before this run and a later	# ledger still names the version installed before this run and a later
+# `dls:core:update` would compare releases against the wrong one. This	# `dls:core:update` would compare releases against the wrong one. This
+# writes the missing row and is a no-op when the ledger already matches.	# writes the missing row and is a no-op when the ledger already matches.
+# The steps above ran as root inside the container, so anything they	# The steps above ran as root inside the container, so anything they
+# created (vendor/, public/assets/build, node_modules) is root-owned. On	# created (vendor/, public/assets/build, node_modules) is root-owned. On
+# Linux the www-data php-fpm workers then cannot rewrite the built assets	# Linux the www-data php-fpm workers then cannot rewrite the built assets
+# the admin panel regenerates, so hand the tree back the way setup.sh	# the admin panel regenerates, so hand the tree back the way setup.sh
+# does. .git stays out of it: the git commands above run as the host user.	# does. .git stays out of it: the git commands above run as the host user.
+  Setting html/ ownership to www-data (container app user)...	  Setting html/ ownership to www-data (container app user)...
+  Update complete!	  Update complete!
+  Core version: $CORE_VERSION	  Core version: $CORE_VERSION

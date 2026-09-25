@@ -108,9 +108,38 @@ export DIXLASE_THEME_REPO_URL=https://github.com/your-org/theme-dixlase-onepage.
 ```bash
 docker compose logs -f                  # 全コンテナのログを追跡表示
 docker compose exec dixlase.test bash   # アプリコンテナ内でシェルを開く
-./update.sh                             # コアを git pull し、マイグレーションを実行
+./update.sh                             # コアのチェックアウトを更新してスタックを再構成
 ./reset.sh                              # DB / ソース / ボリュームを削除して再セットアップ
 ```
+
+## 更新
+
+```bash
+./update.sh                 # html/ を origin/main へ fast-forward し、スタックを再構成
+./update.sh <branch>        # 同じ処理を別のブランチに対して実行
+./update.sh --dev           # アセットビルドを省略（Vite 開発サーバーが配信）
+```
+
+`update.sh` は `html/` の **git チェックアウト**を進めます。ブランチを fast-forward し、
+`composer install` を再実行し（同梱テーマのような private パッケージに必要なホストの
+`~/.composer/auth.json` を渡します）、`dls:migration:resync` でマイグレーション台帳を
+整合させ（コアがベースライン移行を採番し直している間は必須）、マイグレーションを実行し、
+フロントエンドアセットを再ビルドし、コアのバージョン台帳を整合させます。
+推測はしません — 追跡対象ファイルにローカル変更がある作業ツリー、detached `HEAD`、
+fast-forward できない履歴では実行を止め、対処するコマンドを提示します。
+
+**リリース版**のコアで動いているサイトは、代わりに `php artisan dls:core:update` を
+使ってください。あちらはバックアップを取り、メンテナンス窓を保ち、ロールバックできます。
+`update.sh` はそのいずれも行いません。
+
+```bash
+./reset.sh                  # DB / ソース / ボリュームを削除して setup を再実行
+./reset.sh --dev            # 同じ処理を開発モードで再セットアップ
+./reset.sh --images         # このスタック用にビルドしたイメージも削除
+./reset.sh -y               # 確認プロンプトを省略
+```
+
+`reset.sh` は `.env` と `certs/` を残します。削除する対象は確認前にすべて表示されます。
 
 ## トラブルシューティング
 
