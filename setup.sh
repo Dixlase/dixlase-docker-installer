@@ -276,6 +276,28 @@ if [ "$KEPT_CONTAINERS" = true ]; then
     docker compose restart dixlase.test
 fi
 
+# `up -d` starts what the active profiles name; it does not stop a container
+# whose flag was just turned off. Switching VITE / REDIS / CRON / TOOLS off and
+# re-running setup.sh therefore left the old container running, so the stack no
+# longer matched .env — a Vite dev server outliving the switch back to
+# built-assets mode being the one that matters. The only documented answer used
+# to be ./reset.sh, which deletes the database to stop a container.
+#
+# Every command here names all profiles, because a service in an inactive
+# profile cannot be addressed otherwise. `rm -sf` stops and removes the
+# container; named volumes (Redis) are untouched.
+DISABLED_SERVICES=""
+case ",${COMPOSE_PROFILES}," in *,dev,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES vite" ;; esac
+case ",${COMPOSE_PROFILES}," in *,redis,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES redis" ;; esac
+case ",${COMPOSE_PROFILES}," in *,cron,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES cron" ;; esac
+case ",${COMPOSE_PROFILES}," in *,tools,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES adminer mailpit" ;; esac
+for disabled_service in $DISABLED_SERVICES; do
+    if [ -n "$(COMPOSE_PROFILES=cron,dev,redis,tools docker compose ps -aq "$disabled_service" 2>/dev/null)" ]; then
+        echo "  Removing the $disabled_service container (turned off in .env)..."
+        COMPOSE_PROFILES=cron,dev,redis,tools docker compose rm -sf "$disabled_service" >/dev/null 2>&1 || true
+    fi
+done
+
 # Wait for containers to start
 echo "  Waiting for containers to start..."
 sleep 5

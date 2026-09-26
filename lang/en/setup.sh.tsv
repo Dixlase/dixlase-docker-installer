@@ -197,3 +197,13 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
       docker compose exec dixlase.test php artisan config:clear	      docker compose exec dixlase.test php artisan config:clear
     Leave it as it is if a reverse proxy in front owns that URL.	    Leave it as it is if a reverse proxy in front owns that URL.
   ----------------------------------------------------------------	  ----------------------------------------------------------------
+# `up -d` starts what the active profiles name; it does not stop a container	# `up -d` starts what the active profiles name; it does not stop a container
+# whose flag was just turned off. Switching VITE / REDIS / CRON / TOOLS off and	# whose flag was just turned off. Switching VITE / REDIS / CRON / TOOLS off and
+# re-running setup.sh therefore left the old container running, so the stack no	# re-running setup.sh therefore left the old container running, so the stack no
+# longer matched .env — a Vite dev server outliving the switch back to	# longer matched .env — a Vite dev server outliving the switch back to
+# built-assets mode being the one that matters. The only documented answer used	# built-assets mode being the one that matters. The only documented answer used
+# to be ./reset.sh, which deletes the database to stop a container.	# to be ./reset.sh, which deletes the database to stop a container.
+# Every command here names all profiles, because a service in an inactive	# Every command here names all profiles, because a service in an inactive
+# profile cannot be addressed otherwise. `rm -sf` stops and removes the	# profile cannot be addressed otherwise. `rm -sf` stops and removes the
+# container; named volumes (Redis) are untouched.	# container; named volumes (Redis) are untouched.
+  Removing the $disabled_service container (turned off in .env)...	  Removing the $disabled_service container (turned off in .env)...

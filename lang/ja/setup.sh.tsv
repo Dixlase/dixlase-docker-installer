@@ -197,3 +197,13 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
       docker compose exec dixlase.test php artisan config:clear	      docker compose exec dixlase.test php artisan config:clear
     Leave it as it is if a reverse proxy in front owns that URL.	    前段のリバースプロキシがその URL を持っている場合はそのままで構いません。
   ----------------------------------------------------------------	  ----------------------------------------------------------------
+# `up -d` starts what the active profiles name; it does not stop a container	# `up -d` が起動するのは有効なプロファイルが指すものだけで、フラグを off にした
+# whose flag was just turned off. Switching VITE / REDIS / CRON / TOOLS off and	# ばかりのコンテナを停止はしない。そのため VITE / REDIS / CRON / TOOLS を off に
+# re-running setup.sh therefore left the old container running, so the stack no	# して setup.sh を再実行しても古いコンテナが動き続け、スタックが .env と一致しな
+# longer matched .env — a Vite dev server outliving the switch back to	# かった — ビルド済みアセットモードに戻したのに Vite 開発サーバーが生き残るのが
+# built-assets mode being the one that matters. The only documented answer used	# 一番まずい。これまで文書化されていた対処は ./reset.sh だけで、コンテナを止める
+# to be ./reset.sh, which deletes the database to stop a container.	# ためにデータベースを消すことになっていた。
+# Every command here names all profiles, because a service in an inactive	# ここのコマンドはすべてのプロファイルを指定する。無効なプロファイルのサービスは
+# profile cannot be addressed otherwise. `rm -sf` stops and removes the	# それ以外の方法では指定できないためである。`rm -sf` はコンテナを停止して削除する
+# container; named volumes (Redis) are untouched.	# が、名前付きボリューム (Redis) には触れない。
+  Removing the $disabled_service container (turned off in .env)...	  $disabled_service コンテナを削除します (.env で off になっています)...
