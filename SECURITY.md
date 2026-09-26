@@ -127,32 +127,44 @@ carries different fallbacks for the case where a variable is unset.
 | web (HTTP) | `40080` on all interfaces | `APP_PORT` |
 | web (HTTPS) | `40443` on all interfaces | `APP_SSL_PORT` |
 | MySQL | **`127.0.0.1:40306`** | `DB_BIND_ADDRESS` / `FORWARD_DB_PORT` — host-only by default |
-| Adminer | `40081` on all interfaces | `FORWARD_ADMINER_PORT` — **database administration UI** |
-| Mailpit | `40025` on all interfaces | `FORWARD_MAILPIT_PORT` — captured outbound mail is readable |
-| Redis | `40379` on all interfaces | `FORWARD_REDIS_PORT` — only with the `redis` profile |
-| Vite | `40173` on all interfaces | `FORWARD_VITE_PORT` — only with the `dev` profile |
+| Adminer | **`127.0.0.1:40081`** | `ADMINER_BIND_ADDRESS` / `FORWARD_ADMINER_PORT` — **database administration UI**, `tools` profile |
+| Mailpit | **`127.0.0.1:40025`** | `MAILPIT_BIND_ADDRESS` / `FORWARD_MAILPIT_PORT` — captured outbound mail is readable, `tools` profile |
+| Redis | not published | only reachable at `redis:6379` inside the compose network, `redis` profile |
+| Vite | **`127.0.0.1:40173`** | `VITE_BIND_ADDRESS` / `FORWARD_VITE_PORT` — only with the `dev` profile |
 
 Two things follow from this table:
 
-- **MySQL is bound to `127.0.0.1` on purpose.** Setting `DB_BIND_ADDRESS=0.0.0.0`
-  exposes the database to the whole network; automated bots scan for this. Change
-  it only if you genuinely need LAN access, and change `DB_PASSWORD` /
-  `DB_ROOT_PASSWORD` from the `.env.example` defaults first.
-- **Adminer, Mailpit and Redis are not restricted to localhost.** On a laptop
-  behind NAT this is usually fine; on a shared or reachable network it is not.
-  Bind them to `127.0.0.1`, or drop the services, before running anywhere exposed.
+- **Only the site is published on all interfaces.** Everything else answers from
+  this machine only. Setting any `*_BIND_ADDRESS` to `0.0.0.0` publishes a service
+  that trusts whoever reaches it: MariaDB accepts the credentials in `.env`,
+  Adminer hands them over for you, Mailpit shows every captured mail, and the Vite
+  dev server can read files under `html/`. Automated bots scan for exactly this.
+  If you need access from another machine, use an SSH tunnel
+  (`ssh -L 40081:127.0.0.1:40081 you@host`) rather than a wider bind.
+- **Redis has no host-side port at all.** It runs without a password, so a
+  published `6379` would let anyone read and forge sessions when `SESSION_DRIVER`
+  is `redis`. Containers reach it over the compose network.
+- **Adminer and Mailpit are also behind a flag.** `TOOLS=false` in `.env` (then
+  `./setup.sh`) does not start them at all.
 
 ### Default credentials
 
 `.env.example` ships development credentials (`DB_PASSWORD`, `DB_ROOT_PASSWORD`).
-Change them for anything other than a local, unexposed workstation.
+They are a convenience while everything but the site is on `127.0.0.1`, and an
+open door as soon as it is not. Change them for anything other than a local,
+unexposed workstation — before the first `./setup.sh`, because MariaDB reads them
+only when its data directory is created. `setup.sh` warns when a default is still
+in place and a service is bound wider than loopback.
 
-### Host SSH keys are mounted into the app container
+### Host SSH keys are not mounted (opt-in)
 
-`docker-compose.yml` mounts `${HOME}/.ssh` into the app container **read-only**,
-so the DixlaseDeploy plugin's CLI can authenticate to remote hosts. Any code
-running in that container can therefore read your private keys. Remove the mount
-if you do not use that plugin.
+The DixlaseDeploy plugin's CLI needs the host's SSH keys to authenticate to remote
+hosts, but every process in the app container could read them — including the
+install scripts of any composer or npm dependency, which `setup.sh` and
+`update.sh` run as root. The mount is therefore **not** in `docker-compose.yml`.
+Deploy users opt in with `docker-compose.deploy.yml`, either per command
+(`docker compose -f docker-compose.yml -f docker-compose.deploy.yml …`) or by
+setting `COMPOSE_FILE` in `.env`. Prefer a key dedicated to deployment.
 
 ### php-fpm opcache reset endpoint
 

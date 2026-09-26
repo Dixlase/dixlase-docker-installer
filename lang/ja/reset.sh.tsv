@@ -18,9 +18,6 @@
   Are you sure you want to reset? (y/N): 	  本当にリセットしますか? (y/N): 
   Cancelled.	  キャンセルしました。
 [1/3] Stopping and removing Docker containers...	[1/3] Docker コンテナを停止・削除中...
-# Name every profile: without them `down` leaves the profile-gated services	# プロファイルをすべて指定する: 指定しないと `down` はプロファイル対象の
-# (cron / vite / redis) running, and the next setup.sh then stops at its	# サービス (cron / vite / redis) を残し、次の setup.sh がまっさらな状態から
-# "Existing containers detected" prompt instead of starting from scratch.	# 始める代わりに "Existing containers detected" のプロンプトで止まる。
 # --rmi local drops only the images compose built here, so the next setup.sh	# --rmi local は compose がここでビルドしたイメージだけを削除するので、次の
 # rebuilds them: the way to pick up a changed Dockerfile layer that Docker	# setup.sh が作り直す — Docker がキャッシュから出してしまう変更済み
 # would otherwise serve from its cache. Pulled images (mysql, adminer,	# Dockerfile レイヤを確実に反映させる方法である。pull したイメージ (mysql、
@@ -39,3 +36,8 @@
   removal above uses a container to avoid asking for sudo.	  sudo を求めないためにコンテナを使っています。
   Removed html/ and mysql/.	  html/ と mysql/ を削除しました。
 [3/3] Re-running setup...	[3/3] setup を再実行中...
+# Name every profile: without them `down` leaves the profile-gated services	# プロファイルをすべて指定する: 指定しないと `down` はプロファイル対象の
+# running, and the next setup.sh then stops at its "Existing containers	# サービスを残し、次の setup.sh がまっさらな状態から始める代わりに
+# detected" prompt instead of starting from scratch. These are profile names,	# "Existing containers detected" のプロンプトで止まる。ここに書くのは
+# not service names — the Vite container is in the "dev" profile, so the	# プロファイル名でサービス名ではない — Vite コンテナは "dev" プロファイルに
+# earlier "vite" here matched nothing and left it running in --dev setups.	# 属するので、以前の "vite" は何にも一致せず --dev 構成では残っていた。
