@@ -25,3 +25,5 @@
 # Only pass requests that name a real file. Without this, a request	# Only pass requests that name a real file. Without this, a request
 # for /uploads/photo.jpg/x.php reaches php-fpm, which with PHP's	# for /uploads/photo.jpg/x.php reaches php-fpm, which with PHP's
 # default cgi.fix_pathinfo walks back to photo.jpg and executes it.	# default cgi.fix_pathinfo walks back to photo.jpg and executes it.
+# Mounted as an nginx template (see docker-compose.yml). Nothing here needs a	# Mounted as an nginx template (see docker-compose.yml). Nothing here needs a
+# substitution; the HTTPS variant uses one for the published TLS port.	# substitution; the HTTPS variant uses one for the published TLS port.

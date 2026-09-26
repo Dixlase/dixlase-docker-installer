@@ -25,3 +25,5 @@
 # Only pass requests that name a real file. Without this, a request	# 実在するファイルを指すリクエストだけを通す。これが無いと
 # for /uploads/photo.jpg/x.php reaches php-fpm, which with PHP's	# /uploads/photo.jpg/x.php のようなリクエストが php-fpm に届き、PHP の既定の
 # default cgi.fix_pathinfo walks back to photo.jpg and executes it.	# cgi.fix_pathinfo によって photo.jpg まで遡って実行されてしまう。
+# Mounted as an nginx template (see docker-compose.yml). Nothing here needs a	# nginx のテンプレートとしてマウントされる (docker-compose.yml 参照)。ここには置換が
+# substitution; the HTTPS variant uses one for the published TLS port.	# 必要なものは無い。HTTPS 版は公開 TLS ポートのために置換を 1 つ使っている。

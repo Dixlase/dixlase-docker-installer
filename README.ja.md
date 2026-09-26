@@ -21,7 +21,12 @@ cd dixlase
 
 セットアップ完了後、ブラウザで `http://localhost:40080` にアクセスしてください。  
 初回アクセス時には Dixlase のインストールウィザードが表示されます。  
-(`.env` で `HTTPS=true` に変更して `./setup.sh` を再実行すると、同梱の自己署名証明書を使った HTTPS に切り替わります。)
+(`.env` で `HTTPS=true` に変更して `./setup.sh` を再実行すると、同梱の自己署名証明書を使った
+HTTPS に切り替わります。すでに HTTP でインストール済みのサイトでは、あわせて `html/.env` の
+`APP_URL` を HTTPS の URL に変更し `FORCE_SSL=true` にしたうえで
+`docker compose exec dixlase.test php artisan config:clear` を実行してください。Laravel は
+`APP_URL` からアセットの URL を組み立てるため、そのままではページは開けても CSS と JS が
+読み込めません。食い違っている場合は `setup.sh` が警告します。)
 
 ## デフォルトの URL
 

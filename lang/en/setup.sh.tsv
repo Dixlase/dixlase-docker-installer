@@ -181,3 +181,29 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # Until that is fixed in core, this one line is what keeps a ZIP install working	# Until that is fixed in core, this one line is what keeps a ZIP install working
 # (it is a no-op when the maps are already correct).	# (it is a no-op when the maps are already correct).
   Refreshing the composer autoload (picks up composer.local.json)...	  Refreshing the composer autoload (picks up composer.local.json)...
+# The install wizard writes APP_URL into html/.env from the URL the operator	# The install wizard writes APP_URL into html/.env from the URL the operator
+# used, so flipping HTTPS afterwards leaves it on the other scheme and port.	# used, so flipping HTTPS afterwards leaves it on the other scheme and port.
+# Laravel then builds asset URLs like https://localhost:40080 — the TLS scheme	# Laravel then builds asset URLs like https://localhost:40080 — the TLS scheme
+# with the plain-HTTP port — and every stylesheet and script fails in the	# with the plain-HTTP port — and every stylesheet and script fails in the
+# browser while the page itself still answers 200. Say so instead; the value is	# browser while the page itself still answers 200. Say so instead; the value is
+# not ours to overwrite, because a site behind a reverse proxy legitimately	# not ours to overwrite, because a site behind a reverse proxy legitimately
+# names an external URL here.	# names an external URL here.
+  --- APP_URL in html/.env does not match the mode you just selected ---	  --- APP_URL in html/.env does not match the mode you just selected ---
+    html/.env has: $APP_URL_IN_HTML	    html/.env has: $APP_URL_IN_HTML
+    this stack now serves: $APP_URL	    this stack now serves: $APP_URL
+    Laravel builds asset URLs from APP_URL, so pages will load but	    Laravel builds asset URLs from APP_URL, so pages will load but
+    their CSS and JS will not. Set APP_URL in html/.env to the line	    their CSS and JS will not. Set APP_URL in html/.env to the line
+    above (and FORCE_SSL=true when serving over TLS), then run:	    above (and FORCE_SSL=true when serving over TLS), then run:
+      docker compose exec dixlase.test php artisan config:clear	      docker compose exec dixlase.test php artisan config:clear
+    Leave it as it is if a reverse proxy in front owns that URL.	    Leave it as it is if a reverse proxy in front owns that URL.
+  ----------------------------------------------------------------	  ----------------------------------------------------------------
+# `up -d` starts what the active profiles name; it does not stop a container	# `up -d` starts what the active profiles name; it does not stop a container
+# whose flag was just turned off. Switching VITE / REDIS / CRON / TOOLS off and	# whose flag was just turned off. Switching VITE / REDIS / CRON / TOOLS off and
+# re-running setup.sh therefore left the old container running, so the stack no	# re-running setup.sh therefore left the old container running, so the stack no
+# longer matched .env — a Vite dev server outliving the switch back to	# longer matched .env — a Vite dev server outliving the switch back to
+# built-assets mode being the one that matters. The only documented answer used	# built-assets mode being the one that matters. The only documented answer used
+# to be ./reset.sh, which deletes the database to stop a container.	# to be ./reset.sh, which deletes the database to stop a container.
+# Every command here names all profiles, because a service in an inactive	# Every command here names all profiles, because a service in an inactive
+# profile cannot be addressed otherwise. `rm -sf` stops and removes the	# profile cannot be addressed otherwise. `rm -sf` stops and removes the
+# container; named volumes (Redis) are untouched.	# container; named volumes (Redis) are untouched.
+  Removing the $disabled_service container (turned off in .env)...	  Removing the $disabled_service container (turned off in .env)...

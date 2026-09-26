@@ -53,8 +53,17 @@ services:
     volumes:
       - ./html:/var/www/html
       # NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.
-      - ./nginx/nginx.${NGINX_VARIANT:-http}.conf:/etc/nginx/conf.d/default.conf
+      # Mounted as a template, not straight into conf.d: the nginx image runs
+      # envsubst over /etc/nginx/templates/*.template at start-up, which is how
+      # the HTTP -> HTTPS redirect learns the published HTTPS port (a container
+      # only ever sees its own 443). NGINX_ENVSUBST_FILTER keeps the
+      # substitution to our own DIXLASE_ variables, so nginx's own $host,
+      # $uri and friends pass through untouched.
+      - ./nginx/nginx.${NGINX_VARIANT:-http}.conf:/etc/nginx/templates/default.conf.template
       - ./certs:/etc/ssl/private
+    environment:
+      - DIXLASE_HTTPS_PORT=${APP_SSL_PORT:-443}
+      - NGINX_ENVSUBST_FILTER=DIXLASE_
     ports:
       - "${APP_PORT:-80}:80"
       - "${APP_SSL_PORT:-443}:443"

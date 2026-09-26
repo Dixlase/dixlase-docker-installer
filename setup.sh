@@ -276,6 +276,28 @@ if [ "$KEPT_CONTAINERS" = true ]; then
     docker compose restart dixlase.test
 fi
 
+# `up -d` starts what the active profiles name; it does not stop a container
+# whose flag was just turned off. Switching VITE / REDIS / CRON / TOOLS off and
+# re-running setup.sh therefore left the old container running, so the stack no
+# longer matched .env — a Vite dev server outliving the switch back to
+# built-assets mode being the one that matters. The only documented answer used
+# to be ./reset.sh, which deletes the database to stop a container.
+#
+# Every command here names all profiles, because a service in an inactive
+# profile cannot be addressed otherwise. `rm -sf` stops and removes the
+# container; named volumes (Redis) are untouched.
+DISABLED_SERVICES=""
+case ",${COMPOSE_PROFILES}," in *,dev,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES vite" ;; esac
+case ",${COMPOSE_PROFILES}," in *,redis,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES redis" ;; esac
+case ",${COMPOSE_PROFILES}," in *,cron,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES cron" ;; esac
+case ",${COMPOSE_PROFILES}," in *,tools,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES adminer mailpit" ;; esac
+for disabled_service in $DISABLED_SERVICES; do
+    if [ -n "$(COMPOSE_PROFILES=cron,dev,redis,tools docker compose ps -aq "$disabled_service" 2>/dev/null)" ]; then
+        echo "  Removing the $disabled_service container (turned off in .env)..."
+        COMPOSE_PROFILES=cron,dev,redis,tools docker compose rm -sf "$disabled_service" >/dev/null 2>&1 || true
+    fi
+done
+
 # Wait for containers to start
 echo "  Waiting for containers to start..."
 sleep 5
@@ -396,6 +418,34 @@ fi
 # install wizard fails its permission checks and 500s. Chown once here, after
 # every file-creating step, so a fresh install works out of the box (no-op on
 # macOS). Best-effort so one odd file cannot abort the install.
+# The install wizard writes APP_URL into html/.env from the URL the operator
+# used, so flipping HTTPS afterwards leaves it on the other scheme and port.
+# Laravel then builds asset URLs like https://localhost:40080 — the TLS scheme
+# with the plain-HTTP port — and every stylesheet and script fails in the
+# browser while the page itself still answers 200. Say so instead; the value is
+# not ours to overwrite, because a site behind a reverse proxy legitimately
+# names an external URL here.
+if [ -f "html/.env" ]; then
+    APP_URL_IN_HTML=$(grep '^APP_URL=' html/.env | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '[:space:]')
+    case "$APP_URL_IN_HTML" in
+        "") ;;
+        http://*) [ "$NGINX_VARIANT" = "https" ] && APP_URL_MISMATCH=yes ;;
+        https://*) [ "$NGINX_VARIANT" = "http" ] && APP_URL_MISMATCH=yes ;;
+    esac
+    if [ "${APP_URL_MISMATCH:-no}" = "yes" ]; then
+        echo ""
+        echo "  --- APP_URL in html/.env does not match the mode you just selected ---"
+        echo "    html/.env has: $APP_URL_IN_HTML"
+        echo "    this stack now serves: $APP_URL"
+        echo "    Laravel builds asset URLs from APP_URL, so pages will load but"
+        echo "    their CSS and JS will not. Set APP_URL in html/.env to the line"
+        echo "    above (and FORCE_SSL=true when serving over TLS), then run:"
+        echo "      docker compose exec dixlase.test php artisan config:clear"
+        echo "    Leave it as it is if a reverse proxy in front owns that URL."
+        echo "  ----------------------------------------------------------------"
+    fi
+fi
+
 echo ""
 echo "  Setting html/ ownership to www-data (container app user)..."
 # .git is excluded on purpose: update.sh runs git fetch / checkout / pull
