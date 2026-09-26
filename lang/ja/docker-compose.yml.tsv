@@ -1,10 +1,7 @@
 # Use standard ports (HTTP 80 / HTTPS 443 / MySQL 3306).	# 標準ポート (HTTP 80 / HTTPS 443 / MySQL 3306) を使用。
 # Override APP_PORT / FORWARD_DB_PORT etc. in .env if other services conflict.	# 他のサービスと競合する場合は .env で APP_PORT / FORWARD_DB_PORT 等を上書き可能。
 # Development mode (Vite hot-reload):	# 開発モード (Vite hot-reload) で起動する場合:
-# Production mode (pre-built assets):	# 本番モード (ビルド済みアセット) で起動する場合:
-# Mount host SSH keys read-only so the DixlaseDeploy plugin's CLI	# DixlaseDeploy プラグインの CLI が
-# (php artisan deploy:push/pull) can authenticate to remote hosts.	# (php artisan deploy:push/pull) でリモートホストへ認証できるよう、ホストの SSH 鍵を読み取り専用でマウント。
-# The plugin keeps its own UserKnownHostsFile, so :ro is fine.	# プラグインは独自の UserKnownHostsFile を持つため :ro で問題ありません。
+# Built-assets mode (no Vite dev server):	# ビルド済みアセットモード (Vite 開発サーバーなし) で起動する場合:
 # NGINX_VARIANT is exported by setup.sh based on the HTTPS flag in .env.	# NGINX_VARIANT は setup.sh が .env の HTTPS フラグを基に export します。
 # Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).	# "redis" プロファイル (setup.sh が export する COMPOSE_PROFILES) で有効化されます。
 # Activated by the "cron" profile (COMPOSE_PROFILES exported by	# "cron" プロファイル (setup.sh が .env の CRON フラグから export する
@@ -42,3 +39,32 @@
 # root-owned, and a later web request (www-data) appending to that same	# 後続の web リクエスト (www-data) が同じファイルへ追記しようとして
 # file fails with "Permission denied" — which can abort a web-triggered	# "Permission denied" で失敗する — web 起点のコア更新を中断させ得る。
 # core update. Redirect inside the su so cron.log is www-data-owned too.	# リダイレクトは su 内で行い cron.log も www-data 所有にする。
+# Everything except the site itself (APP_PORT / APP_SSL_PORT) is published on	# サイト本体 (APP_PORT / APP_SSL_PORT) を除くすべては 127.0.0.1 にのみ公開する。
+# 127.0.0.1 only, so running ./setup.sh on a VPS or a shared network does not	# VPS や共有ネットワークで ./setup.sh を実行しても、データベース・Adminer・
+# hand the database, Adminer or the mail catcher to whoever can reach the	# メールキャッチャーがホストに到達できる相手に渡らないようにするためである。
+# host. Read SECURITY.md before changing any *_BIND_ADDRESS.	# *_BIND_ADDRESS を変更する前に SECURITY.md を読むこと。
+# The host's SSH keys are NOT mounted here. The DixlaseDeploy plugin's	# ホストの SSH 鍵はここではマウントしない。DixlaseDeploy プラグインの CLI
+# CLI (php artisan deploy:push/pull) needs them, but so could anything	# (php artisan deploy:push/pull) は必要とするが、このコンテナで動くものは
+# else that runs in this container — composer and npm install scripts	# 何でも読めてしまう — composer と npm の install スクリプトを含み、
+# included — and setup.sh / update.sh run those as root. Deploy users	# setup.sh / update.sh はそれらを root で実行する。Deploy を使う場合は
+# opt in with docker-compose.deploy.yml (see that file and SECURITY.md).	# docker-compose.deploy.yml で明示的に有効化する (同ファイルと SECURITY.md 参照)。
+# Activated by the "tools" profile (TOOLS in .env, on by default).	# "tools" プロファイルで起動する (.env の TOOLS、既定は有効)。
+# Adminer signs in to MariaDB with the credentials from .env, so	# Adminer は .env の認証情報で MariaDB にサインインするため、Adminer を公開
+# publishing Adminer publishes the database: full read/write, which is	# することはデータベースを公開することになる: 読み書き全権で、管理者を作って
+# enough to create an administrator and upload a plugin (= PHP). Hence	# プラグイン (= PHP) を入れるのに十分である。だからループバック束縛と
+# both the loopback bind and the profile. Its server field also stays	# プロファイルの両方を使う。サーバー欄は編集可能なままなので、compose
+# editable, so it can reach anything else on the compose network.	# ネットワーク上の他のものにも到達できる。
+# Mailpit's web UI shows every captured mail with no authentication —	# Mailpit の Web UI は認証なしで捕捉した全メールを表示する — 初回インストール
+# during a first install that includes the password-reset and two-factor	# ではパスワードリセットと二要素認証のメールを含む — ので、公開するのは UI の
+# mails — so only the UI port is published, and only on the loopback	# ポートだけ、しかもループバックインターフェースのみとする。アプリは compose
+# interface. The app reaches SMTP at mailpit:1025 over the compose	# ネットワーク越しに mailpit:1025 の SMTP へ届くので影響はない。
+# network, which is unaffected.	# (SMTP の経路には影響しない。)
+# No published port. Laravel reaches Redis at redis:6379 over the compose	# ポートは公開しない。Laravel は compose ネットワーク越しに redis:6379 へ届き、
+# network, and Redis here runs without a password: on a reachable host a	# ここの Redis はパスワードなしで動く: 到達可能なホストで 6379 を公開すると、
+# published 6379 lets anyone read and forge sessions when SESSION_DRIVER	# SESSION_DRIVER が redis のときセッションの読み取りと偽造ができてしまう。
+# is redis. Add a mapping yourself if you need a host-side client, and	# ホスト側クライアントが必要なら自分でマッピングを足し、127.0.0.1 に束縛する。
+# bind it to 127.0.0.1.	# (その場合は 127.0.0.1 に束縛する。)
+# Loopback only: the dev server reads from the project root, so anyone	# ループバックのみ: 開発サーバーはプロジェクトルートから読むため、到達できる
+# who can reach it can fetch files under html/ through Vite's /@fs/	# 相手は Vite の /@fs/ パス経由で html/ 配下のファイル (storage/logs、
+# paths (storage/logs, database/*.sqlite, config/*.php). --dev is for a	# database/*.sqlite、config/*.php) を取得できる。--dev はワークステーション
+# workstation, never for a reachable host.	# 用であって、到達可能なホストでは使わない。

@@ -18,9 +18,6 @@
   Are you sure you want to reset? (y/N): 	  Are you sure you want to reset? (y/N): 
   Cancelled.	  Cancelled.
 [1/3] Stopping and removing Docker containers...	[1/3] Stopping and removing Docker containers...
-# Name every profile: without them `down` leaves the profile-gated services	# Name every profile: without them `down` leaves the profile-gated services
-# (cron / vite / redis) running, and the next setup.sh then stops at its	# (cron / vite / redis) running, and the next setup.sh then stops at its
-# "Existing containers detected" prompt instead of starting from scratch.	# "Existing containers detected" prompt instead of starting from scratch.
 # --rmi local drops only the images compose built here, so the next setup.sh	# --rmi local drops only the images compose built here, so the next setup.sh
 # rebuilds them: the way to pick up a changed Dockerfile layer that Docker	# rebuilds them: the way to pick up a changed Dockerfile layer that Docker
 # would otherwise serve from its cache. Pulled images (mysql, adminer,	# would otherwise serve from its cache. Pulled images (mysql, adminer,
@@ -39,3 +36,8 @@
   removal above uses a container to avoid asking for sudo.	  removal above uses a container to avoid asking for sudo.
   Removed html/ and mysql/.	  Removed html/ and mysql/.
 [3/3] Re-running setup...	[3/3] Re-running setup...
+# Name every profile: without them `down` leaves the profile-gated services	# Name every profile: without them `down` leaves the profile-gated services
+# running, and the next setup.sh then stops at its "Existing containers	# running, and the next setup.sh then stops at its "Existing containers
+# detected" prompt instead of starting from scratch. These are profile names,	# detected" prompt instead of starting from scratch. These are profile names,
+# not service names — the Vite container is in the "dev" profile, so the	# not service names — the Vite container is in the "dev" profile, so the
+# earlier "vite" here matched nothing and left it running in --dev setups.	# earlier "vite" here matched nothing and left it running in --dev setups.

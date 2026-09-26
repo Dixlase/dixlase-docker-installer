@@ -1,7 +1,7 @@
 # Dixlase setup script	# Dixlase setup script
 # Purpose: Clone the core from GitHub and build the Docker environment.	# Purpose: Clone the core from GitHub and build the Docker environment.
 # Usage:	# Usage:
-#   ./setup.sh                  # Production mode (pre-built assets)	#   ./setup.sh                  # Production mode (pre-built assets)
+#   ./setup.sh                  # Built-assets mode (no Vite dev server)	#   ./setup.sh                  # Built-assets mode (no Vite dev server)
 #   ./setup.sh --dev            # Development mode (Vite hot-reload)	#   ./setup.sh --dev            # Development mode (Vite hot-reload)
 #   ./setup.sh <branch>         # Clone the specified branch (default: main)	#   ./setup.sh <branch>         # Clone the specified branch (default: main)
 #   ./setup.sh --dev <branch>   # Development mode + specified branch	#   ./setup.sh --dev <branch>   # Development mode + specified branch
@@ -60,7 +60,7 @@
 # APP_URL / port values were already computed at the top of step [6/6];	# APP_URL / port values were already computed at the top of step [6/6];
 # reuse them here for the final summary.	# reuse them here for the final summary.
 Development mode (Vite hot-reload)	Development mode (Vite hot-reload)
-Production mode (pre-built assets)	Production mode (pre-built assets)
+Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 [1/6] html/ already exists.	[1/6] html/ already exists.
   Delete and re-clone? (y/N): 	  Delete and re-clone? (y/N):
   Deleting html/...	  Deleting html/...
@@ -147,3 +147,21 @@ Production mode (pre-built assets)	Production mode (pre-built assets)
 # with "Permission denied" on hosts that do not virtualize bind-mount	# with "Permission denied" on hosts that do not virtualize bind-mount
 # ownership (Linux).	# ownership (Linux).
 # The stub it needs on a fresh clone was seeded in step [5/6].	# The stub it needs on a fresh clone was seeded in step [5/6].
+# Not called "production mode": this stack is a local trial, and the name	# Not called "production mode": this stack is a local trial, and the name
+# invited people to treat it as hardened for a server. All it decides is	# invited people to treat it as hardened for a server. All it decides is
+# whether Vite serves the assets or they are built ahead of time.	# whether Vite serves the assets or they are built ahead of time.
+# TOOLS defaults to true when unset (Adminer + Mailpit), which is also what	# TOOLS defaults to true when unset (Adminer + Mailpit), which is also what
+# a .env written before this flag existed means. Both are published on	# a .env written before this flag existed means. Both are published on
+# 127.0.0.1 only; TOOLS=false does not start them at all.	# 127.0.0.1 only; TOOLS=false does not start them at all.
+# Warn when the default database credentials are still in place AND something	# Warn when the default database credentials are still in place AND something
+# is published past this machine. Either alone is a normal state: the defaults	# is published past this machine. Either alone is a normal state: the defaults
+# are a convenience on a loopback-only stack, and a reachable bind address is	# are a convenience on a loopback-only stack, and a reachable bind address is
+# a deliberate choice. Together they are an open database.	# a deliberate choice. Together they are an open database.
+  --- WARNING: default credentials on a reachable address ---	  --- WARNING: default credentials on a reachable address ---
+    Still at the .env.example defaults:$DEFAULT_CREDENTIALS	    Still at the .env.example defaults:$DEFAULT_CREDENTIALS
+    Published beyond this machine:$EXPOSED_SERVICES	    Published beyond this machine:$EXPOSED_SERVICES
+    Anyone who can reach those ports can sign in to the database.	    Anyone who can reach those ports can sign in to the database.
+    Either set every *_BIND_ADDRESS back to 127.0.0.1, or change the	    Either set every *_BIND_ADDRESS back to 127.0.0.1, or change the
+    passwords in .env and start over with ./reset.sh (MariaDB reads	    passwords in .env and start over with ./reset.sh (MariaDB reads
+    them only when its data directory is created).	    them only when its data directory is created).
+  -----------------------------------------------------------	  -----------------------------------------------------------

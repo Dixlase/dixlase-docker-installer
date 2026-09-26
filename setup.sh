@@ -9,7 +9,7 @@ set -e
 # Purpose: Clone the core from GitHub and build the Docker environment.
 #
 # Usage:
-#   ./setup.sh                  # Production mode (pre-built assets)
+#   ./setup.sh                  # Built-assets mode (no Vite dev server)
 #   ./setup.sh --dev            # Development mode (Vite hot-reload)
 #   ./setup.sh <branch>         # Clone the specified branch (default: main)
 #   ./setup.sh --dev <branch>   # Development mode + specified branch
@@ -47,7 +47,10 @@ done
 if [ "$DEV_MODE" = true ]; then
     MODE_LABEL="Development mode (Vite hot-reload)"
 else
-    MODE_LABEL="Production mode (pre-built assets)"
+    # Not called "production mode": this stack is a local trial, and the name
+    # invited people to treat it as hardened for a server. All it decides is
+    # whether Vite serves the assets or they are built ahead of time.
+    MODE_LABEL="Built-assets mode (no Vite dev server)"
 fi
 
 echo "========================================"
@@ -141,6 +144,7 @@ fi
 VITE_VAL=$(grep '^VITE=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 REDIS_VAL=$(grep '^REDIS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 CRON_VAL=$(grep '^CRON=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
+TOOLS_VAL=$(grep '^TOOLS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 if [ "$DEV_MODE" = true ]; then
     VITE_VAL=true
 fi
@@ -159,11 +163,50 @@ fi
 if [ -z "$CRON_VAL" ] || [ "$CRON_VAL" = "true" ] || [ "$CRON_VAL" = "1" ]; then
     [ -n "$COMPOSE_PROFILES" ] && COMPOSE_PROFILES="${COMPOSE_PROFILES},cron" || COMPOSE_PROFILES="cron"
 fi
+# TOOLS defaults to true when unset (Adminer + Mailpit), which is also what
+# a .env written before this flag existed means. Both are published on
+# 127.0.0.1 only; TOOLS=false does not start them at all.
+if [ -z "$TOOLS_VAL" ] || [ "$TOOLS_VAL" = "true" ] || [ "$TOOLS_VAL" = "1" ]; then
+    [ -n "$COMPOSE_PROFILES" ] && COMPOSE_PROFILES="${COMPOSE_PROFILES},tools" || COMPOSE_PROFILES="tools"
+fi
 
 export NGINX_VARIANT COMPOSE_PROFILES
 
 echo "  Selected nginx variant: nginx.$NGINX_VARIANT.conf (HTTPS=$HTTPS_VAL)"
-echo "  Active compose profiles: ${COMPOSE_PROFILES:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-false} CRON=${CRON_VAL:-true})"
+echo "  Active compose profiles: ${COMPOSE_PROFILES:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-false} CRON=${CRON_VAL:-true} TOOLS=${TOOLS_VAL:-true})"
+
+# Warn when the default database credentials are still in place AND something
+# is published past this machine. Either alone is a normal state: the defaults
+# are a convenience on a loopback-only stack, and a reachable bind address is
+# a deliberate choice. Together they are an open database.
+EXPOSED_SERVICES=""
+for bind_var in DB_BIND_ADDRESS ADMINER_BIND_ADDRESS MAILPIT_BIND_ADDRESS VITE_BIND_ADDRESS; do
+    bind_val=$(grep "^${bind_var}=" .env | cut -d'=' -f2 | tr -d '[:space:]"')
+    case "$bind_val" in
+        "" | 127.0.0.1 | localhost | ::1) ;;
+        *) EXPOSED_SERVICES="${EXPOSED_SERVICES} ${bind_var}=${bind_val}" ;;
+    esac
+done
+DEFAULT_CREDENTIALS=""
+for cred_var in DB_PASSWORD DB_ROOT_PASSWORD; do
+    cred_val=$(grep "^${cred_var}=" .env | cut -d'=' -f2 | tr -d '[:space:]"')
+    cred_example=$(grep "^${cred_var}=" .env.example | cut -d'=' -f2 | tr -d '[:space:]"')
+    if [ -n "$cred_example" ] && [ "$cred_val" = "$cred_example" ]; then
+        DEFAULT_CREDENTIALS="${DEFAULT_CREDENTIALS} ${cred_var}"
+    fi
+done
+if [ -n "$EXPOSED_SERVICES" ] && [ -n "$DEFAULT_CREDENTIALS" ]; then
+    echo ""
+    echo "  --- WARNING: default credentials on a reachable address ---"
+    echo "    Still at the .env.example defaults:$DEFAULT_CREDENTIALS"
+    echo "    Published beyond this machine:$EXPOSED_SERVICES"
+    echo "    Anyone who can reach those ports can sign in to the database."
+    echo "    Either set every *_BIND_ADDRESS back to 127.0.0.1, or change the"
+    echo "    passwords in .env and start over with ./reset.sh (MariaDB reads"
+    echo "    them only when its data directory is created)."
+    echo "  -----------------------------------------------------------"
+    echo ""
+fi
 
 # Sync DEV_MODE with the effective VITE flag so step [6/6] and other
 # downstream logic reflect what actually runs.

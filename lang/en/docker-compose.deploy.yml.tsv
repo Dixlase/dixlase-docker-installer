@@ -1,0 +1,13 @@
+# Dixlase Docker Environment — DixlaseDeploy override (opt-in)	# Dixlase Docker Environment — DixlaseDeploy override (opt-in)
+# Mounts the host's SSH keys into the app container read-only, which the	# Mounts the host's SSH keys into the app container read-only, which the
+# DixlaseDeploy plugin's CLI (php artisan deploy:push / deploy:pull) needs to	# DixlaseDeploy plugin's CLI (php artisan deploy:push / deploy:pull) needs to
+# authenticate to remote hosts. The plugin keeps its own UserKnownHostsFile,	# authenticate to remote hosts. The plugin keeps its own UserKnownHostsFile,
+# so :ro is enough for it.	# so :ro is enough for it.
+# This is a separate file because the mount is not free: every process in the	# This is a separate file because the mount is not free: every process in the
+# container can read those keys, including install scripts of any composer or	# container can read those keys, including install scripts of any composer or
+# npm dependency, and setup.sh / update.sh run those as root. Only turn it on	# npm dependency, and setup.sh / update.sh run those as root. Only turn it on
+# if you actually deploy from this container.	# if you actually deploy from this container.
+# Enable it for every compose command by adding this line to .env:	# Enable it for every compose command by adding this line to .env:
+# setup.sh, reset.sh and update.sh then pick it up with no extra flags.	# setup.sh, reset.sh and update.sh then pick it up with no extra flags.
+# For a one-off command instead:	# For a one-off command instead:
+# Prefer a key dedicated to deployment over your everyday key.	# Prefer a key dedicated to deployment over your everyday key.
