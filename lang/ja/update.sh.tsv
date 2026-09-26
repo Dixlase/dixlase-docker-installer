@@ -14,6 +14,13 @@
   Dixlase - Source update	  Dixlase - ソース更新
   Branch: $BRANCH	  ブランチ: $BRANCH
   html/ not found. Run setup.sh first.	  html/ が見つかりません。setup.sh を先に実行してください。
+# A release ZIP carries no .git, so there is nothing here to fast-forward.	# リリース ZIP には .git が無いので、ここに fast-forward するものは無い。この判定が
+# Without this the git commands below just print "fatal: not a git	# 無いと、下の git コマンドが "fatal: not a git repository" を 2 回出して exit 128 で
+# repository" twice and the script dies at exit 128. That install updates	# 死ぬだけになる。その形のインストールは、ダウンロードしたツリーを置き換えられる
+# through core, which knows how to replace a downloaded tree.	# コア側の機能で更新する。
+  html/ is not a git checkout, so there is nothing to pull.	  html/ は git チェックアウトではないため、pull するものがありません。
+  An install expanded from a release ZIP looks like this. Update it through core:	  リリース ZIP を展開したインストールはこの形です。コア側の機能で更新してください:
+    docker compose exec dixlase.test php artisan dls:core:update	    docker compose exec dixlase.test php artisan dls:core:update
 # Every step after the git pull runs inside the app container, so say so	# git pull より後のステップはすべてアプリコンテナ内で動くので、
 # once here instead of letting `docker compose exec` fail six times.	# `docker compose exec` を 6 回失敗させる代わりにここで 1 度だけ伝える。
   The dixlase.test container is not running.	  dixlase.test コンテナが起動していません。

@@ -14,6 +14,13 @@
   Dixlase - Source update	  Dixlase - Source update
   Branch: $BRANCH	  Branch: $BRANCH
   html/ not found. Run setup.sh first.	  html/ not found. Run setup.sh first.
+# A release ZIP carries no .git, so there is nothing here to fast-forward.	# A release ZIP carries no .git, so there is nothing here to fast-forward.
+# Without this the git commands below just print "fatal: not a git	# Without this the git commands below just print "fatal: not a git
+# repository" twice and the script dies at exit 128. That install updates	# repository" twice and the script dies at exit 128. That install updates
+# through core, which knows how to replace a downloaded tree.	# through core, which knows how to replace a downloaded tree.
+  html/ is not a git checkout, so there is nothing to pull.	  html/ is not a git checkout, so there is nothing to pull.
+  An install expanded from a release ZIP looks like this. Update it through core:	  An install expanded from a release ZIP looks like this. Update it through core:
+    docker compose exec dixlase.test php artisan dls:core:update	    docker compose exec dixlase.test php artisan dls:core:update
 # Every step after the git pull runs inside the app container, so say so	# Every step after the git pull runs inside the app container, so say so
 # once here instead of letting `docker compose exec` fail six times.	# once here instead of letting `docker compose exec` fail six times.
   The dixlase.test container is not running.	  The dixlase.test container is not running.
