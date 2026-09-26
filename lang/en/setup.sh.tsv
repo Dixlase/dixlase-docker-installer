@@ -169,3 +169,15 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # 0600 instead of inheriting the shell's umask (0644 on most systems, which	# 0600 instead of inheriting the shell's umask (0644 on most systems, which
 # on a multi-user host means every account can read them). An existing .env	# on a multi-user host means every account can read them). An existing .env
 # is left exactly as the operator has it, permissions included.	# is left exactly as the operator has it, permissions included.
+# Dump the autoload again. composer.local.json — which is what registers the	# Dump the autoload again. composer.local.json — which is what registers the
+# PSR-4 roots of the bundled theme and of every installed plugin — is generated,	# PSR-4 roots of the bundled theme and of every installed plugin — is generated,
+# so a release ZIP does not carry it: the install above dumps the autoload with	# so a release ZIP does not carry it: the install above dumps the autoload with
+# nothing to merge, and core's post-autoload-dump script writes the file only	# nothing to merge, and core's post-autoload-dump script writes the file only
+# afterwards. Without this second dump the site boots unable to load the theme's	# afterwards. Without this second dump the site boots unable to load the theme's
+# ServiceProvider, and the front page 500s on the theme's own helper.	# ServiceProvider, and the front page 500s on the theme's own helper.
+# Core tries to repair this itself after the wizard installs the theme, but that	# Core tries to repair this itself after the wizard installs the theme, but that
+# call runs `PHP_BINARY composer …`, and under php-fpm PHP_BINARY is php-fpm:	# call runs `PHP_BINARY composer …`, and under php-fpm PHP_BINARY is php-fpm:
+# it prints its usage, exits 64, and the failure is only a warning in the log.	# it prints its usage, exits 64, and the failure is only a warning in the log.
+# Until that is fixed in core, this one line is what keeps a ZIP install working	# Until that is fixed in core, this one line is what keeps a ZIP install working
+# (it is a no-op when the maps are already correct).	# (it is a no-op when the maps are already correct).
+  Refreshing the composer autoload (picks up composer.local.json)...	  Refreshing the composer autoload (picks up composer.local.json)...
