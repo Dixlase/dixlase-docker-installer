@@ -31,15 +31,23 @@ The first visit shows the Dixlase install wizard.
 | Adminer (DB GUI) | `http://localhost:40081` |
 | Mailpit (mail catcher) | `http://localhost:40025` |
 
+Only the CMS is published on all interfaces. Adminer, Mailpit, MariaDB and the
+Vite dev server are bound to `127.0.0.1`, so they answer from this machine only —
+neither Adminer nor Mailpit has a password of its own. Adminer and Mailpit are
+also behind the `TOOLS` flag in `.env` (on by default); set `TOOLS=false` and
+re-run `./setup.sh` to not start them at all.
+
 ## Modes
 
-### Production mode (default)
+### Built-assets mode (default)
 
 ```bash
 ./setup.sh
 ```
 
 Builds frontend assets with `npm run build`. The Vite dev server is **not** started.
+(This used to be called "production mode", which read as a promise the stack does
+not make — see "Using this on a server" below.)
 
 ### Development mode (Vite hot-reload)
 
@@ -59,6 +67,8 @@ All host-side ports and DB credentials can be overridden via `.env` (root). Edit
 HTTPS=false                  # set to true to use TLS with a self-signed cert
 VITE=false                   # set to true to start the Vite dev server (= --dev)
 REDIS=false                  # set to true to start the Redis container
+CRON=true                    # run Laravel's scheduler every minute
+TOOLS=true                   # start Adminer and Mailpit (127.0.0.1 only)
 CONTAINER_PREFIX=dixlase     # name containers <prefix>-app, <prefix>-mysql, ...
 COMPOSE_PROJECT_NAME=dixlase # group label in Docker Desktop / `docker compose ls`
 APP_PORT=40080         # "4" = D = Dixlase, alphabetically the 4th letter
@@ -66,8 +76,12 @@ APP_SSL_PORT=40443
 FORWARD_DB_PORT=40306
 FORWARD_ADMINER_PORT=40081
 FORWARD_MAILPIT_PORT=40025
-FORWARD_REDIS_PORT=40379
-FORWARD_VITE_PORT=40173
+FORWARD_VITE_PORT=40173      # Redis has no host-side port on purpose
+
+DB_BIND_ADDRESS=127.0.0.1    # the tools answer from this machine only;
+ADMINER_BIND_ADDRESS=127.0.0.1
+MAILPIT_BIND_ADDRESS=127.0.0.1
+VITE_BIND_ADDRESS=127.0.0.1
 
 DB_DATABASE=dixlase
 DB_USERNAME=dixlase
@@ -79,6 +93,30 @@ After flipping `HTTPS`, `VITE`, or `REDIS`, re-run `./setup.sh` so the derived `
 `.env` stays user-owned — those derived values are exported by `setup.sh` and never written back. The same applies after `docker compose down`: prefer `./setup.sh` (idempotent) over raw `docker compose up -d` so profiled services (Vite / Redis) come back up.
 
 When you enable `REDIS`, also point Laravel's `CACHE_STORE` and `SESSION_DRIVER` at `redis`. The `4xxxx` port namespace ("4" = D = Dixlase, alphabetically the 4th letter) avoids common host-port conflicts; if you prefer `80` / `443`, set `APP_PORT=80` / `APP_SSL_PORT=443` in `.env` before running `setup.sh`.
+
+## Using this on a server
+
+The defaults are built for a local trial: the database password is `dixlase`, the
+MariaDB root password is `root`, and the tools that accept them have no password
+of their own. That is fine while everything but the site listens on `127.0.0.1`,
+and an open door as soon as it does not. Before you expose this host:
+
+- **Change `DB_PASSWORD` and `DB_ROOT_PASSWORD` in `.env`.** MariaDB reads them
+  only when its data directory is created, so do it before the first
+  `./setup.sh`, or change them inside MariaDB afterwards (or start over with
+  `./reset.sh`, which deletes the database).
+- **Leave every `*_BIND_ADDRESS` at `127.0.0.1`.** `setup.sh` warns when a
+  default password is still in place and something is bound wider than
+  loopback. Reach the tools through an SSH tunnel instead:
+  `ssh -L 40081:127.0.0.1:40081 you@host`.
+- **Do not run `--dev` (`VITE=true`) on a reachable host.** The Vite dev server
+  can read files under `html/` through its `/@fs/` paths.
+- **Consider `TOOLS=false`** so Adminer and Mailpit are not started at all.
+- The host's SSH keys are **not** mounted into the container. If you deploy with
+  the DixlaseDeploy plugin, opt in through `docker-compose.deploy.yml` — anything
+  running in the container can read those keys, install scripts included.
+
+`SECURITY.md` has the full list of what this stack does and does not protect.
 
 ### Repository URL override
 

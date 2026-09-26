@@ -31,15 +31,23 @@ cd dixlase
 | Adminer (DB GUI) | `http://localhost:40081` |
 | Mailpit (メール受信) | `http://localhost:40025` |
 
+全インターフェースに公開されるのは CMS 本体だけです。Adminer・Mailpit・MariaDB・
+Vite 開発サーバーは `127.0.0.1` に束縛されており、このマシンからのみ応答します
+（Adminer と Mailpit は自前のパスワードを持ちません）。Adminer と Mailpit は
+`.env` の `TOOLS` フラグ（既定は有効）の対象でもあり、`TOOLS=false` にして
+`./setup.sh` を再実行すると、そもそも起動しません。
+
 ## 動作モード
 
-### 本番モード (デフォルト)
+### ビルド済みアセットモード (デフォルト)
 
 ```bash
 ./setup.sh
 ```
 
 `npm run build` で静的アセットをビルドします。Vite dev サーバーは **起動しません**。
+（以前は「本番モード」と呼んでいましたが、このスタックがしていない約束に読めるため
+改名しました。下の「サーバーで使う場合」を参照してください。）
 
 ### 開発モード (Vite hot-reload)
 
@@ -59,6 +67,8 @@ Docker Compose の `dev` プロファイルで `vite` コンテナを追加起�
 HTTPS=false                  # true にすると自己署名証明書での TLS が有効になる
 VITE=false                   # true にすると Vite dev サーバーを起動 (= --dev)
 REDIS=false                  # true にすると Redis コンテナを起動する
+CRON=true                    # Laravel のスケジューラを毎分実行する
+TOOLS=true                   # Adminer と Mailpit を起動する (127.0.0.1 のみ)
 CONTAINER_PREFIX=dixlase     # コンテナ名を <prefix>-app, <prefix>-mysql, ... にする
 COMPOSE_PROJECT_NAME=dixlase # Docker Desktop や `docker compose ls` でのグループ名
 APP_PORT=40080         # "4" = D = Dixlase の頭文字 (アルファベット 4 番目)
@@ -66,8 +76,12 @@ APP_SSL_PORT=40443
 FORWARD_DB_PORT=40306
 FORWARD_ADMINER_PORT=40081
 FORWARD_MAILPIT_PORT=40025
-FORWARD_REDIS_PORT=40379
-FORWARD_VITE_PORT=40173
+FORWARD_VITE_PORT=40173      # Redis はホスト側ポートを意図的に公開しない
+
+DB_BIND_ADDRESS=127.0.0.1    # ツール類はこのマシンからのみ応答する
+ADMINER_BIND_ADDRESS=127.0.0.1
+MAILPIT_BIND_ADDRESS=127.0.0.1
+VITE_BIND_ADDRESS=127.0.0.1
 
 DB_DATABASE=dixlase
 DB_USERNAME=dixlase
@@ -79,6 +93,29 @@ DB_ROOT_PASSWORD=root
 `.env` はユーザー所有領域なので、派生値は `setup.sh` が export するだけで書き戻しません。`docker compose down` のあとも同じで、profile 配下のサービス (Vite / Redis) を確実に戻すには `./setup.sh` (idempotent) を使ってください。
 
 `REDIS` を有効化する場合は Laravel 側の `CACHE_STORE` / `SESSION_DRIVER` も `redis` に向けてください。`4xxxx` 名前空間 ("4" = D = Dixlase の頭文字、アルファベット 4 番目) は標準ポートと衝突しないためのデフォルトです。衝突がなく標準ポートで動かしたい場合は、`setup.sh` 実行前に `.env` で `APP_PORT=80` / `APP_SSL_PORT=443` に書き換えてください。
+
+## サーバーで使う場合
+
+既定値はローカルで試すためのものです。DB パスワードは `dixlase`、MariaDB の root
+パスワードは `root` で、それを受け取るツール類は自前のパスワードを持ちません。
+サイト以外がすべて `127.0.0.1` で待ち受けている限り問題ありませんが、そうでなくなった
+瞬間に開いた扉になります。このホストを外に出す前に:
+
+- **`.env` の `DB_PASSWORD` と `DB_ROOT_PASSWORD` を変更する。** MariaDB はデータ
+  ディレクトリの作成時にしかこれを読まないので、最初の `./setup.sh` の前に変更するか、
+  後から MariaDB 側で変更してください（`./reset.sh` でやり直す方法もありますが、
+  データベースは削除されます）。
+- **`*_BIND_ADDRESS` はすべて `127.0.0.1` のままにする。** 既定のパスワードが残った
+  まま loopback より広く束縛されている場合、`setup.sh` が警告します。ツールへは
+  SSH トンネル経由で接続してください: `ssh -L 40081:127.0.0.1:40081 you@host`。
+- **到達可能なホストで `--dev`（`VITE=true`）を使わない。** Vite 開発サーバーは
+  `/@fs/` パス経由で `html/` 配下のファイルを読めます。
+- **`TOOLS=false` も検討する。** Adminer と Mailpit をそもそも起動しません。
+- ホストの SSH 鍵はコンテナへ**マウントしません**。DixlaseDeploy プラグインで
+  デプロイする場合は `docker-compose.deploy.yml` で明示的に有効化してください —
+  コンテナ内で動くものは（依存パッケージの install スクリプトを含め）その鍵を読めます。
+
+このスタックが何を守り、何を守らないかの全体像は `SECURITY.ja.md` にあります。
 
 ### リポジトリ URL の上書き
 

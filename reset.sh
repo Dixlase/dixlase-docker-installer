@@ -58,8 +58,10 @@ fi
 echo ""
 echo "[1/3] Stopping and removing Docker containers..."
 # Name every profile: without them `down` leaves the profile-gated services
-# (cron / vite / redis) running, and the next setup.sh then stops at its
-# "Existing containers detected" prompt instead of starting from scratch.
+# running, and the next setup.sh then stops at its "Existing containers
+# detected" prompt instead of starting from scratch. These are profile names,
+# not service names — the Vite container is in the "dev" profile, so the
+# earlier "vite" here matched nothing and left it running in --dev setups.
 DOWN_ARGS=(-v --remove-orphans)
 # --rmi local drops only the images compose built here, so the next setup.sh
 # rebuilds them: the way to pick up a changed Dockerfile layer that Docker
@@ -68,7 +70,7 @@ DOWN_ARGS=(-v --remove-orphans)
 if [ "$REMOVE_IMAGES" = true ]; then
     DOWN_ARGS+=(--rmi local)
 fi
-COMPOSE_PROFILES=cron,vite,redis docker compose down "${DOWN_ARGS[@]}" 2>/dev/null || true
+COMPOSE_PROFILES=cron,dev,redis,tools docker compose down "${DOWN_ARGS[@]}" 2>/dev/null || true
 
 echo ""
 echo "[2/3] Removing data..."

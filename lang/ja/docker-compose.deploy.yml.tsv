@@ -1,0 +1,13 @@
+# Dixlase Docker Environment — DixlaseDeploy override (opt-in)	# Dixlase Docker 環境 — DixlaseDeploy 用オーバーライド (任意)
+# Mounts the host's SSH keys into the app container read-only, which the	# ホストの SSH 鍵をアプリコンテナへ読み取り専用でマウントする。DixlaseDeploy
+# DixlaseDeploy plugin's CLI (php artisan deploy:push / deploy:pull) needs to	# プラグインの CLI (php artisan deploy:push / deploy:pull) がリモートホストへ
+# authenticate to remote hosts. The plugin keeps its own UserKnownHostsFile,	# 認証するために必要なものである。プラグインは独自の UserKnownHostsFile を
+# so :ro is enough for it.	# 持つので、:ro で足りる。
+# This is a separate file because the mount is not free: every process in the	# 別ファイルにしてあるのは、このマウントが無償ではないからである: コンテナ内の
+# container can read those keys, including install scripts of any composer or	# あらゆるプロセスがその鍵を読める。composer や npm の依存パッケージの install
+# npm dependency, and setup.sh / update.sh run those as root. Only turn it on	# スクリプトも含み、setup.sh / update.sh はそれらを root で実行する。実際に
+# if you actually deploy from this container.	# このコンテナからデプロイする場合にのみ有効化すること。
+# Enable it for every compose command by adding this line to .env:	# すべての compose コマンドで有効にするには、.env に次の行を追加する:
+# setup.sh, reset.sh and update.sh then pick it up with no extra flags.	# これで setup.sh・reset.sh・update.sh が追加のフラグなしで読み込む。
+# For a one-off command instead:	# 1 回だけ使う場合は次のようにする:
+# Prefer a key dedicated to deployment over your everyday key.	# 普段使いの鍵ではなく、デプロイ専用の鍵を使うことを推奨する。

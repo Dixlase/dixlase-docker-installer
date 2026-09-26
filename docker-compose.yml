@@ -5,8 +5,13 @@
 #
 # Development mode (Vite hot-reload):
 #   docker compose --profile dev up -d
-# Production mode (pre-built assets):
+# Built-assets mode (no Vite dev server):
 #   docker compose up -d
+#
+# Everything except the site itself (APP_PORT / APP_SSL_PORT) is published on
+# 127.0.0.1 only, so running ./setup.sh on a VPS or a shared network does not
+# hand the database, Adminer or the mail catcher to whoever can reach the
+# host. Read SECURITY.md before changing any *_BIND_ADDRESS.
 
 services:
   dixlase.test:
@@ -19,10 +24,11 @@ services:
     volumes:
       - ./html:/var/www/html
       - ./certs:/etc/ssl/private
-      # Mount host SSH keys read-only so the DixlaseDeploy plugin's CLI
-      # (php artisan deploy:push/pull) can authenticate to remote hosts.
-      # The plugin keeps its own UserKnownHostsFile, so :ro is fine.
-      - ${HOME}/.ssh:/root/.ssh:ro
+      # The host's SSH keys are NOT mounted here. The DixlaseDeploy plugin's
+      # CLI (php artisan deploy:push/pull) needs them, but so could anything
+      # else that runs in this container — composer and npm install scripts
+      # included — and setup.sh / update.sh run those as root. Deploy users
+      # opt in with docker-compose.deploy.yml (see that file and SECURITY.md).
     environment:
       - PHP_FPM_LISTEN_MODE=666
       # After a web-triggered core update the app refreshes php-fpm's
@@ -94,12 +100,19 @@ services:
     container_name: ${CONTAINER_PREFIX:-dixlase}-adminer
     image: adminer:latest
     restart: always
+    # Activated by the "tools" profile (TOOLS in .env, on by default).
+    # Adminer signs in to MariaDB with the credentials from .env, so
+    # publishing Adminer publishes the database: full read/write, which is
+    # enough to create an administrator and upload a plugin (= PHP). Hence
+    # both the loopback bind and the profile. Its server field also stays
+    # editable, so it can reach anything else on the compose network.
+    profiles: ["tools"]
     depends_on:
       - mysql
     environment:
       ADMINER_DEFAULT_SERVER: mysql
     ports:
-      - "${FORWARD_ADMINER_PORT:-8081}:8080"
+      - "${ADMINER_BIND_ADDRESS:-127.0.0.1}:${FORWARD_ADMINER_PORT:-8081}:8080"
     networks:
       - dixlase
 
@@ -107,8 +120,15 @@ services:
     container_name: ${CONTAINER_PREFIX:-dixlase}-mail
     image: axllent/mailpit
     restart: always
+    # Activated by the "tools" profile (TOOLS in .env, on by default).
+    # Mailpit's web UI shows every captured mail with no authentication —
+    # during a first install that includes the password-reset and two-factor
+    # mails — so only the UI port is published, and only on the loopback
+    # interface. The app reaches SMTP at mailpit:1025 over the compose
+    # network, which is unaffected.
+    profiles: ["tools"]
     ports:
-      - "${FORWARD_MAILPIT_PORT:-8025}:8025"
+      - "${MAILPIT_BIND_ADDRESS:-127.0.0.1}:${FORWARD_MAILPIT_PORT:-8025}:8025"
     networks:
       - dixlase
 
@@ -118,8 +138,11 @@ services:
     restart: always
     # Activated by the "redis" profile (COMPOSE_PROFILES exported by setup.sh).
     profiles: ["redis"]
-    ports:
-      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    # No published port. Laravel reaches Redis at redis:6379 over the compose
+    # network, and Redis here runs without a password: on a reachable host a
+    # published 6379 lets anyone read and forge sessions when SESSION_DRIVER
+    # is redis. Add a mapping yourself if you need a host-side client, and
+    # bind it to 127.0.0.1.
     networks:
       - dixlase
     volumes:
@@ -181,8 +204,12 @@ services:
     volumes:
       - ./html:/var/www/html
       - ./certs:/etc/ssl/private
+    # Loopback only: the dev server reads from the project root, so anyone
+    # who can reach it can fetch files under html/ through Vite's /@fs/
+    # paths (storage/logs, database/*.sqlite, config/*.php). --dev is for a
+    # workstation, never for a reachable host.
     ports:
-      - "${FORWARD_VITE_PORT:-5173}:5173"
+      - "${VITE_BIND_ADDRESS:-127.0.0.1}:${FORWARD_VITE_PORT:-5173}:5173"
     environment:
       # Tell vite.config.js which host-side port the browser will connect
       # to for HMR. The container still binds 5173 internally; this is just

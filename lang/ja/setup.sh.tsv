@@ -1,7 +1,7 @@
 # Dixlase setup script	# Dixlase セットアップスクリプト
 # Purpose: Clone the core from GitHub and build the Docker environment.	# 用途: GitHub からコアをクローンし、Docker 環境を構築
 # Usage:	# 使い方:
-#   ./setup.sh                  # Production mode (pre-built assets)	#   ./setup.sh                  # 本番モード (ビルド済みアセット運用)
+#   ./setup.sh                  # Built-assets mode (no Vite dev server)	#   ./setup.sh                  # ビルド済みアセットモード (Vite 開発サーバーなし)
 #   ./setup.sh --dev            # Development mode (Vite hot-reload)	#   ./setup.sh --dev            # 開発モード (Vite hot-reload 有効)
 #   ./setup.sh <branch>         # Clone the specified branch (default: main)	#   ./setup.sh <branch>         # 指定ブランチをクローン (デフォルト: main)
 #   ./setup.sh --dev <branch>   # Development mode + specified branch	#   ./setup.sh --dev <branch>   # 開発モード + ブランチ指定
@@ -60,7 +60,7 @@
 # APP_URL / port values were already computed at the top of step [6/6];	# APP_URL / ポート値は [6/6] の先頭で既に算出済み。ここでは
 # reuse them here for the final summary.	# 最終サマリー表示にそのまま再利用する。
 Development mode (Vite hot-reload)	開発モード (Vite hot-reload)
-Production mode (pre-built assets)	本番モード (ビルド済みアセット)
+Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vite 開発サーバーなし)
 [1/6] html/ already exists.	[1/6] html/ が既に存在します。
   Delete and re-clone? (y/N): 	  削除してクリーンクローンしますか? (y/N):
   Deleting html/...	  html/ を削除中...
@@ -147,3 +147,21 @@ Production mode (pre-built assets)	本番モード (ビルド済みアセット)
 # with "Permission denied" on hosts that do not virtualize bind-mount	# (Linux) ではホスト側からの書き込みが "Permission denied" で
 # ownership (Linux).	# 失敗するからである。
 # The stub it needs on a fresh clone was seeded in step [5/6].	# 新規クローン時に必要なスタブは [5/6] で配置済み。
+# Not called "production mode": this stack is a local trial, and the name	# 「本番モード」と呼ばないのは、このスタックがローカルで試すためのもので、
+# invited people to treat it as hardened for a server. All it decides is	# その名前がサーバー向けに固めてあるという誤解を招いていたからである。この
+# whether Vite serves the assets or they are built ahead of time.	# 切り替えが決めるのは、アセットを Vite が配信するか事前にビルドするかだけ。
+# TOOLS defaults to true when unset (Adminer + Mailpit), which is also what	# TOOLS は未設定のとき true 扱い (Adminer + Mailpit)。このフラグが無かった頃の
+# a .env written before this flag existed means. Both are published on	# .env も同じ意味になる。どちらも 127.0.0.1 にのみ公開され、TOOLS=false では
+# 127.0.0.1 only; TOOLS=false does not start them at all.	# そもそも起動しない。
+# Warn when the default database credentials are still in place AND something	# 既定のデータベース認証情報が残っていて、かつこのマシンの外に公開されている
+# is published past this machine. Either alone is a normal state: the defaults	# ときに警告する。片方だけなら通常の状態である — 既定値はループバック限定の
+# are a convenience on a loopback-only stack, and a reachable bind address is	# スタックでは利便性であり、到達可能な束縛アドレスは意図的な選択である。
+# a deliberate choice. Together they are an open database.	# 両方が揃うと、それは開いたデータベースである。
+  --- WARNING: default credentials on a reachable address ---	  --- 警告: 既定の認証情報が到達可能なアドレスに公開されています ---
+    Still at the .env.example defaults:$DEFAULT_CREDENTIALS	    .env.example の既定値のまま:$DEFAULT_CREDENTIALS
+    Published beyond this machine:$EXPOSED_SERVICES	    このマシンの外に公開:$EXPOSED_SERVICES
+    Anyone who can reach those ports can sign in to the database.	    これらのポートに到達できる相手は、データベースにサインインできます。
+    Either set every *_BIND_ADDRESS back to 127.0.0.1, or change the	    すべての *_BIND_ADDRESS を 127.0.0.1 に戻すか、.env のパスワードを変更して
+    passwords in .env and start over with ./reset.sh (MariaDB reads	    ./reset.sh でやり直してください (MariaDB はデータディレクトリの作成時に
+    them only when its data directory is created).	    しかパスワードを読みません)。
+  -----------------------------------------------------------	  -----------------------------------------------------------

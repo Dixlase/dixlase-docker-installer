@@ -123,32 +123,43 @@ TLS を終端してください。
 | web (HTTP) | 全インターフェースの `40080` | `APP_PORT` |
 | web (HTTPS) | 全インターフェースの `40443` | `APP_SSL_PORT` |
 | MySQL | **`127.0.0.1:40306`** | `DB_BIND_ADDRESS` / `FORWARD_DB_PORT` — 既定はホスト限定 |
-| Adminer | 全インターフェースの `40081` | `FORWARD_ADMINER_PORT` — **データベース管理 UI** |
-| Mailpit | 全インターフェースの `40025` | `FORWARD_MAILPIT_PORT` — 捕捉した送信メールを閲覧可能 |
-| Redis | 全インターフェースの `40379` | `FORWARD_REDIS_PORT` — `redis` プロファイル使用時のみ |
-| Vite | 全インターフェースの `40173` | `FORWARD_VITE_PORT` — `dev` プロファイル使用時のみ |
+| Adminer | **`127.0.0.1:40081`** | `ADMINER_BIND_ADDRESS` / `FORWARD_ADMINER_PORT` — **データベース管理 UI**、`tools` プロファイル |
+| Mailpit | **`127.0.0.1:40025`** | `MAILPIT_BIND_ADDRESS` / `FORWARD_MAILPIT_PORT` — 捕捉した送信メールを閲覧可能、`tools` プロファイル |
+| Redis | 公開しない | compose ネットワーク内の `redis:6379` からのみ到達可能、`redis` プロファイル |
+| Vite | **`127.0.0.1:40173`** | `VITE_BIND_ADDRESS` / `FORWARD_VITE_PORT` — `dev` プロファイル使用時のみ |
 
-この表から導かれる注意点が 2 つあります。
+この表から導かれる注意点があります。
 
-- **MySQL を `127.0.0.1` にバインドしているのは意図的です。** `DB_BIND_ADDRESS=0.0.0.0`
-  にするとデータベースがネットワーク全体に露出します。自動化されたボットはこれを
-  スキャンしています。LAN アクセスが本当に必要な場合のみ変更し、その前に
-  `DB_PASSWORD` / `DB_ROOT_PASSWORD` を `.env.example` の既定値から変更してください。
-- **Adminer・Mailpit・Redis は localhost に限定されていません。** NAT 配下のノート PC では
-  通常問題ありませんが、共有ネットワークや到達可能なネットワークでは問題になります。
-  露出する環境で動かす前に `127.0.0.1` にバインドするか、当該サービスを外してください。
+- **全インターフェースに公開されるのはサイト本体だけです。** それ以外はこのマシンから
+  のみ応答します。`*_BIND_ADDRESS` のいずれかを `0.0.0.0` にすると、到達できる相手を
+  信頼するサービスを公開することになります — MariaDB は `.env` の認証情報を受け付け、
+  Adminer はそれを代わりに渡し、Mailpit は捕捉した全メールを表示し、Vite 開発サーバーは
+  `html/` 配下のファイルを読めます。自動化されたボットはまさにこれをスキャンしています。
+  他のマシンからアクセスする必要がある場合は、束縛を広げるのではなく SSH トンネルを
+  使ってください（`ssh -L 40081:127.0.0.1:40081 you@host`）。
+- **Redis はホスト側ポートを一切公開しません。** パスワードなしで動作するため、`6379` を
+  公開すると `SESSION_DRIVER` が `redis` のときにセッションの読み取りと偽造ができて
+  しまいます。コンテナからは compose ネットワーク経由で到達します。
+- **Adminer と Mailpit はフラグの対象でもあります。** `.env` で `TOOLS=false` にして
+  `./setup.sh` を実行すると、そもそも起動しません。
 
 ### 既定の認証情報
 
 `.env.example` は開発用の認証情報（`DB_PASSWORD`、`DB_ROOT_PASSWORD`）で出荷されます。
-ローカルかつ非公開のワークステーション以外では必ず変更してください。
+サイト以外がすべて `127.0.0.1` にある限りは利便性ですが、そうでなくなった瞬間に開いた扉に
+なります。ローカルかつ非公開のワークステーション以外では必ず変更してください — MariaDB は
+データディレクトリの作成時にしかこれを読まないため、最初の `./setup.sh` の前に変更するのが
+確実です。既定値が残ったまま loopback より広く束縛されている場合、`setup.sh` が警告します。
 
-### ホストの SSH 鍵がコンテナにマウントされます
+### ホストの SSH 鍵はマウントしません（任意で有効化）
 
-`docker-compose.yml` は DixlaseDeploy プラグインの CLI がリモートホストへ認証できるよう、
-`${HOME}/.ssh` を app コンテナへ**読み取り専用**でマウントします。したがって当該
-コンテナ内で動作するコードは秘密鍵を読み取れます。このプラグインを使わない場合は
-マウントを外してください。
+DixlaseDeploy プラグインの CLI はリモートホストへの認証にホストの SSH 鍵を必要としますが、
+app コンテナ内のあらゆるプロセスがその鍵を読めてしまいます — composer や npm の依存
+パッケージの install スクリプトも含み、`setup.sh` と `update.sh` はそれらを root で実行
+します。そのためこのマウントは `docker-compose.yml` に**入っていません**。デプロイする場合は
+`docker-compose.deploy.yml` で明示的に有効化してください（コマンドごとに
+`docker compose -f docker-compose.yml -f docker-compose.deploy.yml …` とするか、`.env` に
+`COMPOSE_FILE` を設定します）。普段使いの鍵ではなく、デプロイ専用の鍵を推奨します。
 
 ### php-fpm の opcache リセットエンドポイント
 
