@@ -21,7 +21,12 @@ cd dixlase
 
 After setup completes, open `http://localhost:40080` in your browser.  
 The first visit shows the Dixlase install wizard.  
-(Set `HTTPS=true` in `.env` and re-run `./setup.sh` to switch to HTTPS with a bundled self-signed certificate.)
+(Set `HTTPS=true` in `.env` and re-run `./setup.sh` to switch to HTTPS with a bundled
+self-signed certificate. On a site that was already installed over HTTP, also change
+`APP_URL` in `html/.env` to the HTTPS URL and set `FORCE_SSL=true`, then
+`docker compose exec dixlase.test php artisan config:clear` — Laravel builds asset URLs
+from `APP_URL`, so pages would load without their CSS and JS otherwise. `setup.sh` warns
+when the two disagree.)
 
 ## Default URLs
 

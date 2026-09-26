@@ -24,3 +24,10 @@
 # Only pass requests that name a real file. Without this, a request	# Only pass requests that name a real file. Without this, a request
 # for /uploads/photo.jpg/x.php reaches php-fpm, which with PHP's	# for /uploads/photo.jpg/x.php reaches php-fpm, which with PHP's
 # default cgi.fix_pathinfo walks back to photo.jpg and executes it.	# default cgi.fix_pathinfo walks back to photo.jpg and executes it.
+# This file is mounted as an nginx template and envsubst'd at container start,	# This file is mounted as an nginx template and envsubst'd at container start,
+# so ${DIXLASE_HTTPS_PORT} below becomes the port the stack publishes for TLS	# so ${DIXLASE_HTTPS_PORT} below becomes the port the stack publishes for TLS
+# (APP_SSL_PORT in .env, 40443 by default). Without it the redirect would send	# (APP_SSL_PORT in .env, 40443 by default). Without it the redirect would send
+# the browser to https://<host>/ — port 443, where nothing listens — because	# the browser to https://<host>/ — port 443, where nothing listens — because
+# $host carries no port and the container cannot know which one the host maps.	# $host carries no port and the container cannot know which one the host maps.
+# Only DIXLASE_-prefixed variables are substituted (NGINX_ENVSUBST_FILTER in	# Only DIXLASE_-prefixed variables are substituted (NGINX_ENVSUBST_FILTER in
+# docker-compose.yml), so nginx's own $host / $request_uri survive.	# docker-compose.yml), so nginx's own $host / $request_uri survive.

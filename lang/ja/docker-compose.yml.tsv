@@ -68,3 +68,9 @@
 # who can reach it can fetch files under html/ through Vite's /@fs/	# 相手は Vite の /@fs/ パス経由で html/ 配下のファイル (storage/logs、
 # paths (storage/logs, database/*.sqlite, config/*.php). --dev is for a	# database/*.sqlite、config/*.php) を取得できる。--dev はワークステーション
 # workstation, never for a reachable host.	# 用であって、到達可能なホストでは使わない。
+# Mounted as a template, not straight into conf.d: the nginx image runs	# conf.d へ直接ではなくテンプレートとしてマウントする: nginx イメージは起動時に
+# envsubst over /etc/nginx/templates/*.template at start-up, which is how	# /etc/nginx/templates/*.template へ envsubst をかけ、HTTP -> HTTPS リダイレクトは
+# the HTTP -> HTTPS redirect learns the published HTTPS port (a container	# これで公開側の HTTPS ポートを知る (コンテナから見えるのは自分の 443 だけである)。
+# only ever sees its own 443). NGINX_ENVSUBST_FILTER keeps the	# NGINX_ENVSUBST_FILTER で置換対象を自前の DIXLASE_ 変数に限っているので、nginx の
+# substitution to our own DIXLASE_ variables, so nginx's own $host,	# $host や $uri などはそのまま通る。
+# $uri and friends pass through untouched.	# （nginx 側の変数は置換されない。）

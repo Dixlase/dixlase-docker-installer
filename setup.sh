@@ -396,6 +396,34 @@ fi
 # install wizard fails its permission checks and 500s. Chown once here, after
 # every file-creating step, so a fresh install works out of the box (no-op on
 # macOS). Best-effort so one odd file cannot abort the install.
+# The install wizard writes APP_URL into html/.env from the URL the operator
+# used, so flipping HTTPS afterwards leaves it on the other scheme and port.
+# Laravel then builds asset URLs like https://localhost:40080 — the TLS scheme
+# with the plain-HTTP port — and every stylesheet and script fails in the
+# browser while the page itself still answers 200. Say so instead; the value is
+# not ours to overwrite, because a site behind a reverse proxy legitimately
+# names an external URL here.
+if [ -f "html/.env" ]; then
+    APP_URL_IN_HTML=$(grep '^APP_URL=' html/.env | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '[:space:]')
+    case "$APP_URL_IN_HTML" in
+        "") ;;
+        http://*) [ "$NGINX_VARIANT" = "https" ] && APP_URL_MISMATCH=yes ;;
+        https://*) [ "$NGINX_VARIANT" = "http" ] && APP_URL_MISMATCH=yes ;;
+    esac
+    if [ "${APP_URL_MISMATCH:-no}" = "yes" ]; then
+        echo ""
+        echo "  --- APP_URL in html/.env does not match the mode you just selected ---"
+        echo "    html/.env has: $APP_URL_IN_HTML"
+        echo "    this stack now serves: $APP_URL"
+        echo "    Laravel builds asset URLs from APP_URL, so pages will load but"
+        echo "    their CSS and JS will not. Set APP_URL in html/.env to the line"
+        echo "    above (and FORCE_SSL=true when serving over TLS), then run:"
+        echo "      docker compose exec dixlase.test php artisan config:clear"
+        echo "    Leave it as it is if a reverse proxy in front owns that URL."
+        echo "  ----------------------------------------------------------------"
+    fi
+fi
+
 echo ""
 echo "  Setting html/ ownership to www-data (container app user)..."
 # .git is excluded on purpose: update.sh runs git fetch / checkout / pull

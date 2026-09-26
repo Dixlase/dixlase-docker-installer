@@ -68,3 +68,9 @@
 # who can reach it can fetch files under html/ through Vite's /@fs/	# who can reach it can fetch files under html/ through Vite's /@fs/
 # paths (storage/logs, database/*.sqlite, config/*.php). --dev is for a	# paths (storage/logs, database/*.sqlite, config/*.php). --dev is for a
 # workstation, never for a reachable host.	# workstation, never for a reachable host.
+# Mounted as a template, not straight into conf.d: the nginx image runs	# Mounted as a template, not straight into conf.d: the nginx image runs
+# envsubst over /etc/nginx/templates/*.template at start-up, which is how	# envsubst over /etc/nginx/templates/*.template at start-up, which is how
+# the HTTP -> HTTPS redirect learns the published HTTPS port (a container	# the HTTP -> HTTPS redirect learns the published HTTPS port (a container
+# only ever sees its own 443). NGINX_ENVSUBST_FILTER keeps the	# only ever sees its own 443). NGINX_ENVSUBST_FILTER keeps the
+# substitution to our own DIXLASE_ variables, so nginx's own $host,	# substitution to our own DIXLASE_ variables, so nginx's own $host,
+# $uri and friends pass through untouched.	# $uri and friends pass through untouched.
