@@ -33,7 +33,14 @@
 # aborts with "Your local changes would be overwritten". Untracked files	# "Your local changes would be overwritten" で中断する。未追跡ファイルは
 # are not a problem (installed plugins and themes are gitignored), so only	# 問題ない（インストール済みプラグインとテーマは gitignore 対象）ので、
 # tracked changes stop the update.	# 更新を止めるのは追跡対象の変更だけとする。
+# One tracked file is core's own bookkeeping: installing the bundled theme	# 追跡対象のうち 1 ファイルはコア自身の帳簿である。同梱テーマをインストールすると
+# makes core add `!themes/DixlaseOnePage/` to html/.gitignore (its	# コアが html/.gitignore に `!themes/DixlaseOnePage/` を追記するため
+# dls:sync:gitignore / GitIgnoreHelper), so every fresh install starts out	# (dls:sync:gitignore / GitIgnoreHelper)、新規インストール直後は git から見て必ず
+# dirty in git's eyes. Restore that one file instead of asking the operator	# dirty になる。運用者に処理させるのではなく、このファイルだけ元に戻す — コアは
+# to deal with it — core rewrites it whenever it needs to, and leaving it	# 必要なときに書き直すし、残したままだと下の fast-forward が更新を拒否する。
+# would make the fast-forward below refuse the update.	# （残したままにすると更新そのものが進まない。）
   html/ has local changes to tracked files:	  html/ の追跡対象ファイルにローカル変更があります:
+  Restoring html/.gitignore, which core rewrites for the bundled theme.	  html/.gitignore を元に戻します (コアが同梱テーマ用に書き換えるファイルです)。
   Keep or discard them, then run ./update.sh again:	  変更を退避または破棄してから、もう一度 ./update.sh を実行してください:
     git -C html -c safe.directory=$HTML_DIR stash          # keep for later	    git -C html -c safe.directory=$HTML_DIR stash          # 後で戻す
     git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard	    git -C html -c safe.directory=$HTML_DIR checkout -- .  # 破棄
@@ -103,6 +110,12 @@
 # ledger still names the version installed before this run and a later	# 今回より前のバージョンを指したままになり、後の `dls:core:update` が誤った
 # `dls:core:update` would compare releases against the wrong one. This	# バージョンを基準に比較してしまう。ここで欠けている行を書く。台帳が既に
 # writes the missing row and is a no-op when the ledger already matches.	# 一致している場合は何もしない。
+# Step 1 restored html/.gitignore so the fast-forward could apply, which	# ステップ 1 は fast-forward を通すため html/.gitignore を元に戻した。その結果、コアが
+# dropped the "!themes/<Name>/" lines core keeps there for every installed	# インストール済み拡張ごとに保持している "!themes/<Name>/" 行が落ちる (GitIgnoreHelper、
+# extension (GitIgnoreHelper, called from InstallRunner and the admin	# InstallRunner と管理画面の拡張ページから呼ばれる)。拡張 1 つずつコアに書き直させ、
+# extension pages). Ask core to write them again, one call per extension, so	# git が配る状態ではなくコアが保つ状態にファイルを戻す。
+# the file ends up the way core keeps it instead of the way git ships it.	# 更新処理の一部ではなく帳簿なので、best-effort かつ静かに実行する。
+# Best-effort and quiet: this is bookkeeping, not part of the update.	# （失敗しても更新は止めない。）
 # The steps above ran as root inside the container, so anything they	# 上のステップはコンテナ内で root として動くため、作られたもの（vendor/、
 # created (vendor/, public/assets/build, node_modules) is root-owned. On	# public/assets/build、node_modules）は root 所有になる。Linux では www-data の
 # Linux the www-data php-fpm workers then cannot rewrite the built assets	# php-fpm ワーカーが管理画面から再生成するアセットを書き換えられないので、

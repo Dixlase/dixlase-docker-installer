@@ -33,7 +33,14 @@
 # aborts with "Your local changes would be overwritten". Untracked files	# aborts with "Your local changes would be overwritten". Untracked files
 # are not a problem (installed plugins and themes are gitignored), so only	# are not a problem (installed plugins and themes are gitignored), so only
 # tracked changes stop the update.	# tracked changes stop the update.
+# One tracked file is core's own bookkeeping: installing the bundled theme	# One tracked file is core's own bookkeeping: installing the bundled theme
+# makes core add `!themes/DixlaseOnePage/` to html/.gitignore (its	# makes core add `!themes/DixlaseOnePage/` to html/.gitignore (its
+# dls:sync:gitignore / GitIgnoreHelper), so every fresh install starts out	# dls:sync:gitignore / GitIgnoreHelper), so every fresh install starts out
+# dirty in git's eyes. Restore that one file instead of asking the operator	# dirty in git's eyes. Restore that one file instead of asking the operator
+# to deal with it — core rewrites it whenever it needs to, and leaving it	# to deal with it — core rewrites it whenever it needs to, and leaving it
+# would make the fast-forward below refuse the update.	# would make the fast-forward below refuse the update.
   html/ has local changes to tracked files:	  html/ has local changes to tracked files:
+  Restoring html/.gitignore, which core rewrites for the bundled theme.	  Restoring html/.gitignore, which core rewrites for the bundled theme.
   Keep or discard them, then run ./update.sh again:	  Keep or discard them, then run ./update.sh again:
     git -C html -c safe.directory=$HTML_DIR stash          # keep for later	    git -C html -c safe.directory=$HTML_DIR stash          # keep for later
     git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard	    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard
@@ -103,6 +110,12 @@
 # ledger still names the version installed before this run and a later	# ledger still names the version installed before this run and a later
 # `dls:core:update` would compare releases against the wrong one. This	# `dls:core:update` would compare releases against the wrong one. This
 # writes the missing row and is a no-op when the ledger already matches.	# writes the missing row and is a no-op when the ledger already matches.
+# Step 1 restored html/.gitignore so the fast-forward could apply, which	# Step 1 restored html/.gitignore so the fast-forward could apply, which
+# dropped the "!themes/<Name>/" lines core keeps there for every installed	# dropped the "!themes/<Name>/" lines core keeps there for every installed
+# extension (GitIgnoreHelper, called from InstallRunner and the admin	# extension (GitIgnoreHelper, called from InstallRunner and the admin
+# extension pages). Ask core to write them again, one call per extension, so	# extension pages). Ask core to write them again, one call per extension, so
+# the file ends up the way core keeps it instead of the way git ships it.	# the file ends up the way core keeps it instead of the way git ships it.
+# Best-effort and quiet: this is bookkeeping, not part of the update.	# Best-effort and quiet: this is bookkeeping, not part of the update.
 # The steps above ran as root inside the container, so anything they	# The steps above ran as root inside the container, so anything they
 # created (vendor/, public/assets/build, node_modules) is root-owned. On	# created (vendor/, public/assets/build, node_modules) is root-owned. On
 # Linux the www-data php-fpm workers then cannot rewrite the built assets	# Linux the www-data php-fpm workers then cannot rewrite the built assets

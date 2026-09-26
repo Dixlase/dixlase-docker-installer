@@ -95,14 +95,27 @@ GIT_SAFE=(-c "safe.directory=$HTML_DIR")
 # aborts with "Your local changes would be overwritten". Untracked files
 # are not a problem (installed plugins and themes are gitignored), so only
 # tracked changes stop the update.
-if ! git "${GIT_SAFE[@]}" diff --quiet || ! git "${GIT_SAFE[@]}" diff --cached --quiet; then
-    echo "  html/ has local changes to tracked files:"
-    git "${GIT_SAFE[@]}" status --porcelain --untracked-files=no | sed 's/^/    /'
-    echo ""
-    echo "  Keep or discard them, then run ./update.sh again:"
-    echo "    git -C html -c safe.directory=$HTML_DIR stash          # keep for later"
-    echo "    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard"
-    exit 1
+#
+# One tracked file is core's own bookkeeping: installing the bundled theme
+# makes core add `!themes/DixlaseOnePage/` to html/.gitignore (its
+# dls:sync:gitignore / GitIgnoreHelper), so every fresh install starts out
+# dirty in git's eyes. Restore that one file instead of asking the operator
+# to deal with it — core rewrites it whenever it needs to, and leaving it
+# would make the fast-forward below refuse the update.
+DIRTY=$(git "${GIT_SAFE[@]}" status --porcelain --untracked-files=no | cut -c4-)
+if [ -n "$DIRTY" ]; then
+    UNEXPECTED=$(printf '%s\n' "$DIRTY" | grep -v '^\.gitignore$' || true)
+    if [ -n "$UNEXPECTED" ]; then
+        echo "  html/ has local changes to tracked files:"
+        printf '%s\n' "$UNEXPECTED" | sed 's/^/    /'
+        echo ""
+        echo "  Keep or discard them, then run ./update.sh again:"
+        echo "    git -C html -c safe.directory=$HTML_DIR stash          # keep for later"
+        echo "    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard"
+        exit 1
+    fi
+    echo "  Restoring html/.gitignore, which core rewrites for the bundled theme."
+    git "${GIT_SAFE[@]}" checkout -- .gitignore
 fi
 
 CURRENT_BRANCH=$(git "${GIT_SAFE[@]}" rev-parse --abbrev-ref HEAD)
@@ -250,6 +263,25 @@ echo "  Caches cleared."
 # writes the missing row and is a no-op when the ledger already matches.
 if artisan_has dls:core:reconcile; then
     docker compose exec -T dixlase.test php artisan dls:core:reconcile --confirm
+fi
+
+# Step 1 restored html/.gitignore so the fast-forward could apply, which
+# dropped the "!themes/<Name>/" lines core keeps there for every installed
+# extension (GitIgnoreHelper, called from InstallRunner and the admin
+# extension pages). Ask core to write them again, one call per extension, so
+# the file ends up the way core keeps it instead of the way git ships it.
+# Best-effort and quiet: this is bookkeeping, not part of the update.
+if artisan_has dls:sync-gitignore; then
+    for extension_dir in html/themes/*/; do
+        [ -d "$extension_dir" ] || continue
+        docker compose exec -T dixlase.test php artisan dls:sync-gitignore \
+            --add-theme="$(basename "$extension_dir")" >/dev/null 2>&1 || true
+    done
+    for extension_dir in html/plugins/*/; do
+        [ -d "$extension_dir" ] || continue
+        docker compose exec -T dixlase.test php artisan dls:sync-gitignore \
+            --add-plugin="$(basename "$extension_dir")" >/dev/null 2>&1 || true
+    done
 fi
 
 # The steps above ran as root inside the container, so anything they
