@@ -38,12 +38,43 @@ if [ -z "${DB_MIGRATE_USERNAME:-}" ] || [ -z "${DB_MIGRATE_PASSWORD:-}" ]; then
   exit 0
 fi
 
+# Every value below is interpolated into SQL. Rather than escape them, check
+# them: identifiers must look like identifiers, and the password must not carry
+# a character that could end its quoted string. These are values the operator
+# sets in .env, and a fresh data directory is the one moment where saying "fix
+# .env and start over" costs nothing. Failing here aborts the MariaDB init on
+# purpose — applying half of a privilege split would be worse than not starting.
+for value_spec in \
+    "MYSQL_USER=${MYSQL_USER}" \
+    "MYSQL_DATABASE=${MYSQL_DATABASE}" \
+    "DB_MIGRATE_USERNAME=${DB_MIGRATE_USERNAME}"
+do
+  value_name="${value_spec%%=*}"
+  value_data="${value_spec#*=}"
+  if printf '%s' "$value_data" | LC_ALL=C grep -q '[^A-Za-z0-9_]'; then
+    echo "[initdb 01-permissions] ${value_name} may only contain letters, digits and underscores." >&2
+    echo "[initdb 01-permissions] Fix it in .env, then delete mysql/ and run ./setup.sh again." >&2
+    exit 1
+  fi
+done
+if printf '%s' "${DB_MIGRATE_PASSWORD}" | LC_ALL=C grep -q "['\\]"; then
+  echo "[initdb 01-permissions] DB_MIGRATE_PASSWORD cannot contain a single quote or a backslash." >&2
+  echo "[initdb 01-permissions] Change it in .env, then delete mysql/ and run ./setup.sh again." >&2
+  exit 1
+fi
+
 echo "[initdb 01-permissions] Splitting privileges: ${MYSQL_USER} (DML only) + ${DB_MIGRATE_USERNAME} (DDL)."
 
 # The MariaDB image already started the server on the local socket as
 # part of the bootstrap; the official init scripts run before the
 # server is exposed externally. Use the root socket session.
-mariadb -uroot -p"${MYSQL_ROOT_PASSWORD}" <<SQL
+#
+# The password goes through MYSQL_PWD rather than -p on the command line,
+# which would put it in this container's process list for the duration of
+# the init. MYSQL_ROOT_PASSWORD is already in the container environment
+# (the image needs it), so this exposes nothing new while removing the
+# argv copy.
+MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" mariadb -uroot <<SQL
 -- Lock the application user down to DML grants only.
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE, SHOW VIEW

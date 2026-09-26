@@ -12,7 +12,6 @@
 # wizard. Remove the empty placeholders so html/ does not look	# wizard. Remove the empty placeholders so html/ does not look
 # half-installed. rmdir is safe: it only deletes empty directories,	# half-installed. rmdir is safe: it only deletes empty directories,
 # 2. Set up .env	# 2. Set up .env
-# Root .env (used by Docker Compose to interpolate ports / DB credentials)	# Root .env (used by Docker Compose to interpolate ports / DB credentials)
 # Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from	# Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from
 # VITE / REDIS. Values are exported to setup.sh's process environment	# VITE / REDIS. Values are exported to setup.sh's process environment
 # so docker-compose picks them up below; we deliberately do NOT write	# so docker-compose picks them up below; we deliberately do NOT write
@@ -69,7 +68,7 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 [1/6] Cloning from GitHub...	[1/6] Cloning from GitHub...
   Removed empty submodule placeholder: $submodule_path	  Removed empty submodule placeholder: $submodule_path
 [2/6] Setting up .env...	[2/6] Setting up .env...
-  Copied .env.example -> .env (for Docker Compose).	  Copied .env.example -> .env (for Docker Compose).
+  Copied .env.example -> .env (for Docker Compose, mode 600).	  Copied .env.example -> .env (for Docker Compose, mode 600).
   .env already exists (skipped).	  .env already exists (skipped).
 [3/6] Generating SSL certificate...	[3/6] Generating SSL certificate...
   Certificate already exists (skipped).	  Certificate already exists (skipped).
@@ -165,3 +164,8 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
     passwords in .env and start over with ./reset.sh (MariaDB reads	    passwords in .env and start over with ./reset.sh (MariaDB reads
     them only when its data directory is created).	    them only when its data directory is created).
   -----------------------------------------------------------	  -----------------------------------------------------------
+# Root .env (used by Docker Compose to interpolate ports / DB credentials).	# Root .env (used by Docker Compose to interpolate ports / DB credentials).
+# It holds the database passwords and the php-fpm reset token, so create it	# It holds the database passwords and the php-fpm reset token, so create it
+# 0600 instead of inheriting the shell's umask (0644 on most systems, which	# 0600 instead of inheriting the shell's umask (0644 on most systems, which
+# on a multi-user host means every account can read them). An existing .env	# on a multi-user host means every account can read them). An existing .env
+# is left exactly as the operator has it, permissions included.	# is left exactly as the operator has it, permissions included.

@@ -2,7 +2,11 @@
 FROM php:8.3-fpm
 
 # Install system packages
-RUN apt-get update --allow-releaseinfo-change && apt-get install -y --allow-unauthenticated \
+# --allow-releaseinfo-change only tolerates a changed suite name (Debian moves
+# these when a release ages), and package signatures are still verified: no
+# --allow-unauthenticated here, since nothing in the list needs it and it would
+# accept a tampered mirror.
+RUN apt-get update --allow-releaseinfo-change && apt-get install -y \
     build-essential \
     libpng-dev \
     libjpeg-dev \
@@ -45,6 +49,7 @@ RUN pecl install redis && docker-php-ext-enable redis
 
 # Copy PHP configuration file
 COPY ./php/php.ini /usr/local/etc/php/conf.d/uploads.ini
+COPY ./php/fpm-security.conf /usr/local/etc/php-fpm.d/zz-security.conf
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

@@ -39,3 +39,7 @@
 # Core dropped cweagans/composer-patches and its patches/ directory in the	# Core dropped cweagans/composer-patches and its patches/ directory in the
 # passkeys migration, so there is nothing to copy here any more — and a COPY	# passkeys migration, so there is nothing to copy here any more — and a COPY
 # of a missing path is a hard build failure, not a no-op.	# of a missing path is a hard build failure, not a no-op.
+# --allow-releaseinfo-change only tolerates a changed suite name (Debian moves	# --allow-releaseinfo-change only tolerates a changed suite name (Debian moves
+# these when a release ages), and package signatures are still verified: no	# these when a release ages), and package signatures are still verified: no
+# --allow-unauthenticated here, since nothing in the list needs it and it would	# --allow-unauthenticated here, since nothing in the list needs it and it would
+# accept a tampered mirror.	# accept a tampered mirror.

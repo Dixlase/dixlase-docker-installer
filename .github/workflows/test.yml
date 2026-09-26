@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+  # Every pull request, not only the ones that target main: a PR stacked on
+  # another PR's branch (base != main) otherwise reports no checks at all, and
+  # a base change alone does not fire this workflow either, so the stack would
+  # stay unverified until after it merged.
   pull_request:
-    branches:
-      - main
 
 jobs:
   lint-and-validate:

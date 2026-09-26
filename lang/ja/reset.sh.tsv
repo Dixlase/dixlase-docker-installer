@@ -10,8 +10,6 @@
   Dixlase - Full reset	  Dixlase - 完全リセット
   The following will be deleted:	  以下を削除します:
     - Docker containers and volumes	    - Docker コンテナとボリューム
-    - html/ (source code)	    - html/ (ソースコード)
-    - mysql/ (database files)	    - mysql/ (データベースファイル)
     - the Docker images built for this stack	    - このスタック用にビルドした Docker イメージ
   Kept: .env, certs/ and everything else in this directory.	  残すもの: .env・certs/ とこのディレクトリのその他すべて。
   Confirmation skipped (-y).	  確認を省略しました (-y)。
@@ -41,3 +39,9 @@
 # detected" prompt instead of starting from scratch. These are profile names,	# "Existing containers detected" のプロンプトで止まる。ここに書くのは
 # not service names — the Vite container is in the "dev" profile, so the	# プロファイル名でサービス名ではない — Vite コンテナは "dev" プロファイルに
 # earlier "vite" here matched nothing and left it running in --dev setups.	# 属するので、以前の "vite" は何にも一致せず --dev 構成では残っていた。
+    - html/ — the whole tree, not just the source code:	    - html/ — ソースコードだけでなくツリー全体:
+        uploaded media (storage/app/public)	        アップロードされたメディア (storage/app/public)
+        html/.env, including APP_KEY (encrypted values become unreadable)	        html/.env (APP_KEY を含む。暗号化された値は読めなくなります)
+        any SQLite database file under database/	        database/ 配下の SQLite データベースファイル
+        installed plugins and themes, and their settings	        インストール済みプラグインとテーマ、およびその設定
+    - mysql/ (the database files)	    - mysql/ (データベースファイル)

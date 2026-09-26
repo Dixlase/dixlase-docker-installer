@@ -105,10 +105,15 @@ cd ..
 echo ""
 echo "[2/6] Setting up .env..."
 
-# Root .env (used by Docker Compose to interpolate ports / DB credentials)
+# Root .env (used by Docker Compose to interpolate ports / DB credentials).
+# It holds the database passwords and the php-fpm reset token, so create it
+# 0600 instead of inheriting the shell's umask (0644 on most systems, which
+# on a multi-user host means every account can read them). An existing .env
+# is left exactly as the operator has it, permissions included.
 if [ ! -f ".env" ]; then
-    cp .env.example .env
-    echo "  Copied .env.example -> .env (for Docker Compose)."
+    (umask 077 && cp .env.example .env)
+    chmod 600 .env
+    echo "  Copied .env.example -> .env (for Docker Compose, mode 600)."
 else
     echo "  .env already exists (skipped)."
 fi
