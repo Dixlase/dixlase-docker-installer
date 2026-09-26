@@ -2,6 +2,16 @@ name: Smoke test (E2E)
 
 on:
   workflow_dispatch:
+  # Run daily as well. The push trigger only fires on installer changes, but
+  # the test installs the current dixlase-core main, so a core change can
+  # break new installs without this workflow ever running (on 2026-09-23 a
+  # core PR removed patches/ and every new install failed for about 24 hours
+  # before anyone noticed). 18:00 UTC = 03:00 JST.
+  #
+  # If this starts failing every day with an authentication error, check the
+  # CORE_REPO_TOKEN secret first — an expired PAT fails the same way.
+  schedule:
+    - cron: '0 18 * * *'
   push:
     branches:
       - main
