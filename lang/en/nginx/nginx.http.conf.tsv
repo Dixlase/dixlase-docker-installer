@@ -16,3 +16,12 @@
 # content change. `immutable` tells the browser it never has to	# content change. `immutable` tells the browser it never has to
 # revalidate, and `^~` beats the regex block below so this wins	# revalidate, and `^~` beats the regex block below so this wins
 # for asset requests specifically.	# for asset requests specifically.
+# Nothing under the public storage symlink is ever meant to execute.	# Nothing under the public storage symlink is ever meant to execute.
+# Uploads land there, and a file whose name ends in .php would otherwise	# Uploads land there, and a file whose name ends in .php would otherwise
+# be handed to php-fpm.	# be handed to php-fpm.
+# Dotfiles under public/ are configuration, not content (.htaccess ships	# Dotfiles under public/ are configuration, not content (.htaccess ships
+# in the repo for Apache users). /.well-known stays reachable so an	# in the repo for Apache users). /.well-known stays reachable so an
+# operator can serve security.txt from it.	# operator can serve security.txt from it.
+# Only pass requests that name a real file. Without this, a request	# Only pass requests that name a real file. Without this, a request
+# for /uploads/photo.jpg/x.php reaches php-fpm, which with PHP's	# for /uploads/photo.jpg/x.php reaches php-fpm, which with PHP's
+# default cgi.fix_pathinfo walks back to photo.jpg and executes it.	# default cgi.fix_pathinfo walks back to photo.jpg and executes it.

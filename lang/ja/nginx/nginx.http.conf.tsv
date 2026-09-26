@@ -16,3 +16,12 @@
 # content change. `immutable` tells the browser it never has to	# URL が発行される仕組みです。`immutable` により、ブラウザは再検証を
 # revalidate, and `^~` beats the regex block below so this wins	# 一切行いません。また `^~` が下の正規表現ブロックより優先されるので、
 # for asset requests specifically.	# アセットへのリクエストにのみこの設定が適用されます。
+# Nothing under the public storage symlink is ever meant to execute.	# public/storage シンボリックリンク配下のものは、実行される想定が一切ない。
+# Uploads land there, and a file whose name ends in .php would otherwise	# アップロードはそこに入るので、名前が .php で終わるファイルがあれば
+# be handed to php-fpm.	# php-fpm に渡ってしまう。
+# Dotfiles under public/ are configuration, not content (.htaccess ships	# public/ 配下のドットファイルは設定であってコンテンツではない (.htaccess は
+# in the repo for Apache users). /.well-known stays reachable so an	# Apache 利用者向けにリポジトリに含まれる)。/.well-known は security.txt を
+# operator can serve security.txt from it.	# 置けるよう到達可能なままにする。
+# Only pass requests that name a real file. Without this, a request	# 実在するファイルを指すリクエストだけを通す。これが無いと
+# for /uploads/photo.jpg/x.php reaches php-fpm, which with PHP's	# /uploads/photo.jpg/x.php のようなリクエストが php-fpm に届き、PHP の既定の
+# default cgi.fix_pathinfo walks back to photo.jpg and executes it.	# cgi.fix_pathinfo によって photo.jpg まで遡って実行されてしまう。
