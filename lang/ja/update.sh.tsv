@@ -1,20 +1,110 @@
 # Dixlase source update	# Dixlase ソース更新
 # Pulls the latest code from GitHub and refreshes the container.	# GitHub から最新のコードを pull してコンテナを再構築
-# Update Composer / npm dependencies	# Composer/npm 更新
-# Run migrations	# マイグレーション
-# Clear cache	# キャッシュクリア
+# This advances a git checkout of the core in html/, which is the	# これは html/ にあるコアの git チェックアウトを進めるもので、開発者向けの
+# developer path. A site running a released core should update with	# 経路である。リリース版のコアで動いているサイトは `php artisan
+# `php artisan dls:core:update` instead: that takes a backup, holds a	# dls:core:update` を使うこと。あちらはバックアップを取り、メンテナンス窓を
+# maintenance window and can roll back. This script does none of that.	# 保ち、ロールバックできる。このスクリプトはそのいずれも行わない。
+# Usage:	# 使い方:
+#   ./update.sh              # update the current branch (default: main)	#   ./update.sh              # 現在のブランチを更新 (既定: main)
+#   ./update.sh <branch>     # switch html/ to <branch>, then update	#   ./update.sh <branch>     # html/ を <branch> に切り替えてから更新
+#   ./update.sh --dev        # skip the asset build (Vite serves them)	#   ./update.sh --dev        # アセットビルドを省略 (Vite が配信)
+  Unknown option: $arg	  不明なオプション: $arg
+# Mirror setup.sh: VITE=true in .env means the Vite dev server is the one	# setup.sh と同じ判定: .env の VITE=true はアセットを Vite 開発サーバーが
+# serving the assets, so there is nothing to build here.	# 配信することを意味するので、ここでビルドするものは無い。
   Dixlase - Source update	  Dixlase - ソース更新
+  Branch: $BRANCH	  ブランチ: $BRANCH
   html/ not found. Run setup.sh first.	  html/ が見つかりません。setup.sh を先に実行してください。
-[1/4] Pulling latest from GitHub...	[1/4] GitHub から最新を取得中...
-[2/4] Updating dependencies...	[2/4] 依存パッケージを更新中...
-  composer install complete.	  composer install 完了。
-[3/4] Running migrations...	[3/4] マイグレーションを実行中...
-  Migrations complete.	  マイグレーション完了。
-[4/4] Clearing caches...	[4/4] キャッシュをクリア中...
-  Caches cleared.	  キャッシュクリア完了。
-  Update complete!	  更新完了!
+# Every step after the git pull runs inside the app container, so say so	# git pull より後のステップはすべてアプリコンテナ内で動くので、
+# once here instead of letting `docker compose exec` fail six times.	# `docker compose exec` を 6 回失敗させる代わりにここで 1 度だけ伝える。
+  The dixlase.test container is not running.	  dixlase.test コンテナが起動していません。
+  Start the stack first, then run ./update.sh again:	  先にスタックを起動し、もう一度 ./update.sh を実行してください:
+    docker compose up -d	    docker compose up -d
+# True when the running core provides the named artisan command. Lets this	# 稼働中のコアが指定した artisan コマンドを持つとき真。これにより、まだ
+# script use core's newer maintenance commands without breaking against an	# そのコマンドを持たない古いチェックアウトを壊さずに、コアの新しい保守
+# older checkout that does not have them yet.	# コマンドを利用できる。
+# 1. Update the source	# 1. ソースの更新
+[1/6] Updating html/ from GitHub...	[1/6] GitHub から html/ を更新中...
 # setup.sh hands html/ to www-data so the install wizard can write there,	# setup.sh は install ウィザードが書き込めるよう html/ を www-data に渡すため、
 # so git sees a worktree owned by another user and refuses it with	# git からは他ユーザー所有の作業ツリーに見え、
 # "detected dubious ownership in repository". Allow this one path for	# "detected dubious ownership in repository" として拒否される。運用者のグローバル
 # these commands instead of touching the operator's global git config.	# git 設定を変更する代わりに、これらのコマンドに限りこのパスを許可する。
 # setup.sh leaves .git itself host-owned, so these writes still work.	# setup.sh は .git 自体をホスト所有のまま残すので、これらの書き込みは成立する。
+# A pull cannot do anything useful with local edits to tracked files: git	# 追跡対象ファイルにローカル変更があると pull は何も出来ず、git は
+# aborts with "Your local changes would be overwritten". Untracked files	# "Your local changes would be overwritten" で中断する。未追跡ファイルは
+# are not a problem (installed plugins and themes are gitignored), so only	# 問題ない（インストール済みプラグインとテーマは gitignore 対象）ので、
+# tracked changes stop the update.	# 更新を止めるのは追跡対象の変更だけとする。
+  html/ has local changes to tracked files:	  html/ の追跡対象ファイルにローカル変更があります:
+  Keep or discard them, then run ./update.sh again:	  変更を退避または破棄してから、もう一度 ./update.sh を実行してください:
+    git -C html -c safe.directory=$HTML_DIR stash          # keep for later	    git -C html -c safe.directory=$HTML_DIR stash          # 後で戻す
+    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard	    git -C html -c safe.directory=$HTML_DIR checkout -- .  # 破棄
+  html/ is on a detached HEAD, so there is no branch to update.	  html/ が detached HEAD のため、更新するブランチがありません。
+  Check out a branch first:	  先にブランチをチェックアウトしてください:
+    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH	    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH
+  Switching html/ from $CURRENT_BRANCH to $BRANCH...	  html/ を $CURRENT_BRANCH から $BRANCH へ切り替え中...
+# Fast-forward only. A merge commit in html/ would make every later update	# fast-forward のみ。html/ にマージコミットを作ると以降の更新がさらに分岐し、
+# diverge further, and `git pull`'s own failure modes ("refusing to merge	# `git pull` 自体の失敗（"refusing to merge unrelated histories"、
+# unrelated histories", "divergent branches") arrive as a bare fatal: with	# "divergent branches"）は次の一手が分からない裸の fatal: として届く。
+# no hint of what to do next. Decide the case here and name the remedy.	# そこでここで場合を判定し、対処コマンドを名指しする。
+  html/ is already at origin/$BRANCH.	  html/ は既に origin/$BRANCH と同じです。
+  html/ has diverged from origin/$BRANCH: it carries commits the remote does not have.	  html/ が origin/$BRANCH から分岐しています: リモートに無いコミットを持っています。
+  html/ shares no history with origin/$BRANCH, so the remote branch was rewritten.	  html/ と origin/$BRANCH に共通の履歴がありません（リモートのブランチが書き換えられています）。
+  To take the remote as it is, discarding local commits in html/:	  html/ のローカルコミットを捨ててリモートをそのまま取り込むには:
+    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH	    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH
+  Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git.	  html/ の外は影響を受けません: .env・mysql/・storage/ は git の管理外です。
+# 2. Update PHP dependencies	# 2. PHP 依存パッケージの更新
+[2/6] Updating dependencies...	[2/6] 依存パッケージを更新中...
+# composer runs inside the container, where the build-time BuildKit secret	# composer はコンテナ内で動き、そこにはビルド時の BuildKit シークレット
+# (docker-compose.yml: secrets.composer_auth) no longer exists, so private	# (docker-compose.yml の secrets.composer_auth) が無いため、同梱テーマのような
+# packages such as the bundled theme would 404. Hand the host's auth.json	# private パッケージは 404 になる。ホストの auth.json をこのコマンドだけに
+# to this one command through the environment: it stays out of the image	# 環境変数でこのコマンドだけに渡す。イメージには残さず、
+# and off the container filesystem.	# コンテナのファイルシステムにも残さない。
+  Using composer credentials from $COMPOSER_AUTH_FILE.	  composer の認証情報に $COMPOSER_AUTH_FILE を使用します。
+  composer install failed.	  composer install が失敗しました。
+  On a 404 or "Could not authenticate" for a dixlase/* package, the	  dixlase/* パッケージで 404 や "Could not authenticate" が出た場合、その
+  package is private and composer needs a token. Write one to	  パッケージは private で composer にトークンが必要です。ホストの
+  $COMPOSER_AUTH_FILE on the host, then run ./update.sh again:	  $COMPOSER_AUTH_FILE に次の形で書き、もう一度 ./update.sh を実行してください:
+    {"github-oauth":{"github.com":"<personal access token>"}}	    {"github-oauth":{"github.com":"<personal access token>"}}
+  composer install complete.	  composer install 完了。
+# 3. Realign the migration bookkeeping	# 3. マイグレーション台帳の整合
+[3/6] Realigning migration bookkeeping...	[3/6] マイグレーション台帳を整合中...
+# Until core's GA its baseline migrations are renumbered in place (core:	# コアが GA になるまで、ベースライン移行はその場で採番し直される（コアの
+# docs/operations/upgrading.md, "Beta series only: reconcile renamed	# docs/operations/upgrading.md "Beta series only: reconcile renamed
+# migrations"). A renumbered file looks new to `migrate`, which then tries	# migrations" を参照）。採番が変わったファイルは `migrate` には新規に見え、
+# to create a table that already exists, so point the ledger at the	# 既に存在するテーブルを作ろうとするので、先に台帳を現在のファイル名へ
+# current filenames first. This only rewrites the migration column of the	# 向ける。これは台帳テーブルの migration 列だけを書き換え、データ表には
+# bookkeeping tables, never a data table, and is a no-op when nothing was	# 触れない。改名が無ければ何もしない。ファイルが消えた行は意図的に
+# renamed. Rows whose file is gone are left alone on purpose; `--prune`	# 改名が無ければ何もしない。ファイルが消えた行は意図的にそのまま残す。`--prune`
+# would delete them.	# を付けるとそれらを削除する。
+  This core has no dls:migration:resync (skipped).	  このコアには dls:migration:resync がありません（スキップ）。
+# 4. Run migrations	# 4. マイグレーション
+[4/6] Running migrations...	[4/6] マイグレーションを実行中...
+  Migrations complete.	  マイグレーション完了。
+# 5. Rebuild the frontend assets	# 5. フロントエンドアセットの再ビルド
+[5/6] Development mode: Vite dev server serves the assets, build skipped.	[5/6] 開発モード: アセットは Vite 開発サーバーが配信するためビルドを省略。
+[5/6] Rebuilding frontend assets...	[5/6] フロントエンドアセットを再ビルド中...
+# public/assets/build is gitignored, so the pull above brought new	# public/assets/build は gitignore 対象なので、上の pull は新しいソースだけを
+# sources but left the previous build in place. Rebuild it the same way	# 持ってきて、以前のビルド結果を残す。setup.sh と同じ手順で作り直さないと、
+# setup.sh does, or the pages keep asking for asset URLs that the new	# setup.sh と同じ手順で作り直す。さもないと画面は、新しいマニフェストに
+# manifest no longer lists.	# 無いアセット URL を要求し続ける。
+# The bundled theme has its own build. On a cold npm cache this step	# 同梱テーマは独自のビルドを持つ。npm キャッシュが空の場合、この処理は
+# can take several minutes.	# 数分かかることがある。
+  Building theme assets (themes/DixlaseOnePage)...	  テーマアセットをビルド中 (themes/DixlaseOnePage)...
+# Restart web so nginx sees freshly built assets. Docker Desktop bind	# nginx に新しいアセットを認識させるため web を再起動する。macOS の Docker
+# mounts on macOS sometimes hide files that appeared after the container	# Desktop のバインドマウントは、コンテナ起動後に現れたファイルを見せない
+# started; restarting forces nginx to re-read the mounted directory.	# ことがあるため、再起動でマウント先を読み直させる。
+  Restarting web to refresh asset mount...	  アセットのマウントを更新するため web を再起動中...
+# 6. Clear caches and reconcile the bookkeeping	# 6. キャッシュクリアと台帳の整合
+[6/6] Clearing caches...	[6/6] キャッシュをクリア中...
+  Caches cleared.	  キャッシュクリア完了。
+# Advancing html/ with git writes no core_version_history row, so the	# git で html/ を進めても core_version_history に行は書かれないため、台帳は
+# ledger still names the version installed before this run and a later	# 今回より前のバージョンを指したままになり、後の `dls:core:update` が誤った
+# `dls:core:update` would compare releases against the wrong one. This	# バージョンを基準に比較してしまう。ここで欠けている行を書く。台帳が既に
+# writes the missing row and is a no-op when the ledger already matches.	# 一致している場合は何もしない。
+# The steps above ran as root inside the container, so anything they	# 上のステップはコンテナ内で root として動くため、作られたもの（vendor/、
+# created (vendor/, public/assets/build, node_modules) is root-owned. On	# public/assets/build、node_modules）は root 所有になる。Linux では www-data の
+# Linux the www-data php-fpm workers then cannot rewrite the built assets	# php-fpm ワーカーが管理画面から再生成するアセットを書き換えられないので、
+# the admin panel regenerates, so hand the tree back the way setup.sh	# setup.sh と同じようにツリーを渡し直す。.git は対象外 — 上の git コマンドは
+# does. .git stays out of it: the git commands above run as the host user.	# ホストユーザーとして動くためである。
+  Setting html/ ownership to www-data (container app user)...	  html/ の所有者を www-data (コンテナのアプリユーザー) に設定中...
+  Update complete!	  更新完了!
+  Core version: $CORE_VERSION	  コアバージョン: $CORE_VERSION
