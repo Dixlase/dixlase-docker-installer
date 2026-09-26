@@ -82,6 +82,16 @@ artisan_has() {
 # 1. Update the source
 # -------------------------------------------------
 echo "[1/6] Updating html/ from GitHub..."
+# A release ZIP carries no .git, so there is nothing here to fast-forward.
+# Without this the git commands below just print "fatal: not a git
+# repository" twice and the script dies at exit 128. That install updates
+# through core, which knows how to replace a downloaded tree.
+if [ ! -e "html/.git" ]; then
+    echo "  html/ is not a git checkout, so there is nothing to pull."
+    echo "  An install expanded from a release ZIP looks like this. Update it through core:"
+    echo "    docker compose exec dixlase.test php artisan dls:core:update"
+    exit 1
+fi
 cd html
 # setup.sh hands html/ to www-data so the install wizard can write there,
 # so git sees a worktree owned by another user and refuses it with
