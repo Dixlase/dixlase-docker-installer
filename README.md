@@ -108,9 +108,38 @@ See [CLAUDE.md](./CLAUDE.md) for the format and how to add a new locale.
 ```bash
 docker compose logs -f                  # tail all container logs
 docker compose exec dixlase.test bash   # open a shell inside the app container
-./update.sh                             # git pull the core and run migrations
+./update.sh                             # update the core checkout and refresh the stack
 ./reset.sh                              # destroy DB / source / volumes and re-run setup
 ```
+
+## Updating
+
+```bash
+./update.sh                 # fast-forward html/ to origin/main, then refresh the stack
+./update.sh <branch>        # the same, against another branch
+./update.sh --dev           # skip the asset build (the Vite dev server serves them)
+```
+
+`update.sh` advances the **git checkout** in `html/`: it fast-forwards the branch, re-runs
+`composer install` (passing the host's `~/.composer/auth.json` through, which private packages
+such as the bundled theme need), realigns the migration bookkeeping with
+`dls:migration:resync` (required while core still renumbers its baseline migrations),
+runs the migrations, rebuilds the frontend assets and reconciles the core version ledger.
+It never guesses: a worktree with local changes to tracked files, a detached `HEAD`, or a
+history that no longer fast-forwards stops the run and names the command that resolves it.
+
+A site running a **released** core should update with `php artisan dls:core:update` instead.
+That path takes a backup, holds a maintenance window and can roll back; `update.sh` does
+none of that.
+
+```bash
+./reset.sh                  # destroy DB / source / volumes, then re-run setup
+./reset.sh --dev            # the same, re-setup in development mode
+./reset.sh --images         # also remove the images built for this stack
+./reset.sh -y               # skip the confirmation prompt
+```
+
+`reset.sh` keeps `.env` and `certs/`; everything it deletes is listed before it asks.
 
 ## Troubleshooting
 

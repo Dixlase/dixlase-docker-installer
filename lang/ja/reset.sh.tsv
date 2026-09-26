@@ -1,21 +1,41 @@
 # Dixlase complete reset	# Dixlase 完全リセット
-# Deletes all DB / source / Docker volumes and rebuilds from scratch.	# DB・ソース・Docker ボリュームをすべて削除して再構築
+# Deletes all DB / source / Docker volumes and rebuilds from scratch.	# DB・ソース・Docker ボリュームをすべて削除して作り直す。
 # Usage:	# 使い方:
 #   ./reset.sh             # Re-setup in production mode	#   ./reset.sh             # 本番モードで再セットアップ
 #   ./reset.sh --dev       # Re-setup in development mode	#   ./reset.sh --dev       # 開発モードで再セットアップ
-# Use a throwaway container to remove root-owned files (avoids host-side sudo).	# 使い捨てコンテナで root 所有ファイルを削除する (ホスト側の sudo を回避)。
-# Final host-side cleanup for any non-root remnants.	# 非 root の残存ファイルがあれば最後にホスト側で削除する。
+#   ./reset.sh --images    # Also remove the images built for this stack	#   ./reset.sh --images    # このスタック用にビルドしたイメージも削除
+#   ./reset.sh -y          # Skip the confirmation prompt	#   ./reset.sh -y          # 確認プロンプトを省略
+# --images and -y are consumed here; everything else (--dev, a branch name)	# --images と -y はここで消費し、それ以外（--dev やブランチ名）は
+# is passed on to setup.sh unchanged.	# そのまま setup.sh に渡す。
   Dixlase - Full reset	  Dixlase - 完全リセット
-  The following will be deleted:	  以下が削除されます:
-    - Docker containers and volumes	    - Docker コンテナ・ボリューム
+  The following will be deleted:	  以下を削除します:
+    - Docker containers and volumes	    - Docker コンテナとボリューム
     - html/ (source code)	    - html/ (ソースコード)
-    - mysql/ (database files)	    - mysql/ (データベース)
-  Are you sure you want to reset? (y/N): 	  本当にリセットしますか? (y/N):
+    - mysql/ (database files)	    - mysql/ (データベースファイル)
+    - the Docker images built for this stack	    - このスタック用にビルドした Docker イメージ
+  Kept: .env, certs/ and everything else in this directory.	  残すもの: .env・certs/ とこのディレクトリのその他すべて。
+  Confirmation skipped (-y).	  確認を省略しました (-y)。
+  Are you sure you want to reset? (y/N): 	  本当にリセットしますか? (y/N): 
   Cancelled.	  キャンセルしました。
 [1/3] Stopping and removing Docker containers...	[1/3] Docker コンテナを停止・削除中...
+# Name every profile: without them `down` leaves the profile-gated services	# プロファイルをすべて指定する: 指定しないと `down` はプロファイル対象の
+# (cron / vite / redis) running, and the next setup.sh then stops at its	# サービス (cron / vite / redis) を残し、次の setup.sh がまっさらな状態から
+# "Existing containers detected" prompt instead of starting from scratch.	# 始める代わりに "Existing containers detected" のプロンプトで止まる。
+# --rmi local drops only the images compose built here, so the next setup.sh	# --rmi local は compose がここでビルドしたイメージだけを削除するので、次の
+# rebuilds them: the way to pick up a changed Dockerfile layer that Docker	# setup.sh が作り直す — Docker がキャッシュから出してしまう変更済み
+# would otherwise serve from its cache. Pulled images (mysql, adminer,	# Dockerfile レイヤを確実に反映させる方法である。pull したイメージ (mysql、
+# mailpit) are shared with other stacks and are left alone.	# adminer、mailpit) は他のスタックと共有なので手を付けない。
 [2/3] Removing data...	[2/3] データを削除中...
+# Use a throwaway container to remove root-owned files (avoids host-side sudo).	# root 所有ファイルの削除は使い捨てコンテナで行う (ホスト側 sudo を避ける)。
+# Final host-side cleanup for any non-root remnants.	# root 以外の残骸に対する最後のホスト側クリーンアップ。
+# Both removals above swallow their errors, so check the result instead of	# 上の削除は 2 つともエラーを飲み込むので、結果を確認する。半端に消えた
+# handing setup.sh a half-deleted tree it would only report as "html/	# ツリーを setup.sh に渡すと "html/ already exists" としか言われないためである。
+# already exists".	# （前行から続く）
+  Could not remove html/ or mysql/ (files left behind):	  html/ または mysql/ を削除できませんでした (ファイルが残っています):
+    html/ still exists.	    html/ が残っています。
+    mysql/ still exists.	    mysql/ が残っています。
+  Remove them by hand, then run ./reset.sh again. If they are	  手動で削除してから、もう一度 ./reset.sh を実行してください。root 所有で
+  root-owned and Docker is not running, start Docker first: the	  Docker が起動していない場合は、先に Docker を起動してください: 上の削除は
+  removal above uses a container to avoid asking for sudo.	  sudo を求めないためにコンテナを使っています。
   Removed html/ and mysql/.	  html/ と mysql/ を削除しました。
-[3/3] Re-running setup...	[3/3] 再セットアップを実行中...
-# Name every profile: without them `down` leaves the profile-gated services	# プロファイルを明示する: 指定しないと profile 付きのサービス (cron / vite /
-# (cron / vite / redis) running, and the next setup.sh then stops at its	# redis) が残り、次の setup.sh が「既存コンテナを検出」のプロンプトで止まって
-# "Existing containers detected" prompt instead of starting from scratch.	# まっさらな状態から始められない。
+[3/3] Re-running setup...	[3/3] setup を再実行中...
