@@ -58,6 +58,9 @@
 # packages such as the bundled theme would 404. Hand the host's auth.json	# packages such as the bundled theme would 404. Hand the host's auth.json
 # to this one command through the environment: it stays out of the image	# to this one command through the environment: it stays out of the image
 # and off the container filesystem.	# and off the container filesystem.
+# Export the token and pass it by name. Spelling the value out in the	# Export the token and pass it by name. Spelling the value out in the
+# `docker compose exec` arguments would put it in the host's process	# `docker compose exec` arguments would put it in the host's process
+# list for as long as composer runs, where any local user can read it.	# list for as long as composer runs, where any local user can read it.
   Using composer credentials from $COMPOSER_AUTH_FILE.	  Using composer credentials from $COMPOSER_AUTH_FILE.
   composer install failed.	  composer install failed.
   On a 404 or "Could not authenticate" for a dixlase/* package, the	  On a 404 or "Could not authenticate" for a dixlase/* package, the

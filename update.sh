@@ -158,7 +158,12 @@ echo "[2/6] Updating dependencies..."
 COMPOSER_AUTH_FILE="${COMPOSER_HOME:-$HOME/.composer}/auth.json"
 COMPOSER_ENV=()
 if [ -f "$COMPOSER_AUTH_FILE" ]; then
-    COMPOSER_ENV=(-e "COMPOSER_AUTH=$(cat "$COMPOSER_AUTH_FILE")")
+    # Export the token and pass it by name. Spelling the value out in the
+    # `docker compose exec` arguments would put it in the host's process
+    # list for as long as composer runs, where any local user can read it.
+    COMPOSER_AUTH="$(cat "$COMPOSER_AUTH_FILE")"
+    export COMPOSER_AUTH
+    COMPOSER_ENV=(-e COMPOSER_AUTH)
     echo "  Using composer credentials from $COMPOSER_AUTH_FILE."
 fi
 if ! docker compose exec -T "${COMPOSER_ENV[@]}" dixlase.test composer install --no-interaction; then

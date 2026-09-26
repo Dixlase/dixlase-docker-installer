@@ -58,6 +58,9 @@
 # packages such as the bundled theme would 404. Hand the host's auth.json	# private パッケージは 404 になる。ホストの auth.json をこのコマンドだけに
 # to this one command through the environment: it stays out of the image	# 環境変数でこのコマンドだけに渡す。イメージには残さず、
 # and off the container filesystem.	# コンテナのファイルシステムにも残さない。
+# Export the token and pass it by name. Spelling the value out in the	# トークンは export して名前で渡す。値を `docker compose exec` の引数に書くと、
+# `docker compose exec` arguments would put it in the host's process	# composer が動いている間ホストのプロセス一覧に載り、同じマシンの誰からでも
+# list for as long as composer runs, where any local user can read it.	# 読めてしまう。
   Using composer credentials from $COMPOSER_AUTH_FILE.	  composer の認証情報に $COMPOSER_AUTH_FILE を使用します。
   composer install failed.	  composer install が失敗しました。
   On a 404 or "Could not authenticate" for a dixlase/* package, the	  dixlase/* パッケージで 404 や "Could not authenticate" が出た場合、その
