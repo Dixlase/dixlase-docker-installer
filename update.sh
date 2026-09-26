@@ -200,6 +200,12 @@ if ! docker compose exec -T "${COMPOSER_ENV[@]}" dixlase.test composer install -
 fi
 echo "  composer install complete."
 
+# Same reason as in setup.sh: core writes composer.local.json (the PSR-4 roots of
+# the installed extensions) from a post-autoload-dump hook, so a run that changes
+# it leaves the dumped maps one step behind — and core's own repair cannot run
+# under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.
+docker compose exec -T dixlase.test composer dump-autoload --optimize --no-interaction
+
 # -------------------------------------------------
 # 3. Realign the migration bookkeeping
 # -------------------------------------------------

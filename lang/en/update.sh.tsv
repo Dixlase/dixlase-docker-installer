@@ -131,3 +131,7 @@
   Setting html/ ownership to www-data (container app user)...	  Setting html/ ownership to www-data (container app user)...
   Update complete!	  Update complete!
   Core version: $CORE_VERSION	  Core version: $CORE_VERSION
+# Same reason as in setup.sh: core writes composer.local.json (the PSR-4 roots of	# Same reason as in setup.sh: core writes composer.local.json (the PSR-4 roots of
+# the installed extensions) from a post-autoload-dump hook, so a run that changes	# the installed extensions) from a post-autoload-dump hook, so a run that changes
+# it leaves the dumped maps one step behind — and core's own repair cannot run	# it leaves the dumped maps one step behind — and core's own repair cannot run
+# under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.	# under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.

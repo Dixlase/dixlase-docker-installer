@@ -131,3 +131,7 @@
   Setting html/ ownership to www-data (container app user)...	  html/ の所有者を www-data (コンテナのアプリユーザー) に設定中...
   Update complete!	  更新完了!
   Core version: $CORE_VERSION	  コアバージョン: $CORE_VERSION
+# Same reason as in setup.sh: core writes composer.local.json (the PSR-4 roots of	# setup.sh と同じ理由: コアは composer.local.json (インストール済み拡張の PSR-4
+# the installed extensions) from a post-autoload-dump hook, so a run that changes	# ルート) を post-autoload-dump のフックから書くため、それが変わる実行では dump 済み
+# it leaves the dumped maps one step behind — and core's own repair cannot run	# のマップが 1 手遅れる。さらにコア自身の修復は php-fpm では動かない (PHP_BINARY が
+# under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.	# CLI のインタプリタではなく php-fpm になるため)。

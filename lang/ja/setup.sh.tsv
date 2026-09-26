@@ -169,3 +169,15 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # 0600 instead of inheriting the shell's umask (0644 on most systems, which	# umask (多くの環境で 0644 — 複数ユーザーのホストでは全アカウントが読める) を
 # on a multi-user host means every account can read them). An existing .env	# 継がずに 0600 で作る。既存の .env は権限も含めて運用者のまま残す。
 # is left exactly as the operator has it, permissions included.	# (既存ファイルには触れない。)
+# Dump the autoload again. composer.local.json — which is what registers the	# autoload をもう一度 dump する。同梱テーマとインストール済みプラグインの PSR-4
+# PSR-4 roots of the bundled theme and of every installed plugin — is generated,	# ルートを登録しているのは composer.local.json だが、これは生成物なのでリリース
+# so a release ZIP does not carry it: the install above dumps the autoload with	# ZIP には含まれない: 上の install はマージ対象が無い状態で autoload を dump し、
+# nothing to merge, and core's post-autoload-dump script writes the file only	# コアの post-autoload-dump スクリプトがそのファイルを書くのはその後である。この
+# afterwards. Without this second dump the site boots unable to load the theme's	# 2 回目の dump が無いと、サイトはテーマの ServiceProvider を読めないまま起動し、
+# ServiceProvider, and the front page 500s on the theme's own helper.	# フロントページがテーマ自身のヘルパーで 500 になる。
+# Core tries to repair this itself after the wizard installs the theme, but that	# コアはウィザードのテーマ導入後に自分で修復しようとするが、その呼び出しは
+# call runs `PHP_BINARY composer …`, and under php-fpm PHP_BINARY is php-fpm:	# `PHP_BINARY composer …` であり、php-fpm では PHP_BINARY が php-fpm 自身になる:
+# it prints its usage, exits 64, and the failure is only a warning in the log.	# usage を出して exit 64 で終わり、失敗はログの警告だけになる。コア側が直るまでは、
+# Until that is fixed in core, this one line is what keeps a ZIP install working	# この 1 行が ZIP インストールを動かし続けている（マップが正しければ何もしない）。
+# (it is a no-op when the maps are already correct).	# （既に正しい場合は無害。）
+  Refreshing the composer autoload (picks up composer.local.json)...	  composer の autoload を再生成中 (composer.local.json を反映)...

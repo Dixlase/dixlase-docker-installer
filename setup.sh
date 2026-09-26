@@ -294,6 +294,21 @@ echo "[5/6] Installing Laravel dependencies..."
 # Reinstall because vendor/node_modules are missing on the host due to the volume mount
 echo "  Running composer install..."
 docker compose exec -T dixlase.test composer install --no-interaction
+
+# Dump the autoload again. composer.local.json — which is what registers the
+# PSR-4 roots of the bundled theme and of every installed plugin — is generated,
+# so a release ZIP does not carry it: the install above dumps the autoload with
+# nothing to merge, and core's post-autoload-dump script writes the file only
+# afterwards. Without this second dump the site boots unable to load the theme's
+# ServiceProvider, and the front page 500s on the theme's own helper.
+#
+# Core tries to repair this itself after the wizard installs the theme, but that
+# call runs `PHP_BINARY composer …`, and under php-fpm PHP_BINARY is php-fpm:
+# it prints its usage, exits 64, and the failure is only a warning in the log.
+# Until that is fixed in core, this one line is what keeps a ZIP install working
+# (it is a no-op when the maps are already correct).
+echo "  Refreshing the composer autoload (picks up composer.local.json)..."
+docker compose exec -T dixlase.test composer dump-autoload --optimize --no-interaction
 echo "  Running npm install..."
 docker compose exec -T dixlase.test npm install
 
