@@ -10,6 +10,8 @@ For Japanese, see [README.ja.md](./README.ja.md).
 - **Docker Desktop** (macOS / Windows) or **Docker Engine + Docker Compose v2** (Linux)
 - **Git**
 - **OpenSSL** (used to generate a self-signed certificate for `localhost`)
+- **A Bash shell.** `setup.sh` is a POSIX Bash script: macOS and Linux have one already,
+  Windows needs WSL2 or Git Bash (see [On Windows](#on-windows)).
 
 ## Quick Start
 
@@ -18,6 +20,28 @@ git clone https://github.com/Dixlase/dixlase-docker-installer.git dixlase
 cd dixlase
 ./setup.sh
 ```
+
+Prefer a download over `git`? Grab the repository ZIP from GitHub ("Code" -> "Download
+ZIP"), unpack it, and run `./setup.sh` in the unpacked directory — the scripts keep their
+executable bit, and `.env` is generated from `.env.example` on first run. Only `./update.sh`
+needs a git checkout; a ZIP install updates core from the admin panel instead.
+
+The first run takes several minutes (it clones core, installs PHP and JS dependencies and
+builds the theme). Wait until `setup.sh` prints the site URL: the site answers before the
+assets are built, so opening it earlier shows a Laravel error page.
+
+## On Windows
+
+`setup.sh` is a Bash script, so **PowerShell and CMD cannot run it**. Two ways that work:
+
+- **WSL2 (recommended).** In Docker Desktop, enable *Use the WSL 2 based engine* and turn
+  on the integration for your distro under *Resources -> WSL Integration*. Then, inside the
+  distro, `sudo apt install -y git openssl`, clone into the Linux home (**not** `/mnt/c`,
+  where the bind mount is slow and ownership does not map) and run `./setup.sh`. Open
+  `http://localhost:40080` in Windows as usual.
+- **Git Bash.** Works, but clone with `--config core.autocrlf=input` if your git predates
+  the `.gitattributes` in this repository, and prefix `reset.sh` with `MSYS_NO_PATHCONV=1`
+  if a host path is mangled.
 
 After setup completes, open `http://localhost:40080` in your browser.  
 The first visit shows the Dixlase install wizard.  
@@ -129,9 +153,11 @@ Set these to install from a fork or mirror:
 
 ```bash
 export DIXLASE_REPO_URL=https://github.com/your-org/dixlase-core.git
-export DIXLASE_THEME_REPO_URL=https://github.com/your-org/theme-dixlase-onepage.git
 ./setup.sh
 ```
+
+The bundled theme is not cloned by this installer — core pulls it in as a Composer
+dependency — so a fork of the theme is selected in that fork of core, not here.
 
 ## Localization
 
