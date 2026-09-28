@@ -212,6 +212,28 @@ none of that.
 
 ## Troubleshooting
 
+### Windows: a container exits at once, or the entrypoint is reported missing
+
+Symptom: `exec /usr/local/bin/app-entrypoint.sh: no such file or directory` — even though the
+file is plainly there.
+
+Cause: the repository was checked out with CRLF line endings. The scripts run inside Linux
+containers, where a trailing `\r` breaks the `#!/bin/bash` shebang, so the kernel reports the
+interpreter as missing. The `.gitattributes` in this repository keeps new clones on LF, but a
+clone made before it, or an archive unpacked by a tool that converts newlines, still carries
+CRLF.
+
+Fix:
+
+```bash
+file entrypoint.sh app-entrypoint.sh      # "with CRLF line terminators" confirms it
+git clone --config core.autocrlf=input https://github.com/Dixlase/dixlase-docker-installer.git dixlase
+```
+
+For an existing clone, `git config core.autocrlf input` and then check the files out again
+(`git rm --cached -r . && git reset --hard`). Inside WSL2 this does not happen, because git
+there does not convert line endings.
+
 ### Wizard does not start; front page shows `No hint path defined for [themes]`
 
 Cause: `html/` was wiped but the **MariaDB data (`mysql/` directory or named volume) was kept**. Core's `CheckInstallationReady` middleware sees the leftover migrations, decides the install is complete, and **self-heals `.env` by setting `INSTALLED=true`** — which skips the wizard. The warning is logged to `storage/logs/laravel.log`:

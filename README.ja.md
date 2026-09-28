@@ -216,6 +216,27 @@ fast-forward できない履歴では実行を止め、対処するコマンド�
 
 ## トラブルシューティング
 
+### Windows: コンテナがすぐ終了する / エントリポイントが「見つからない」と言われる
+
+症状: ファイルは確かにあるのに `exec /usr/local/bin/app-entrypoint.sh: no such file or directory`
+が出る。
+
+原因: リポジトリを CRLF の改行で checkout している。スクリプトは Linux コンテナの中で実行され、
+行末の `\r` が `#!/bin/bash` の shebang を壊すため、カーネルが「インタプリタが無い」と報告する。
+このリポジトリの `.gitattributes` は新しい clone を LF に保つが、**それ以前に作った clone** や、
+改行を変換する展開ツールで開いたアーカイブは CRLF のままになる。
+
+対処:
+
+```bash
+file entrypoint.sh app-entrypoint.sh      # "with CRLF line terminators" と出たら該当
+git clone --config core.autocrlf=input https://github.com/Dixlase/dixlase-docker-installer.git dixlase
+```
+
+既にある clone を直す場合は `git config core.autocrlf input` のあとで checkout し直す
+(`git rm --cached -r . && git reset --hard`)。WSL2 の中では git が改行を変換しないため、この問題は
+起きない。
+
 ### ウィザードが起動せず、フロントページに `No hint path defined for [themes]` が出る
 
 原因: `html/` は消したが **MariaDB のデータ (`mysql/` ディレクトリまたは named volume) は残したまま** だった。コアの `CheckInstallationReady` ミドルウェアが残存マイグレーションを検出し「インストール完了状態」と判断、**`.env` に `INSTALLED=true` を自動書き込み (self-heal)** するためウィザードが起動しなくなる。発火時は `storage/logs/laravel.log` に必ず警告が出力される:
