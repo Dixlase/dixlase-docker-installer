@@ -1,0 +1,6 @@
+# Shell scripts in this repository are copied into Linux containers and executed
+# there, so they must keep LF endings whatever the host's git is configured to do.
+# Without this, a clone on Windows (git's default core.autocrlf=true) rewrites
+# entrypoint.sh / app-entrypoint.sh with CRLF and the containers fail to start.
+# Normalising everything keeps configs shipped into the images consistent too.
+* text=auto eol=lf

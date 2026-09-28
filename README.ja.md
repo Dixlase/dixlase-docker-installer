@@ -10,6 +10,9 @@ For English, see [README.md](./README.md).
 - **Docker Desktop** (macOS / Windows) または **Docker Engine + Docker Compose v2** (Linux)
 - **Git**
 - **OpenSSL** (`localhost` 用の自己署名証明書を生成するために使用)
+- **Bash シェル。** `setup.sh` は POSIX 準拠の Bash スクリプトです。macOS と Linux には
+  最初から入っています。Windows では WSL2 か Git Bash が必要です
+  ([Windows で使う場合](#windows-で使う場合))。
 
 ## クイックスタート
 
@@ -18,6 +21,31 @@ git clone https://github.com/Dixlase/dixlase-docker-installer.git dixlase
 cd dixlase
 ./setup.sh
 ```
+
+`git` を使わない場合は、GitHub からリポジトリの ZIP をダウンロード (「Code」→「Download
+ZIP」) して展開し、展開先で `./setup.sh` を実行してください。スクリプトの実行権限は
+保たれ、`.env` は初回実行時に `.env.example` から生成されます。git のチェックアウトが
+必要なのは `./update.sh` だけで、ZIP でインストールした場合のコアの更新は管理画面から
+行います。
+
+初回は数分かかります (コアの clone、PHP と JS の依存関係のインストール、テーマの
+ビルド)。**`setup.sh` がサイトの URL を表示するまで待ってください** — アセットの
+ビルドが終わる前からサイトは応答するため、先に開くと Laravel のエラー画面が出ます。
+
+## Windows で使う場合
+
+`setup.sh` は Bash スクリプトなので、**PowerShell と CMD では実行できません**。動く方法は
+2 つです。
+
+- **WSL2 (推奨)。** Docker Desktop で *Use the WSL 2 based engine* を有効にし、
+  *Resources → WSL Integration* で使うディストロの連携をオンにします。そのうえで
+  ディストロの中で `sudo apt install -y git openssl` を実行し、**`/mnt/c` ではなく**
+  Linux 側のホームに clone して (`/mnt/c` はバインドマウントが遅く、所有権も対応しません)
+  `./setup.sh` を実行します。ブラウザは Windows 側でそのまま
+  `http://localhost:40080` を開けます。
+- **Git Bash。** こちらでも動きますが、このリポジトリの `.gitattributes` より古い git を
+  使っている場合は `--config core.autocrlf=input` を付けて clone してください。ホストの
+  パスが化けるときは `reset.sh` の前に `MSYS_NO_PATHCONV=1` を付けます。
 
 セットアップ完了後、ブラウザで `http://localhost:40080` にアクセスしてください。  
 初回アクセス時には Dixlase のインストールウィザードが表示されます。  
@@ -128,9 +156,12 @@ DB_ROOT_PASSWORD=root
 
 ```bash
 export DIXLASE_REPO_URL=https://github.com/your-org/dixlase-core.git
-export DIXLASE_THEME_REPO_URL=https://github.com/your-org/theme-dixlase-onepage.git
 ./setup.sh
 ```
+
+同梱テーマはこのインストーラーが clone するのではなく、コアが Composer の依存関係として
+取得します。そのためテーマのフォークを使いたい場合は、ここではなくフォークしたコア側で
+指定します。
 
 ## ローカライゼーション
 
