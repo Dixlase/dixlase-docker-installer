@@ -262,6 +262,23 @@ if [ "$EXISTING_CONTAINERS" -gt 0 ]; then
         KEPT_CONTAINERS=true
     fi
 fi
+# docker-compose.yml declares the composer_auth build secret with a concrete
+# file (${HOME}/.composer/auth.json). Compose refuses to build when that file
+# is absent, which is the default state for anyone who has never installed a
+# private Composer package -- the build then fails before it starts with
+# "failed to stat .../auth.json". Every Dixlase repository is public, so an
+# empty config satisfies the declaration without handing a credential to the
+# build. An existing file is never touched, so maintainers keep their tokens.
+# Note: the path must match the one Compose reads, which is $HOME even when
+# COMPOSER_HOME points elsewhere.
+COMPOSER_AUTH_FILE="$HOME/.composer/auth.json"
+if [ ! -f "$COMPOSER_AUTH_FILE" ]; then
+    mkdir -p "$(dirname "$COMPOSER_AUTH_FILE")"
+    printf '{}\n' > "$COMPOSER_AUTH_FILE"
+    chmod 600 "$COMPOSER_AUTH_FILE"
+    echo "  Created an empty $COMPOSER_AUTH_FILE (Dixlase repositories are public, so no token is needed)."
+fi
+
 # Active profiles are picked up from COMPOSE_PROFILES exported above.
 docker compose build
 docker compose up -d

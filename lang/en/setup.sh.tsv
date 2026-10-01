@@ -207,3 +207,13 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # profile cannot be addressed otherwise. `rm -sf` stops and removes the	# profile cannot be addressed otherwise. `rm -sf` stops and removes the
 # container; named volumes (Redis) are untouched.	# container; named volumes (Redis) are untouched.
   Removing the $disabled_service container (turned off in .env)...	  Removing the $disabled_service container (turned off in .env)...
+# docker-compose.yml declares the composer_auth build secret with a concrete	# docker-compose.yml declares the composer_auth build secret with a concrete
+# file (${HOME}/.composer/auth.json). Compose refuses to build when that file	# file (${HOME}/.composer/auth.json). Compose refuses to build when that file
+# is absent, which is the default state for anyone who has never installed a	# is absent, which is the default state for anyone who has never installed a
+# private Composer package -- the build then fails before it starts with	# private Composer package -- the build then fails before it starts with
+# "failed to stat .../auth.json". Every Dixlase repository is public, so an	# "failed to stat .../auth.json". Every Dixlase repository is public, so an
+# empty config satisfies the declaration without handing a credential to the	# empty config satisfies the declaration without handing a credential to the
+# build. An existing file is never touched, so maintainers keep their tokens.	# build. An existing file is never touched, so maintainers keep their tokens.
+# Note: the path must match the one Compose reads, which is $HOME even when	# Note: the path must match the one Compose reads, which is $HOME even when
+# COMPOSER_HOME points elsewhere.	# COMPOSER_HOME points elsewhere.
+  Created an empty $COMPOSER_AUTH_FILE (Dixlase repositories are public, so no token is needed).	  Created an empty $COMPOSER_AUTH_FILE (Dixlase repositories are public, so no token is needed).
