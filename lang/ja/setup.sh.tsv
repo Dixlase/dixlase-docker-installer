@@ -207,3 +207,13 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # profile cannot be addressed otherwise. `rm -sf` stops and removes the	# それ以外の方法では指定できないためである。`rm -sf` はコンテナを停止して削除する
 # container; named volumes (Redis) are untouched.	# が、名前付きボリューム (Redis) には触れない。
   Removing the $disabled_service container (turned off in .env)...	  $disabled_service コンテナを削除します (.env で off になっています)...
+# docker-compose.yml declares the composer_auth build secret with a concrete	# docker-compose.yml は composer_auth のビルドシークレットを実体ファイル
+# file (${HOME}/.composer/auth.json). Compose refuses to build when that file	# (${HOME}/.composer/auth.json) として宣言している。このファイルが無いと Compose は
+# is absent, which is the default state for anyone who has never installed a	# ビルドを拒否する。非公開の Composer パッケージを入れたことがない人の既定状態がこれで、
+# private Composer package -- the build then fails before it starts with	# ビルドは開始前に "failed to stat .../auth.json" で失敗する。Dixlase の
+# "failed to stat .../auth.json". Every Dixlase repository is public, so an	# リポジトリはすべて public なので、空の設定で宣言を満たせばよく、ビルドに資格情報を
+# empty config satisfies the declaration without handing a credential to the	# 渡す必要は無い。既存のファイルには触れないので、メンテナーのトークンは残る。
+# build. An existing file is never touched, so maintainers keep their tokens.	# 注意: 作る場所は Compose が読む側に合わせる必要があり、COMPOSER_HOME が別を
+# Note: the path must match the one Compose reads, which is $HOME even when	# 指していても $HOME 側になる。
+# COMPOSER_HOME points elsewhere.	# (同上)
+  Created an empty $COMPOSER_AUTH_FILE (Dixlase repositories are public, so no token is needed).	  空の $COMPOSER_AUTH_FILE を作成しました (Dixlase のリポジトリは public なのでトークンは不要です)。
