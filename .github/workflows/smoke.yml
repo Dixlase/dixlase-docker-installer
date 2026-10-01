@@ -8,8 +8,9 @@ on:
   # core PR removed patches/ and every new install failed for about 24 hours
   # before anyone noticed). 18:00 UTC = 03:00 JST.
   #
-  # If this starts failing every day with an authentication error, check the
-  # CORE_REPO_TOKEN secret first — an expired PAT fails the same way.
+  # Every repository this job reaches is public, so the run needs no secret.
+  # A daily failure therefore points at a real change in core or in the
+  # installer, not at an expired credential.
   schedule:
     - cron: '0 18 * * *'
   push:
@@ -29,7 +30,7 @@ on:
 
 jobs:
   smoke:
-    name: End-to-end setup with maintainer credentials
+    name: End-to-end setup with html/ pre-placed
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -37,29 +38,16 @@ jobs:
       - name: Checkout installer
         uses: actions/checkout@v5
 
+      # dixlase-core is public, so the default GITHUB_TOKEN reads it. The
+      # bundled theme it requires (dixlase/dixlase-onepage) is public too, so
+      # composer resolves it anonymously and no auth.json is written here —
+      # setup.sh creates an empty one when the host has none.
       - name: Checkout dixlase-core into html/
         uses: actions/checkout@v5
         with:
           repository: Dixlase/dixlase-core
           ref: main
-          token: ${{ secrets.CORE_REPO_TOKEN }}
           path: html
-
-      # Dockerfile mounts ~/.composer/auth.json as a BuildKit secret so
-      # composer can authenticate against the private theme-dixlase-onepage
-      # VCS repo during `composer install`. Without this file the secret
-      # mount resolves to nothing (required=false) and composer falls back
-      # to anonymous access, which 401s on the private repo. Write it from
-      # CORE_REPO_TOKEN — the same PAT the workflow already uses for git
-      # clones. The runner is ephemeral so no extra teardown is needed.
-      - name: Bootstrap composer auth for private theme dep
-        env:
-          CORE_REPO_TOKEN: ${{ secrets.CORE_REPO_TOKEN }}
-        run: |
-          set -e
-          mkdir -p "$HOME/.composer"
-          printf '{"github-oauth":{"github.com":"%s"}}\n' "$CORE_REPO_TOKEN" > "$HOME/.composer/auth.json"
-          chmod 600 "$HOME/.composer/auth.json"
 
       - name: Run setup.sh (html/ pre-placed; answer "n" to skip re-clone prompt)
         run: |
