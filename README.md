@@ -246,6 +246,34 @@ to INSTALLED=true...
 
 Fix: wipe DB and `html/` together with `./reset.sh` (drops containers, named volumes, `html/`, and `mysql/`, then re-runs setup). After that, opening `/` redirects to `/install` and the wizard runs against an empty DB.
 
+### File integrity reports a warning right after a core update
+
+Symptom: after updating the core, Security -> File integrity reports a warning and lists the
+files the new release changed. The update log carries this line:
+
+```
+WARNING: core files did not match the integrity baseline before this operation,
+so the baseline was left unchanged.
+```
+
+Cause: the updater refreshes the baseline only when the tree matched it **beforehand** — a
+deliberate guard, so a tampered tree is never blessed as the new baseline. Up to core v0.1.1 the
+baseline included a generated file, `resources/src/common/css/dixlase-tailwind-plugin-sources.css`,
+which is rewritten as soon as a plugin is enabled. That single difference blocked the refresh, and
+once the baseline is stale every file the release changed is reported as modified. Core v0.1.2
+leaves that generated file out of the comparison.
+
+Fix: check that the listed files are the ones the release changed, then regenerate the baseline
+once — in the admin screen (Security -> File integrity) or on the command line:
+
+```bash
+docker compose exec dixlase.test php artisan dls:integrity:generate-baseline --force
+```
+
+A site updated to v0.1.2 needs this **once**; later updates refresh the baseline on their own. A
+site that skips it keeps reporting the warning after every update, because the stale baseline keeps
+failing the pre-update comparison.
+
 ## License
 
 This installer (Dockerfiles, shell scripts, configuration templates) is released under the [MIT License](./LICENSE) so it can be freely forked, modified, and adapted.
