@@ -29,7 +29,7 @@ on:
 
 jobs:
   smoke:
-    name: End-to-end setup against private dixlase-core
+    name: End-to-end setup with maintainer credentials
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -155,3 +155,133 @@ jobs:
           # root container, the same approach reset.sh and setup.sh use.
           docker run --rm -v "$PWD:/work" alpine rm -f /work/html/.env 2>/dev/null || true
           rm -f html/.env 2>/dev/null || true
+
+  # A second pass with no credentials at all — this is what a new user gets.
+  #
+  # The job above cannot see that class of failure: it pre-places html/ with a
+  # token and writes ~/.composer/auth.json, so every credential-shaped problem
+  # is hidden from it. On 2026-10-01 that blind spot shipped a Day 0 blocker —
+  # compose declares the composer_auth secret with a concrete file, refuses to
+  # build when it is absent, and `./setup.sh` died at step [4/6] for anyone who
+  # had never installed a private Composer package. CI was green throughout.
+  # It is the second failure of this shape; the first was the patches/ COPY in
+  # 2026-09-23, which broke every new install for about 24 hours.
+  #
+  # Two deliberate differences from the job above:
+  #   - html/ is NOT pre-placed, so setup.sh clones dixlase-core itself. That
+  #     exercises the anonymous clone of a public core, which the other job
+  #     never touches.
+  #   - no auth.json is written, and persist-credentials is off so the token
+  #     actions/checkout would otherwise leave in .git/config cannot be picked
+  #     up by the clones setup.sh performs.
+  smoke-anonymous:
+    name: End-to-end setup with no credentials (what a new user gets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout installer (no persisted credentials)
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Assert the runner has no Composer or GitHub credentials
+        run: |
+          set -e
+          if [ -f "$HOME/.composer/auth.json" ]; then
+            echo "This job is only meaningful without an auth.json; found one." >&2
+            exit 1
+          fi
+          if git config --get-regexp 'http\..*\.extraheader' >/dev/null 2>&1; then
+            echo "A credential extraheader is configured; the clones would not be anonymous." >&2
+            exit 1
+          fi
+          echo "OK: no auth.json, no credential extraheader."
+
+      # No html/ and no token: setup.sh clones dixlase-core on its own, the way
+      # the README tells a reader to. GITHUB_TOKEN is cleared so nothing in the
+      # script can fall back to it.
+      - name: Run setup.sh with no credentials
+        env:
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          COMPOSER_AUTH: ''
+        run: |
+          set -o pipefail
+          ./setup.sh 2>&1 | tee /tmp/setup-anon.log
+
+      - name: Assert setup created the empty auth.json and said so
+        run: |
+          set -e
+          grep -q 'Created an empty .*auth\.json' /tmp/setup-anon.log
+          test -f "$HOME/.composer/auth.json"
+          test "$(tr -d '[:space:]' < "$HOME/.composer/auth.json")" = '{}'
+          echo "OK: setup.sh created {} and reported it."
+
+      - name: Assert the bundled theme was installed anonymously
+        run: |
+          set -e
+          grep -q 'dixlase/dixlase-onepage' /tmp/setup-anon.log
+          test -f html/themes/DixlaseOnePage/theme.json
+          echo "OK: the private-repo-era theme dependency resolved without a token."
+
+      # Same shortcut as the job above: the install wizard normally writes
+      # html/.env on the first browser visit, so CI bootstraps it to let curl
+      # probe the stack. Removed in the teardown.
+      - name: Bootstrap html/.env for smoke test (temporary)
+        run: |
+          set -e
+          docker compose exec -T dixlase.test sh -c '
+            set -e
+            cp /var/www/html/.env.example /var/www/html/.env
+            sed -i.bak \
+              -e "s|^DB_HOST=.*|DB_HOST=mysql|" \
+              -e "s|^DB_DATABASE=.*|DB_DATABASE=dixlase|" \
+              -e "s|^DB_USERNAME=.*|DB_USERNAME=dixlase|" \
+              -e "s|^DB_PASSWORD=.*|DB_PASSWORD=dixlase|" \
+              -e "s|^APP_DEBUG=.*|APP_DEBUG=true|" \
+              /var/www/html/.env
+            rm -f /var/www/html/.env.bak
+            chown www-data:www-data /var/www/html/.env
+          '
+          docker compose exec -T dixlase.test php artisan key:generate --force
+          docker compose exec -T dixlase.test php artisan config:clear
+
+      - name: Show running containers
+        if: always()
+        run: docker compose ps
+
+      - name: Smoke check — curl http://localhost:40080/
+        run: |
+          set -e
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:40080/ || true)
+            if [ -n "$code" ] && [ "$code" != "000" ] && [ "$code" -lt 500 ]; then
+              echo "OK: CMS responded with HTTP $code (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code (not ready), waiting..."
+            sleep 4
+          done
+          echo "CMS did not respond with a non-5xx status within the time budget."
+          exit 1
+
+      - name: setup.sh log (on failure)
+        if: failure()
+        run: tail -n 200 /tmp/setup-anon.log || true
+
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker compose logs --tail 200
+
+      - name: Laravel storage log (on failure)
+        if: failure()
+        run: |
+          docker compose exec -T dixlase.test sh -c 'tail -n 200 storage/logs/laravel.log 2>/dev/null || echo "(no laravel.log)"' || true
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose down -v 2>/dev/null || true
+          docker run --rm -v "$PWD:/work" alpine rm -rf /work/html 2>/dev/null || true
+          rm -rf html 2>/dev/null || true
