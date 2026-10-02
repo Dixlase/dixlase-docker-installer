@@ -23,8 +23,9 @@ Follow the unified commit message convention used across all Dixlase projects.
 
 3. **Bilingual format (English / Japanese)**
    - Subject line: `<type>: <English> / <日本語>` (separated by ` / `)
-   - Body: English paragraph first, then Japanese paragraph
-   - Each bullet: an English line followed by an indented Japanese translation
+   - Body: **the whole English text first** (paragraphs and bullets), a blank line, **then the whole Japanese text** (paragraphs and bullets). Do not alternate the languages line by line or bullet by bullet
+   - Do not put a `---` line between the two halves: `git format-patch` / `git am` read it as the end of the message
+   - Pull request descriptions follow the same order
 
 ### Template
 
@@ -34,13 +35,15 @@ feat: add user profile page / ユーザープロファイルページを追加
 Detailed English explanation wrapped at around 72 characters. Explain
 the problem this commit is solving and why this particular solution
 was chosen.
-解決しようとしている問題と、この解決策を選んだ理由を日本語でも説明する。
-英語段落と同じ内容を日本語でも併記する。
 
 - Add ProfileController with show/edit actions
-  show / edit アクション付き ProfileController を追加
 - Create profile Blade views with avatar upload
-  アバターアップロード対応のプロファイル Blade ビューを作成
+
+解決しようとしている問題と、この解決策を選んだ理由を日本語で説明する。
+英語の本文と同じ内容を、英語のあとにまとめて書く。
+
+- show / edit アクション付き ProfileController を追加
+- アバターアップロード対応のプロファイル Blade ビューを作成
 ```
 
 ### Notes
