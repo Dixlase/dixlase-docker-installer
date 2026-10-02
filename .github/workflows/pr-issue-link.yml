@@ -1,0 +1,17 @@
+name: Pull request links an issue
+
+# Enforces "Issue first" (docs/development/issues.md): a pull request must
+# link an issue, or state an exemption on its own line ("No issue: release").
+# The check itself lives in the organization's .github repository so every
+# Dixlase repository runs the same rule.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  issue-link:
+    uses: Dixlase/.github/.github/workflows/pr-issue-link.yml@main
