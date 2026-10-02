@@ -23,8 +23,9 @@ Dixlase プロジェクト全体で統一されたコミットメッセージ規
 
 3. **バイリンガル形式 (英 / 日)**
    - Subject 行: `<type>: <English> / <日本語>` (` / ` で区切る)
-   - 本文: 英語段落 → 日本語段落の順
-   - 各箇条書き: 英語行 + インデントした日本語訳のペア
+   - 本文: **英語の文章(段落と箇条書き)をひととおり書き**、空行を挟んで、**日本語の文章(段落と箇条書き)をひととおり書く**。行ごと・箇条書きごとに英日を交互に書かない
+   - 英語と日本語の間に `---` の行は入れない(`git format-patch` / `git am` がメッセージの終わりと読むため)
+   - Pull Request の説明も同じ並びにする
 
 ### 雛形
 
@@ -34,13 +35,15 @@ feat: add user profile page / ユーザープロファイルページを追加
 Detailed English explanation wrapped at around 72 characters. Explain
 the problem this commit is solving and why this particular solution
 was chosen.
-解決しようとしている問題と、この解決策を選んだ理由を日本語でも説明する。
-英語段落と同じ内容を日本語でも併記する。
 
 - Add ProfileController with show/edit actions
-  show / edit アクション付き ProfileController を追加
 - Create profile Blade views with avatar upload
-  アバターアップロード対応のプロファイル Blade ビューを作成
+
+解決しようとしている問題と、この解決策を選んだ理由を日本語で説明する。
+英語の本文と同じ内容を、英語のあとにまとめて書く。
+
+- show / edit アクション付き ProfileController を追加
+- アバターアップロード対応のプロファイル Blade ビューを作成
 ```
 
 ### 補足
