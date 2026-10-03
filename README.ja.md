@@ -22,6 +22,8 @@ cd dixlase
 ./setup.sh
 ```
 
+これで `main` の最新のインストーラが clone されます。決まったリリースを使う場合は、[Releases](https://github.com/Dixlase/dixlase-docker-installer/releases) の版を `--branch` に指定してください(例: `git clone --branch v0.1.1 …`)。入っている版は `VERSION` にあり、`setup.sh` と `update.sh` の最後にも表示されます。版ごとの変更と、更新のあとにやることは [CHANGELOG.ja.md](./CHANGELOG.ja.md) にあります。
+
 `git` を使わない場合は、GitHub からリポジトリの ZIP をダウンロード (「Code」→「Download
 ZIP」) して展開し、展開先で `./setup.sh` を実行してください。スクリプトの実行権限は
 保たれ、`.env` は初回実行時に `.env.example` から生成されます。git のチェックアウトが

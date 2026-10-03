@@ -217,3 +217,4 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # Note: the path must match the one Compose reads, which is $HOME even when	# Note: the path must match the one Compose reads, which is $HOME even when
 # COMPOSER_HOME points elsewhere.	# COMPOSER_HOME points elsewhere.
   Created an empty $COMPOSER_AUTH_FILE (Dixlase repositories are public, so no token is needed).	  Created an empty $COMPOSER_AUTH_FILE (Dixlase repositories are public, so no token is needed).
+  Installer version: ${INSTALLER_VERSION:-unknown}	  Installer version: ${INSTALLER_VERSION:-unknown}

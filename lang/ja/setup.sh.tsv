@@ -217,3 +217,4 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # Note: the path must match the one Compose reads, which is $HOME even when	# 指していても $HOME 側になる。
 # COMPOSER_HOME points elsewhere.	# (同上)
   Created an empty $COMPOSER_AUTH_FILE (Dixlase repositories are public, so no token is needed).	  空の $COMPOSER_AUTH_FILE を作成しました (Dixlase のリポジトリは public なのでトークンは不要です)。
+  Installer version: ${INSTALLER_VERSION:-unknown}	  インストーラのバージョン: ${INSTALLER_VERSION:-unknown}
