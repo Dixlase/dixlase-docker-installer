@@ -316,4 +316,8 @@ echo "========================================"
 echo ""
 CORE_VERSION=$(docker compose exec -T dixlase.test cat VERSION 2>/dev/null | tr -d '\r')
 echo "  Core version: $CORE_VERSION"
+# This script updates core (html/), not the installer itself. Show which
+# installer version ran it, so a report can name both.
+INSTALLER_VERSION=$(tr -d '\r\n' < "$SCRIPT_DIR/VERSION" 2>/dev/null || true)
+echo "  Installer version: ${INSTALLER_VERSION:-unknown}"
 echo ""

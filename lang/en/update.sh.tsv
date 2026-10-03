@@ -135,3 +135,6 @@
 # the installed extensions) from a post-autoload-dump hook, so a run that changes	# the installed extensions) from a post-autoload-dump hook, so a run that changes
 # it leaves the dumped maps one step behind — and core's own repair cannot run	# it leaves the dumped maps one step behind — and core's own repair cannot run
 # under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.	# under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.
+  Installer version: ${INSTALLER_VERSION:-unknown}	  Installer version: ${INSTALLER_VERSION:-unknown}
+# This script updates core (html/), not the installer itself. Show which	# This script updates core (html/), not the installer itself. Show which
+# installer version ran it, so a report can name both.	# installer version ran it, so a report can name both.

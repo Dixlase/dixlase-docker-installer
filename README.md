@@ -21,6 +21,8 @@ cd dixlase
 ./setup.sh
 ```
 
+This clones the latest installer from `main`. To use a fixed release instead, add `--branch` with a version from [Releases](https://github.com/Dixlase/dixlase-docker-installer/releases), e.g. `git clone --branch v0.1.1 …`. The installed version is in `VERSION` and is printed at the end of `setup.sh` and `update.sh`; what changed in each version, and what to do after updating, is in [CHANGELOG.md](./CHANGELOG.md).
+
 Prefer a download over `git`? Grab the repository ZIP from GitHub ("Code" -> "Download
 ZIP"), unpack it, and run `./setup.sh` in the unpacked directory — the scripts keep their
 executable bit, and `.env` is generated from `.env.example` on first run. Only `./update.sh`

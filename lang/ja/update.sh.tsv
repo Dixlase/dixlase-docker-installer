@@ -135,3 +135,6 @@
 # the installed extensions) from a post-autoload-dump hook, so a run that changes	# ルート) を post-autoload-dump のフックから書くため、それが変わる実行では dump 済み
 # it leaves the dumped maps one step behind — and core's own repair cannot run	# のマップが 1 手遅れる。さらにコア自身の修復は php-fpm では動かない (PHP_BINARY が
 # under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.	# CLI のインタプリタではなく php-fpm になるため)。
+  Installer version: ${INSTALLER_VERSION:-unknown}	  インストーラのバージョン: ${INSTALLER_VERSION:-unknown}
+# This script updates core (html/), not the installer itself. Show which	# このスクリプトが更新するのはコア(html/)で、インストーラ自体ではない。どの
+# installer version ran it, so a report can name both.	# インストーラの版で実行したかを表示し、報告で両方を書けるようにする。
