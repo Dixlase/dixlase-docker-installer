@@ -83,14 +83,9 @@ RUN chown www-data:www-data /var/www
 # passkeys migration, so there is nothing to copy here any more — and a COPY
 # of a missing path is a hard build failure, not a no-op.
 COPY ./html/composer.json ./html/composer.lock ./
-# Core's composer.json requires the private `dixlase/dixlase-onepage`
-# theme from a private GitHub repo. Mount the host's
-# ~/.composer/auth.json as a BuildKit secret so the token is available
-# only at build time (never baked into the resulting image). The
-# `required=false` keeps builds that do not need private deps working
-# without an auth.json on the host.
-RUN --mount=type=secret,id=composer_auth,target=/root/.composer/auth.json,required=false \
-    composer install --no-scripts --optimize-autoloader
+# Every package core requires is public, so this resolves with no
+# credential of any kind.
+RUN composer install --no-scripts --optimize-autoloader
 
 # Install npm packages
 COPY ./html/package.json ./

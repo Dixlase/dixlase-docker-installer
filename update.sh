@@ -173,29 +173,15 @@ cd ..
 # -------------------------------------------------
 echo ""
 echo "[2/6] Updating dependencies..."
-# composer runs inside the container, where the build-time BuildKit secret
-# (docker-compose.yml: secrets.composer_auth) no longer exists, so private
-# packages such as the bundled theme would 404. Hand the host's auth.json
-# to this one command through the environment: it stays out of the image
-# and off the container filesystem.
-COMPOSER_AUTH_FILE="${COMPOSER_HOME:-$HOME/.composer}/auth.json"
-COMPOSER_ENV=()
-if [ -f "$COMPOSER_AUTH_FILE" ]; then
-    # Export the token and pass it by name. Spelling the value out in the
-    # `docker compose exec` arguments would put it in the host's process
-    # list for as long as composer runs, where any local user can read it.
-    COMPOSER_AUTH="$(cat "$COMPOSER_AUTH_FILE")"
-    export COMPOSER_AUTH
-    COMPOSER_ENV=(-e COMPOSER_AUTH)
-    echo "  Using composer credentials from $COMPOSER_AUTH_FILE."
-fi
-if ! docker compose exec -T "${COMPOSER_ENV[@]}" dixlase.test composer install --no-interaction; then
+# Every package core requires is public, so composer needs no credential
+# here. Anything it cannot fetch is a network or a packaging problem.
+if ! docker compose exec -T dixlase.test composer install --no-interaction; then
     echo ""
     echo "  composer install failed."
-    echo '  On a 404 or "Could not authenticate" for a dixlase/* package, the'
-    echo "  package is private and composer needs a token. Write one to"
-    echo "  $COMPOSER_AUTH_FILE on the host, then run ./update.sh again:"
-    echo '    {"github-oauth":{"github.com":"<personal access token>"}}'
+    echo "  Every Dixlase package is public, so this is not a credential problem."
+    echo "  Check that the container can reach the network, then that github.com"
+    echo "  is reachable and healthy, then the repositories entries in"
+    echo "  html/composer.json. Run ./update.sh again once the cause is cleared."
     exit 1
 fi
 echo "  composer install complete."
