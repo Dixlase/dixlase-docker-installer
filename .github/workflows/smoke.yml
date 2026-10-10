@@ -40,8 +40,7 @@ jobs:
 
       # dixlase-core is public, so the default GITHUB_TOKEN reads it. The
       # bundled theme it requires (dixlase/dixlase-onepage) is public too, so
-      # composer resolves it anonymously and no auth.json is written here —
-      # setup.sh creates an empty one when the host has none.
+      # composer resolves it anonymously. No auth.json takes part in a build.
       - name: Checkout dixlase-core into html/
         uses: actions/checkout@v5
         with:
@@ -146,12 +145,13 @@ jobs:
 
   # A second pass with no credentials at all — this is what a new user gets.
   #
-  # The job above cannot see that class of failure: it pre-places html/ with a
-  # token and writes ~/.composer/auth.json, so every credential-shaped problem
-  # is hidden from it. On 2026-10-01 that blind spot shipped a Day 0 blocker —
-  # compose declares the composer_auth secret with a concrete file, refuses to
-  # build when it is absent, and `./setup.sh` died at step [4/6] for anyone who
-  # had never installed a private Composer package. CI was green throughout.
+  # The job above pre-places html/, so it never exercises the clone a reader
+  # actually performs. On 2026-10-01 that blind spot shipped a Day 0 blocker —
+  # compose declared the composer_auth secret with a concrete file, refused to
+  # build when it was absent, and `./setup.sh` died at step [4/6] for anyone
+  # who had never installed a private Composer package. CI was green
+  # throughout. The declaration is gone now, but the shape of the gap is not:
+  # only a run that starts from nothing can see what a new user hits.
   # It is the second failure of this shape; the first was the patches/ COPY in
   # 2026-09-23, which broke every new install for about 24 hours.
   #
@@ -159,9 +159,9 @@ jobs:
   #   - html/ is NOT pre-placed, so setup.sh clones dixlase-core itself. That
   #     exercises the anonymous clone of a public core, which the other job
   #     never touches.
-  #   - no auth.json is written, and persist-credentials is off so the token
-  #     actions/checkout would otherwise leave in .git/config cannot be picked
-  #     up by the clones setup.sh performs.
+  #   - persist-credentials is off, so the token actions/checkout would
+  #     otherwise leave in .git/config cannot be picked up by the clones
+  #     setup.sh performs.
   smoke-anonymous:
     name: End-to-end setup with no credentials (what a new user gets)
     runs-on: ubuntu-latest
@@ -198,20 +198,30 @@ jobs:
           set -o pipefail
           ./setup.sh 2>&1 | tee /tmp/setup-anon.log
 
-      - name: Assert setup created the empty auth.json and said so
+      # The build needs no credential, so the installer must not write one.
+      # It used to create an empty ~/.composer/auth.json to satisfy the
+      # composer_auth secret declaration; both are gone, and this asserts that
+      # setup.sh left the home directory alone.
+      - name: Assert setup wrote no auth.json
         run: |
           set -e
-          grep -q 'Created an empty .*auth\.json' /tmp/setup-anon.log
-          test -f "$HOME/.composer/auth.json"
-          test "$(tr -d '[:space:]' < "$HOME/.composer/auth.json")" = '{}'
-          echo "OK: setup.sh created {} and reported it."
+          if [ -e "$HOME/.composer/auth.json" ]; then
+            echo "setup.sh created $HOME/.composer/auth.json; it must not touch the home directory." >&2
+            exit 1
+          fi
+          if grep -qi 'auth\.json' /tmp/setup-anon.log; then
+            echo "setup.sh still mentions auth.json:" >&2
+            grep -i 'auth\.json' /tmp/setup-anon.log >&2
+            exit 1
+          fi
+          echo "OK: no auth.json on disk and none mentioned in the log."
 
       - name: Assert the bundled theme was installed anonymously
         run: |
           set -e
           grep -q 'dixlase/dixlase-onepage' /tmp/setup-anon.log
           test -f html/themes/DixlaseOnePage/theme.json
-          echo "OK: the private-repo-era theme dependency resolved without a token."
+          echo "OK: the bundled theme resolved with no credential anywhere."
 
       # Same shortcut as the job above: the install wizard normally writes
       # html/.env on the first browser visit, so CI bootstraps it to let curl

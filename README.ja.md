@@ -196,8 +196,8 @@ docker compose exec dixlase.test bash   # アプリコンテナ内でシェル�
 ```
 
 `update.sh` は `html/` の **git チェックアウト**を進めます。ブランチを fast-forward し、
-`composer install` を再実行し（同梱テーマのような private パッケージに必要なホストの
-`~/.composer/auth.json` を渡します）、`dls:migration:resync` でマイグレーション台帳を
+`composer install` を再実行し（コアが require するパッケージはすべて public なので、
+資格情報は一切関与しません）、`dls:migration:resync` でマイグレーション台帳を
 整合させ（コアがベースライン移行を採番し直している間は必須）、マイグレーションを実行し、
 フロントエンドアセットを再ビルドし、コアのバージョン台帳を整合させます。
 推測はしません — 追跡対象ファイルにローカル変更がある作業ツリー、detached `HEAD`、

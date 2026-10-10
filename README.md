@@ -192,8 +192,8 @@ docker compose exec dixlase.test bash   # open a shell inside the app container
 ```
 
 `update.sh` advances the **git checkout** in `html/`: it fast-forwards the branch, re-runs
-`composer install` (passing the host's `~/.composer/auth.json` through, which private packages
-such as the bundled theme need), realigns the migration bookkeeping with
+`composer install` (every package core requires is public, so no credential takes part),
+realigns the migration bookkeeping with
 `dls:migration:resync` (required while core still renumbers its baseline migrations),
 runs the migrations, rebuilds the frontend assets and reconciles the core version ledger.
 It never guesses: a worktree with local changes to tracked files, a detached `HEAD`, or a

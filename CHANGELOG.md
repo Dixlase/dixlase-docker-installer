@@ -8,6 +8,16 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [Unreleased]
+
+### Removed
+
+- The `composer_auth` build secret, and with it the empty Composer `auth.json`
+  that `setup.sh` created in the user's home directory to satisfy it. The secret
+  existed only because the bundled theme used to live in a private repository;
+  every package core requires is public now, so a build needs no credential and
+  the installer no longer writes outside its own directory (#49).
+
 ## [0.1.1] — 2026-10-03
 
 ### Fixed
