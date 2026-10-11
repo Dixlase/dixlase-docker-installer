@@ -293,7 +293,7 @@ fi
 # does. .git stays out of it: the git commands above run as the host user.
 echo "  Setting html/ ownership to www-data (container app user)..."
 docker compose exec -T dixlase.test \
-    sh -c 'find /var/www/html -name .git -prune -o -exec chown www-data:www-data {} +' || true
+    sh -c 'find /var/www/html -name .git -prune -o -exec chown -h www-data:www-data {} +' || true
 
 echo ""
 echo "========================================"
