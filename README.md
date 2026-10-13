@@ -23,6 +23,16 @@ cd dixlase
 
 This clones the latest installer from `main`. To use a fixed release instead, add `--branch` with a version from [Releases](https://github.com/Dixlase/dixlase-docker-installer/releases), e.g. `git clone --branch v0.1.1 …`. The installed version is in `VERSION` and is printed at the end of `setup.sh` and `update.sh`; what changed in each version, and what to do after updating, is in [CHANGELOG.md](./CHANGELOG.md).
 
+**`setup.sh` clones core from `main`, not from a release.** The installer tracks core's
+development branch — `./setup.sh <branch>` takes a branch name and defaults to `main` — so the
+site runs whatever `main` holds at that moment, which is normally ahead of the newest release.
+Core says so in its own version: between releases `main` carries a `-dev` suffix (for example
+`0.1.10-dev`), so what the admin panel shows is never mistaken for a release. That is the
+intended shape for a local trial or a development environment. A site that should run a
+**released** core is installed from a [core release](https://github.com/Dixlase/dixlase-core/releases)
+or with the quick installer instead, and updated with `php artisan dls:core:update` — see
+[Updating](#updating).
+
 Prefer a download over `git`? Grab the repository ZIP from GitHub ("Code" -> "Download
 ZIP"), unpack it, and run `./setup.sh` in the unpacked directory — the scripts keep their
 executable bit, and `.env` is generated from `.env.example` on first run. Only `./update.sh`
