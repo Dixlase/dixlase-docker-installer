@@ -24,6 +24,15 @@ cd dixlase
 
 これで `main` の最新のインストーラが clone されます。決まったリリースを使う場合は、[Releases](https://github.com/Dixlase/dixlase-docker-installer/releases) の版を `--branch` に指定してください(例: `git clone --branch v0.1.1 …`)。入っている版は `VERSION` にあり、`setup.sh` と `update.sh` の最後にも表示されます。版ごとの変更と、更新のあとにやることは [CHANGELOG.ja.md](./CHANGELOG.ja.md) にあります。
 
+**`setup.sh` がコアを clone するのは `main` であって、リリースではありません。** インストーラは
+コアの開発ブランチを追います — `./setup.sh <ブランチ名>` でブランチを指定でき、既定は `main` です
+— ので、サイトはその時点の `main` の内容で動きます。これは通常、最新のリリースより先に進んでいます。
+コアはそれを自分のバージョンで示します。リリースとリリースの間、`main` は `-dev` の suffix を
+持つ(例: `0.1.10-dev`)ので、管理画面に出るバージョンをリリースと取り違えることはありません。
+ローカルでの試用や開発環境では、これが意図どおりの形です。**リリース版**のコアで動かすサイトは、
+代わりに[コアのリリース](https://github.com/Dixlase/dixlase-core/releases)やクイックインストーラ
+から入れ、`php artisan dls:core:update` で更新してください — [更新](#更新)を参照。
+
 `git` を使わない場合は、GitHub からリポジトリの ZIP をダウンロード (「Code」→「Download
 ZIP」) して展開し、展開先で `./setup.sh` を実行してください。スクリプトの実行権限は
 保たれ、`.env` は初回実行時に `.env.example` から生成されます。git のチェックアウトが
