@@ -5,8 +5,8 @@
 #   ./reset.sh --dev       # Re-setup in development mode	#   ./reset.sh --dev       # 開発モードで再セットアップ
 #   ./reset.sh --images    # Also remove the images built for this stack	#   ./reset.sh --images    # このスタック用にビルドしたイメージも削除
 #   ./reset.sh -y          # Skip the confirmation prompt	#   ./reset.sh -y          # 確認プロンプトを省略
-# --images and -y are consumed here; everything else (--dev, a branch name)	# --images と -y はここで消費し、それ以外（--dev やブランチ名）は
-# is passed on to setup.sh unchanged.	# そのまま setup.sh に渡す。
+# --images and -y are consumed here; everything else (--dev, a branch or	# --images と -y はここで消費し、それ以外(--dev やブランチ名・タグ名)は
+# a tag) is passed on to setup.sh unchanged.	# そのまま setup.sh へ渡す。
   Dixlase - Full reset	  Dixlase - 完全リセット
   The following will be deleted:	  以下を削除します:
     - Docker containers and volumes	    - Docker コンテナとボリューム

@@ -1,18 +1,26 @@
 # Dixlase source update	# Dixlase ソース更新
 # Pulls the latest code from GitHub and refreshes the container.	# GitHub から最新のコードを pull してコンテナを再構築
-# This advances a git checkout of the core in html/, which is the	# これは html/ にあるコアの git チェックアウトを進めるもので、開発者向けの
-# developer path. A site running a released core should update with	# 経路である。リリース版のコアで動いているサイトは `php artisan
-# `php artisan dls:core:update` instead: that takes a backup, holds a	# dls:core:update` を使うこと。あちらはバックアップを取り、メンテナンス窓を
-# maintenance window and can roll back. This script does none of that.	# 保ち、ロールバックできる。このスクリプトはそのいずれも行わない。
+# This advances the git checkout of the core in html/. With no argument	# これは html/ にあるコアの git チェックアウトを進めるもの。引数が無い場合、
+# it moves an install made from a release tag to the newest release, and	# リリースタグで入れたインストールは最新のリリースへ、ブランチを追っている
+# an install that tracks a branch along that branch. It takes no backup,	# インストールはそのブランチに沿って進む。バックアップは取らず、メンテナンス窓も
+# holds no maintenance window and cannot roll back, so a site with data	# 保たず、ロールバックもできないので、失いたくないデータがあるサイトは
+# worth keeping is better served by `php artisan dls:core:update`.	# `php artisan dls:core:update` のほうが向いている。
 # Usage:	# 使い方:
-#   ./update.sh              # update the current branch (default: main)	#   ./update.sh              # 現在のブランチを更新 (既定: main)
-#   ./update.sh <branch>     # switch html/ to <branch>, then update	#   ./update.sh <branch>     # html/ を <branch> に切り替えてから更新
+#   ./update.sh              # newest release, or main for a branch checkout	#   ./update.sh              # 最新リリース、ブランチのチェックアウトなら main
+#   ./update.sh <ref>        # switch html/ to <ref> (a branch or a tag), then update	#   ./update.sh <ref>        # html/ を <ref> (ブランチかタグ) に切り替えてから更新
 #   ./update.sh --dev        # skip the asset build (Vite serves them)	#   ./update.sh --dev        # アセットビルドを省略 (Vite が配信)
+Usage: ./update.sh [ref] [--dev]	使い方: ./update.sh [ref] [--dev]
+  [ref]      Branch or tag to update html/ to. The default is the newest	  [ref]      html/ を更新する先のブランチかタグ。既定は、タグで入れた
+             release for an install made from a tag, and main for one that	             インストールなら最新のリリース、ブランチを追っている
+             tracks a branch.	             インストールなら main。
+  --dev      Skip the production asset build (the Vite dev server serves them)	  --dev      本番用アセットのビルドを省略 (Vite 開発サーバーが配信)
+# Left empty here on purpose: what the default is depends on whether html/	# ここでは空のままにする。既定が何になるかは、html/ がブランチを追っているのか
+# tracks a branch or sits on a release tag, which the git section below works	# リリースタグの上にいるのかで変わり、それは下の git の節がチェックアウト自体から
+# out from the checkout itself.	# 判断する。
   Unknown option: $arg	  不明なオプション: $arg
 # Mirror setup.sh: VITE=true in .env means the Vite dev server is the one	# setup.sh と同じ判定: .env の VITE=true はアセットを Vite 開発サーバーが
 # serving the assets, so there is nothing to build here.	# 配信することを意味するので、ここでビルドするものは無い。
   Dixlase - Source update	  Dixlase - ソース更新
-  Branch: $BRANCH	  ブランチ: $BRANCH
   html/ not found. Run setup.sh first.	  html/ が見つかりません。setup.sh を先に実行してください。
 # A release ZIP carries no .git, so there is nothing here to fast-forward.	# リリース ZIP には .git が無いので、ここに fast-forward するものは無い。この判定が
 # Without this the git commands below just print "fatal: not a git	# 無いと、下の git コマンドが "fatal: not a git repository" を 2 回出して exit 128 で
@@ -51,9 +59,24 @@
   Keep or discard them, then run ./update.sh again:	  変更を退避または破棄してから、もう一度 ./update.sh を実行してください:
     git -C html -c safe.directory=$HTML_DIR stash          # keep for later	    git -C html -c safe.directory=$HTML_DIR stash          # 後で戻す
     git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard	    git -C html -c safe.directory=$HTML_DIR checkout -- .  # 破棄
-  html/ is on a detached HEAD, so there is no branch to update.	  html/ が detached HEAD のため、更新するブランチがありません。
-  Check out a branch first:	  先にブランチをチェックアウトしてください:
-    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH	    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH
+# --tags, because a plain fetch does not always bring new tags along, and a	# --tags を付けるのは、素の fetch では新しいタグが来ないことがあり、リリースで
+# release install is identified by one.	# 入れたインストールはそのタグで見分けるからである。
+# The newest release tag, read from the tags just fetched so this costs no	# いま fetch したタグから最新のリリースタグを読む。ネットワーク呼び出しを
+# second network call. sort -t. -k1,1n rather than sort -V, which BSD and GNU	# 二度行わないため。sort -V は BSD と GNU で挙動が揃わないので sort -t. -k1,1n
+# do not agree on, and never a plain sort, which orders v0.1.9 after v0.1.12.	# を使い、素の sort も使わない (v0.1.9 が v0.1.12 より後ろに来る)。
+# setup.sh installs a release tag, which leaves html/ on a detached HEAD, so	# setup.sh はリリースタグを入れるので html/ は detached HEAD になる。引数の無い
+# that is what an install with no argument means here: move it to the newest	# 実行がそれに当たるため、最新のリリースへ動かす。ブランチを追っている
+# release. A checkout that tracks a branch keeps the behaviour it has always	# チェックアウトは従来の挙動を保ち、引数が別のものを指さない限り main を
+# had, which is main unless an argument names something else.	# 対象とする。
+  html/ is on a detached HEAD and origin has no release tag.	  html/ は detached HEAD で、origin にリリースタグがありません。
+  Name the branch or tag to update to:	  更新先のブランチかタグを指定してください:
+    ./update.sh main	    ./update.sh main
+# A tag names one commit, so there is nothing to fast-forward: check it out,	# タグは 1 つのコミットを指すので fast-forward するものが無い。チェックアウトし、
+# which leaves html/ detached at that release. Everything in the else branch	# html/ はそのリリースで detached になる。else 側はすべてブランチの場合で、
+# is the branch case, unchanged.	# 従来のままである。
+  html/ is already at $REF.	  html/ は既に $REF と同じです。
+  Moving html/ to $REF...	  html/ を $REF へ移動中...
+  Switching html/ from a detached HEAD to $BRANCH...	  html/ を detached HEAD から $BRANCH へ切り替え中...
   Switching html/ from $CURRENT_BRANCH to $BRANCH...	  html/ を $CURRENT_BRANCH から $BRANCH へ切り替え中...
 # Fast-forward only. A merge commit in html/ would make every later update	# fast-forward のみ。html/ にマージコミットを作ると以降の更新がさらに分岐し、
 # diverge further, and `git pull`'s own failure modes ("refusing to merge	# `git pull` 自体の失敗（"refusing to merge unrelated histories"、
