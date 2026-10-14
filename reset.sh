@@ -18,8 +18,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# --images and -y are consumed here; everything else (--dev, a branch name)
-# is passed on to setup.sh unchanged.
+# --images and -y are consumed here; everything else (--dev, a branch or
+# a tag) is passed on to setup.sh unchanged.
 REMOVE_IMAGES=false
 ASSUME_YES=false
 SETUP_ARGS=()
