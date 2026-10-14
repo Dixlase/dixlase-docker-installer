@@ -23,15 +23,16 @@ cd dixlase
 
 This clones the latest installer from `main`. To use a fixed release instead, add `--branch` with a version from [Releases](https://github.com/Dixlase/dixlase-docker-installer/releases), e.g. `git clone --branch v0.1.1 …`. The installed version is in `VERSION` and is printed at the end of `setup.sh` and `update.sh`; what changed in each version, and what to do after updating, is in [CHANGELOG.md](./CHANGELOG.md).
 
-**`setup.sh` clones core from `main`, not from a release.** The installer tracks core's
-development branch — `./setup.sh <branch>` takes a branch name and defaults to `main` — so the
-site runs whatever `main` holds at that moment, which is normally ahead of the newest release.
-Core says so in its own version: between releases `main` carries a `-dev` suffix (for example
-`0.1.10-dev`), so what the admin panel shows is never mistaken for a release. That is the
-intended shape for a local trial or a development environment. A site that should run a
-**released** core is installed from a [core release](https://github.com/Dixlase/dixlase-core/releases)
-or with the quick installer instead, and updated with `php artisan dls:core:update` — see
-[Updating](#updating).
+**`setup.sh` installs core's newest release.** It reads the newest `vX.Y.Z` tag straight from
+the core repository and clones that, so a fresh install is a version someone chose to release
+rather than whatever `main` happened to hold. An explicit ref always wins: `./setup.sh main`
+installs core's development branch (between releases its version carries a `-dev` suffix, for
+example `0.1.13-dev`, so the admin panel never shows it as a release), and `./setup.sh v0.1.11`
+installs that older release. When no tag can be read — a fork with no releases, or no network —
+the run says so and falls back to `main` instead of stopping.
+
+A release install leaves `html/` on a detached `HEAD` at that tag, which is what a tag checkout
+is in git. `./update.sh` moves such an install to the next release; see [Updating](#updating).
 
 Prefer a download over `git`? Grab the repository ZIP from GitHub ("Code" -> "Download
 ZIP"), unpack it, and run `./setup.sh` in the unpacked directory — the scripts keep their
@@ -196,22 +197,24 @@ docker compose exec dixlase.test bash   # open a shell inside the app container
 ## Updating
 
 ```bash
-./update.sh                 # fast-forward html/ to origin/main, then refresh the stack
-./update.sh <branch>        # the same, against another branch
+./update.sh                 # move html/ to core's newest release, then refresh the stack
+./update.sh <ref>           # the same, against a branch or an older release tag
 ./update.sh --dev           # skip the asset build (the Vite dev server serves them)
 ```
 
-`update.sh` advances the **git checkout** in `html/`: it fast-forwards the branch, re-runs
+`update.sh` advances the **git checkout** in `html/`. An install made from a release tag moves
+to core's newest release; one that tracks a branch is fast-forwarded along it, `main` unless an
+argument names another. It then re-runs
 `composer install` (every package core requires is public, so no credential takes part),
 realigns the migration bookkeeping with
 `dls:migration:resync` (required while core still renumbers its baseline migrations),
 runs the migrations, rebuilds the frontend assets and reconciles the core version ledger.
-It never guesses: a worktree with local changes to tracked files, a detached `HEAD`, or a
-history that no longer fast-forwards stops the run and names the command that resolves it.
+It never guesses: a worktree with local changes to tracked files, or a branch history that no
+longer fast-forwards, stops the run and names the command that resolves it.
 
-A site running a **released** core should update with `php artisan dls:core:update` instead.
-That path takes a backup, holds a maintenance window and can roll back; `update.sh` does
-none of that.
+`update.sh` takes no backup, holds no maintenance window and cannot roll back. A site with
+data worth keeping should update with `php artisan dls:core:update` instead, which does all
+three.
 
 ```bash
 ./reset.sh                  # destroy DB / source / volumes, then re-run setup

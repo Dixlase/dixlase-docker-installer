@@ -1,18 +1,26 @@
 # Dixlase source update	# Dixlase source update
 # Pulls the latest code from GitHub and refreshes the container.	# Pulls the latest code from GitHub and refreshes the container.
-# This advances a git checkout of the core in html/, which is the	# This advances a git checkout of the core in html/, which is the
-# developer path. A site running a released core should update with	# developer path. A site running a released core should update with
-# `php artisan dls:core:update` instead: that takes a backup, holds a	# `php artisan dls:core:update` instead: that takes a backup, holds a
-# maintenance window and can roll back. This script does none of that.	# maintenance window and can roll back. This script does none of that.
+# This advances the git checkout of the core in html/. With no argument	# This advances the git checkout of the core in html/. With no argument
+# it moves an install made from a release tag to the newest release, and	# it moves an install made from a release tag to the newest release, and
+# an install that tracks a branch along that branch. It takes no backup,	# an install that tracks a branch along that branch. It takes no backup,
+# holds no maintenance window and cannot roll back, so a site with data	# holds no maintenance window and cannot roll back, so a site with data
+# worth keeping is better served by `php artisan dls:core:update`.	# worth keeping is better served by `php artisan dls:core:update`.
 # Usage:	# Usage:
-#   ./update.sh              # update the current branch (default: main)	#   ./update.sh              # update the current branch (default: main)
-#   ./update.sh <branch>     # switch html/ to <branch>, then update	#   ./update.sh <branch>     # switch html/ to <branch>, then update
+#   ./update.sh              # newest release, or main for a branch checkout	#   ./update.sh              # newest release, or main for a branch checkout
+#   ./update.sh <ref>        # switch html/ to <ref> (a branch or a tag), then update	#   ./update.sh <ref>        # switch html/ to <ref> (a branch or a tag), then update
 #   ./update.sh --dev        # skip the asset build (Vite serves them)	#   ./update.sh --dev        # skip the asset build (Vite serves them)
+Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
+  [ref]      Branch or tag to update html/ to. The default is the newest	  [ref]      Branch or tag to update html/ to. The default is the newest
+             release for an install made from a tag, and main for one that	             release for an install made from a tag, and main for one that
+             tracks a branch.	             tracks a branch.
+  --dev      Skip the production asset build (the Vite dev server serves them)	  --dev      Skip the production asset build (the Vite dev server serves them)
+# Left empty here on purpose: what the default is depends on whether html/	# Left empty here on purpose: what the default is depends on whether html/
+# tracks a branch or sits on a release tag, which the git section below works	# tracks a branch or sits on a release tag, which the git section below works
+# out from the checkout itself.	# out from the checkout itself.
   Unknown option: $arg	  Unknown option: $arg
 # Mirror setup.sh: VITE=true in .env means the Vite dev server is the one	# Mirror setup.sh: VITE=true in .env means the Vite dev server is the one
 # serving the assets, so there is nothing to build here.	# serving the assets, so there is nothing to build here.
   Dixlase - Source update	  Dixlase - Source update
-  Branch: $BRANCH	  Branch: $BRANCH
   html/ not found. Run setup.sh first.	  html/ not found. Run setup.sh first.
 # A release ZIP carries no .git, so there is nothing here to fast-forward.	# A release ZIP carries no .git, so there is nothing here to fast-forward.
 # Without this the git commands below just print "fatal: not a git	# Without this the git commands below just print "fatal: not a git
@@ -51,9 +59,24 @@
   Keep or discard them, then run ./update.sh again:	  Keep or discard them, then run ./update.sh again:
     git -C html -c safe.directory=$HTML_DIR stash          # keep for later	    git -C html -c safe.directory=$HTML_DIR stash          # keep for later
     git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard	    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard
-  html/ is on a detached HEAD, so there is no branch to update.	  html/ is on a detached HEAD, so there is no branch to update.
-  Check out a branch first:	  Check out a branch first:
-    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH	    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH
+# --tags, because a plain fetch does not always bring new tags along, and a	# --tags, because a plain fetch does not always bring new tags along, and a
+# release install is identified by one.	# release install is identified by one.
+# The newest release tag, read from the tags just fetched so this costs no	# The newest release tag, read from the tags just fetched so this costs no
+# second network call. sort -t. -k1,1n rather than sort -V, which BSD and GNU	# second network call. sort -t. -k1,1n rather than sort -V, which BSD and GNU
+# do not agree on, and never a plain sort, which orders v0.1.9 after v0.1.12.	# do not agree on, and never a plain sort, which orders v0.1.9 after v0.1.12.
+# setup.sh installs a release tag, which leaves html/ on a detached HEAD, so	# setup.sh installs a release tag, which leaves html/ on a detached HEAD, so
+# that is what an install with no argument means here: move it to the newest	# that is what an install with no argument means here: move it to the newest
+# release. A checkout that tracks a branch keeps the behaviour it has always	# release. A checkout that tracks a branch keeps the behaviour it has always
+# had, which is main unless an argument names something else.	# had, which is main unless an argument names something else.
+  html/ is on a detached HEAD and origin has no release tag.	  html/ is on a detached HEAD and origin has no release tag.
+  Name the branch or tag to update to:	  Name the branch or tag to update to:
+    ./update.sh main	    ./update.sh main
+# A tag names one commit, so there is nothing to fast-forward: check it out,	# A tag names one commit, so there is nothing to fast-forward: check it out,
+# which leaves html/ detached at that release. Everything in the else branch	# which leaves html/ detached at that release. Everything in the else branch
+# is the branch case, unchanged.	# is the branch case, unchanged.
+  html/ is already at $REF.	  html/ is already at $REF.
+  Moving html/ to $REF...	  Moving html/ to $REF...
+  Switching html/ from a detached HEAD to $BRANCH...	  Switching html/ from a detached HEAD to $BRANCH...
   Switching html/ from $CURRENT_BRANCH to $BRANCH...	  Switching html/ from $CURRENT_BRANCH to $BRANCH...
 # Fast-forward only. A merge commit in html/ would make every later update	# Fast-forward only. A merge commit in html/ would make every later update
 # diverge further, and `git pull`'s own failure modes ("refusing to merge	# diverge further, and `git pull`'s own failure modes ("refusing to merge

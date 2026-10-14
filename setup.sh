@@ -11,8 +11,8 @@ set -e
 # Usage:
 #   ./setup.sh                  # Built-assets mode (no Vite dev server)
 #   ./setup.sh --dev            # Development mode (Vite hot-reload)
-#   ./setup.sh <branch>         # Clone the specified branch (default: main)
-#   ./setup.sh --dev <branch>   # Development mode + specified branch
+#   ./setup.sh <ref>            # Clone the given branch or tag (default: newest release)
+#   ./setup.sh --dev <ref>      # Development mode + the given branch or tag
 # ====================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -34,15 +34,48 @@ docker_root() {
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.
 REPO_URL="${DIXLASE_REPO_URL:-https://github.com/Dixlase/dixlase-core.git}"
 
-# Parse arguments: --dev flag and branch name
+# The newest release tag in the core repository, read from the remote. A git
+# command rather than the GitHub API: no new dependency, and no anonymous
+# rate limit to run into. sort -t. -k1,1n rather than sort -V, which BSD and
+# GNU do not agree on, and never a plain sort, which orders v0.1.9 after
+# v0.1.12. The vX.Y.Z filter leaves out a suffixed tag, so a -dev or an -rc
+# tag is never picked. Prints nothing when no tag matches or the remote
+# cannot be reached.
+resolve_newest_release_tag() {
+    git ls-remote --tags --refs "$REPO_URL" 2>/dev/null \
+        | awk '{print $2}' | sed 's|refs/tags/||' \
+        | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+        | sed 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1 | sed 's/^/v/'
+}
+
+# Parse arguments: --dev flag and the branch or tag to install
 DEV_MODE=false
-BRANCH="main"
+REF=""
 for arg in "$@"; do
     case "$arg" in
         --dev) DEV_MODE=true ;;
-        *) BRANCH="$arg" ;;
+        *) REF="$arg" ;;
     esac
 done
+
+# With no ref given, install the newest release rather than the tip of the
+# development branch. Core squash-merges every pull request into main as it
+# lands, so main is normally ahead of the newest tag, and a plain ./setup.sh
+# used to install a build nobody had released. An explicit ref still wins, so
+# ./setup.sh main installs the development branch.
+if [ -n "$REF" ]; then
+    CORE_LABEL="$REF"
+else
+    REF=$(resolve_newest_release_tag || true)
+    if [ -n "$REF" ]; then
+        CORE_LABEL="$REF (newest release)"
+    else
+        # A fork with no releases, or no network. Installing the development
+        # branch is better than refusing to install at all; say which it is.
+        REF="main"
+        CORE_LABEL="main (no release tag found)"
+    fi
+fi
 
 if [ "$DEV_MODE" = true ]; then
     MODE_LABEL="Development mode (Vite hot-reload)"
@@ -56,7 +89,7 @@ fi
 echo "========================================"
 echo "  Dixlase Setup"
 echo "  Mode:   $MODE_LABEL"
-echo "  Branch: $BRANCH"
+echo "  Core:   $CORE_LABEL"
 echo "========================================"
 echo ""
 
@@ -71,13 +104,13 @@ if [ -d "html" ]; then
         docker_root 'rm -rf /work/html'
         rm -rf html
         echo "  Cloning from GitHub..."
-        git clone -b "$BRANCH" "$REPO_URL" html
+        git -c advice.detachedHead=false clone -b "$REF" "$REPO_URL" html
     else
         echo "  Keeping existing html/."
     fi
 else
     echo "[1/6] Cloning from GitHub..."
-    git clone -b "$BRANCH" "$REPO_URL" html
+    git -c advice.detachedHead=false clone -b "$REF" "$REPO_URL" html
 fi
 
 cd html

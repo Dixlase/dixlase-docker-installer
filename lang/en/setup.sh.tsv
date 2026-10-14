@@ -3,10 +3,24 @@
 # Usage:	# Usage:
 #   ./setup.sh                  # Built-assets mode (no Vite dev server)	#   ./setup.sh                  # Built-assets mode (no Vite dev server)
 #   ./setup.sh --dev            # Development mode (Vite hot-reload)	#   ./setup.sh --dev            # Development mode (Vite hot-reload)
-#   ./setup.sh <branch>         # Clone the specified branch (default: main)	#   ./setup.sh <branch>         # Clone the specified branch (default: main)
-#   ./setup.sh --dev <branch>   # Development mode + specified branch	#   ./setup.sh --dev <branch>   # Development mode + specified branch
+#   ./setup.sh <ref>            # Clone the given branch or tag (default: newest release)	#   ./setup.sh <ref>            # Clone the given branch or tag (default: newest release)
+#   ./setup.sh --dev <ref>      # Development mode + the given branch or tag	#   ./setup.sh --dev <ref>      # Development mode + the given branch or tag
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.	# Repository URLs can be overridden via environment variables. Default is public HTTPS.
-# Parse arguments: --dev flag and branch name	# Parse arguments: --dev flag and branch name
+# The newest release tag in the core repository, read from the remote. A git	# The newest release tag in the core repository, read from the remote. A git
+# command rather than the GitHub API: no new dependency, and no anonymous	# command rather than the GitHub API: no new dependency, and no anonymous
+# rate limit to run into. sort -t. -k1,1n rather than sort -V, which BSD and	# rate limit to run into. sort -t. -k1,1n rather than sort -V, which BSD and
+# GNU do not agree on, and never a plain sort, which orders v0.1.9 after	# GNU do not agree on, and never a plain sort, which orders v0.1.9 after
+# v0.1.12. The vX.Y.Z filter leaves out a suffixed tag, so a -dev or an -rc	# v0.1.12. The vX.Y.Z filter leaves out a suffixed tag, so a -dev or an -rc
+# tag is never picked. Prints nothing when no tag matches or the remote	# tag is never picked. Prints nothing when no tag matches or the remote
+# cannot be reached.	# cannot be reached.
+# Parse arguments: --dev flag and the branch or tag to install	# Parse arguments: --dev flag and the branch or tag to install
+# With no ref given, install the newest release rather than the tip of the	# With no ref given, install the newest release rather than the tip of the
+# development branch. Core squash-merges every pull request into main as it	# development branch. Core squash-merges every pull request into main as it
+# lands, so main is normally ahead of the newest tag, and a plain ./setup.sh	# lands, so main is normally ahead of the newest tag, and a plain ./setup.sh
+# used to install a build nobody had released. An explicit ref still wins, so	# used to install a build nobody had released. An explicit ref still wins, so
+# ./setup.sh main installs the development branch.	# ./setup.sh main installs the development branch.
+# A fork with no releases, or no network. Installing the development	# A fork with no releases, or no network. Installing the development
+# branch is better than refusing to install at all; say which it is.	# branch is better than refusing to install at all; say which it is.
 # 1. Clone the core from GitHub	# 1. Clone the core from GitHub
 # git clone of core left an empty placeholder directory for every	# git clone of core left an empty placeholder directory for every
 # wizard. Remove the empty placeholders so html/ does not look	# wizard. Remove the empty placeholders so html/ does not look
@@ -58,8 +72,13 @@
 # Done	# Done
 # APP_URL / port values were already computed at the top of step [6/6];	# APP_URL / port values were already computed at the top of step [6/6];
 # reuse them here for the final summary.	# reuse them here for the final summary.
+$REF (newest release)	$REF (newest release)
+main (no release tag found)	main (no release tag found)
 Development mode (Vite hot-reload)	Development mode (Vite hot-reload)
 Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
+  Dixlase Setup	  Dixlase Setup
+  Mode:   $MODE_LABEL	  Mode:   $MODE_LABEL
+  Core:   $CORE_LABEL	  Core:   $CORE_LABEL
 [1/6] html/ already exists.	[1/6] html/ already exists.
   Delete and re-clone? (y/N): 	  Delete and re-clone? (y/N):
   Deleting html/...	  Deleting html/...

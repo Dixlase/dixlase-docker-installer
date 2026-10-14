@@ -3,10 +3,24 @@
 # Usage:	# 使い方:
 #   ./setup.sh                  # Built-assets mode (no Vite dev server)	#   ./setup.sh                  # ビルド済みアセットモード (Vite 開発サーバーなし)
 #   ./setup.sh --dev            # Development mode (Vite hot-reload)	#   ./setup.sh --dev            # 開発モード (Vite hot-reload 有効)
-#   ./setup.sh <branch>         # Clone the specified branch (default: main)	#   ./setup.sh <branch>         # 指定ブランチをクローン (デフォルト: main)
-#   ./setup.sh --dev <branch>   # Development mode + specified branch	#   ./setup.sh --dev <branch>   # 開発モード + ブランチ指定
+#   ./setup.sh <ref>            # Clone the given branch or tag (default: newest release)	#   ./setup.sh <ref>            # 指定したブランチかタグをクローン (既定: 最新リリース)
+#   ./setup.sh --dev <ref>      # Development mode + the given branch or tag	#   ./setup.sh --dev <ref>      # 開発モード + ブランチかタグの指定
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.	# リポジトリ URL は環境変数で上書き可能。デフォルトは公開 HTTPS。
-# Parse arguments: --dev flag and branch name	# 引数パース: --dev フラグとブランチ名
+# The newest release tag in the core repository, read from the remote. A git	# コアのリポジトリの最新リリースタグをリモートから読む。GitHub API ではなく
+# command rather than the GitHub API: no new dependency, and no anonymous	# git のコマンドを使うのは、新しい依存を増やさず、匿名のレート制限にも
+# rate limit to run into. sort -t. -k1,1n rather than sort -V, which BSD and	# 当たらないため。sort -V は BSD と GNU で挙動が揃わないので sort -t. -k1,1n
+# GNU do not agree on, and never a plain sort, which orders v0.1.9 after	# を使い、素の sort も使わない (v0.1.9 が v0.1.12 より後ろに来る)。
+# v0.1.12. The vX.Y.Z filter leaves out a suffixed tag, so a -dev or an -rc	# vX.Y.Z の絞り込みで接尾辞付きのタグは外れるので、-dev や -rc のタグが
+# tag is never picked. Prints nothing when no tag matches or the remote	# 選ばれることはない。一致するタグが無いときやリモートに到達できないときは、
+# cannot be reached.	# 何も出力しない。
+# Parse arguments: --dev flag and the branch or tag to install	# 引数パース: --dev フラグと、入れるブランチかタグ
+# With no ref given, install the newest release rather than the tip of the	# ref の指定が無いときは、開発ブランチの先端ではなく最新リリースを入れる。
+# development branch. Core squash-merges every pull request into main as it	# コアはプルリクエストを着地のたびに main へ squash マージするので、main は
+# lands, so main is normally ahead of the newest tag, and a plain ./setup.sh	# 通常、最新のタグより先行している。素の ./setup.sh は、そのため以前は誰も
+# used to install a build nobody had released. An explicit ref still wins, so	# リリースしていないビルドを入れていた。明示した ref は従来どおり優先するので、
+# ./setup.sh main installs the development branch.	# ./setup.sh main は開発ブランチを入れる。
+# A fork with no releases, or no network. Installing the development	# リリースの無いフォーク、あるいはネットワークが無い場合。インストールを
+# branch is better than refusing to install at all; say which it is.	# 拒否するより開発ブランチを入れるほうがよいので、どちらなのかを表示する。
 # 1. Clone the core from GitHub	# 1. GitHub からコアをクローン
 # git clone of core left an empty placeholder directory for every	# core の git clone は core の .gitmodules に列挙されたサブモジュール
 # wizard. Remove the empty placeholders so html/ does not look	# html/ が半端に見えないよう空のプレースホルダーを削除します。rmdir は
@@ -58,8 +72,13 @@
 # Done	# 完了
 # APP_URL / port values were already computed at the top of step [6/6];	# APP_URL / ポート値は [6/6] の先頭で既に算出済み。ここでは
 # reuse them here for the final summary.	# 最終サマリー表示にそのまま再利用する。
+$REF (newest release)	$REF (最新リリース)
+main (no release tag found)	main (リリースタグが見つかりません)
 Development mode (Vite hot-reload)	開発モード (Vite hot-reload)
 Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vite 開発サーバーなし)
+  Dixlase Setup	  Dixlase セットアップ
+  Mode:   $MODE_LABEL	  モード: $MODE_LABEL
+  Core:   $CORE_LABEL	  コア:   $CORE_LABEL
 [1/6] html/ already exists.	[1/6] html/ が既に存在します。
   Delete and re-clone? (y/N): 	  削除してクリーンクローンしますか? (y/N):
   Deleting html/...	  html/ を削除中...

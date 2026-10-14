@@ -8,14 +8,15 @@ set -e
 # Dixlase source update
 # Pulls the latest code from GitHub and refreshes the container.
 #
-# This advances a git checkout of the core in html/, which is the
-# developer path. A site running a released core should update with
-# `php artisan dls:core:update` instead: that takes a backup, holds a
-# maintenance window and can roll back. This script does none of that.
+# This advances the git checkout of the core in html/. With no argument
+# it moves an install made from a release tag to the newest release, and
+# an install that tracks a branch along that branch. It takes no backup,
+# holds no maintenance window and cannot roll back, so a site with data
+# worth keeping is better served by `php artisan dls:core:update`.
 #
 # Usage:
-#   ./update.sh              # update the current branch (default: main)
-#   ./update.sh <branch>     # switch html/ to <branch>, then update
+#   ./update.sh              # newest release, or main for a branch checkout
+#   ./update.sh <ref>        # switch html/ to <ref> (a branch or a tag), then update
 #   ./update.sh --dev        # skip the asset build (Vite serves them)
 # ====================================================
 
@@ -24,21 +25,26 @@ cd "$SCRIPT_DIR"
 
 print_usage() {
     cat <<'EOF'
-Usage: ./update.sh [branch] [--dev]
+Usage: ./update.sh [ref] [--dev]
 
-  [branch]   Branch to update html/ to (default: main)
+  [ref]      Branch or tag to update html/ to. The default is the newest
+             release for an install made from a tag, and main for one that
+             tracks a branch.
   --dev      Skip the production asset build (the Vite dev server serves them)
 EOF
 }
 
-BRANCH="main"
+# Left empty here on purpose: what the default is depends on whether html/
+# tracks a branch or sits on a release tag, which the git section below works
+# out from the checkout itself.
+REF=""
 DEV_MODE=false
 for arg in "$@"; do
     case "$arg" in
         --dev) DEV_MODE=true ;;
         -h|--help) print_usage; exit 0 ;;
         --*) echo "  Unknown option: $arg" >&2; exit 1 ;;
-        *) BRANCH="$arg" ;;
+        *) REF="$arg" ;;
     esac
 done
 
@@ -53,7 +59,6 @@ fi
 
 echo "========================================"
 echo "  Dixlase - Source update"
-echo "  Branch: $BRANCH"
 echo "========================================"
 echo ""
 
@@ -129,42 +134,84 @@ if [ -n "$DIRTY" ]; then
 fi
 
 CURRENT_BRANCH=$(git "${GIT_SAFE[@]}" rev-parse --abbrev-ref HEAD)
-if [ "$CURRENT_BRANCH" = "HEAD" ]; then
-    echo "  html/ is on a detached HEAD, so there is no branch to update."
-    echo "  Check out a branch first:"
-    echo "    git -C html -c safe.directory=$HTML_DIR checkout $BRANCH"
-    exit 1
-fi
 
-git "${GIT_SAFE[@]}" fetch origin
-if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
-    echo "  Switching html/ from $CURRENT_BRANCH to $BRANCH..."
-    git "${GIT_SAFE[@]}" checkout "$BRANCH" 2>/dev/null \
-        || git "${GIT_SAFE[@]}" checkout -b "$BRANCH" --track "origin/$BRANCH"
-fi
+# --tags, because a plain fetch does not always bring new tags along, and a
+# release install is identified by one.
+git "${GIT_SAFE[@]}" fetch origin --tags
 
-# Fast-forward only. A merge commit in html/ would make every later update
-# diverge further, and `git pull`'s own failure modes ("refusing to merge
-# unrelated histories", "divergent branches") arrive as a bare fatal: with
-# no hint of what to do next. Decide the case here and name the remedy.
-LOCAL_HEAD=$(git "${GIT_SAFE[@]}" rev-parse HEAD)
-REMOTE_HEAD=$(git "${GIT_SAFE[@]}" rev-parse "origin/$BRANCH")
-if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
-    echo "  html/ is already at origin/$BRANCH."
-elif git "${GIT_SAFE[@]}" merge-base --is-ancestor "$LOCAL_HEAD" "$REMOTE_HEAD"; then
-    git "${GIT_SAFE[@]}" merge --ff-only "origin/$BRANCH"
-else
-    if git "${GIT_SAFE[@]}" merge-base "$LOCAL_HEAD" "$REMOTE_HEAD" >/dev/null 2>&1; then
-        echo "  html/ has diverged from origin/$BRANCH: it carries commits the remote does not have."
+# The newest release tag, read from the tags just fetched so this costs no
+# second network call. sort -t. -k1,1n rather than sort -V, which BSD and GNU
+# do not agree on, and never a plain sort, which orders v0.1.9 after v0.1.12.
+resolve_newest_release_tag() {
+    git "${GIT_SAFE[@]}" tag --list \
+        | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+        | sed 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1 | sed 's/^/v/'
+}
+
+# setup.sh installs a release tag, which leaves html/ on a detached HEAD, so
+# that is what an install with no argument means here: move it to the newest
+# release. A checkout that tracks a branch keeps the behaviour it has always
+# had, which is main unless an argument names something else.
+if [ -z "$REF" ]; then
+    if [ "$CURRENT_BRANCH" = "HEAD" ]; then
+        REF=$(resolve_newest_release_tag || true)
+        if [ -z "$REF" ]; then
+            echo "  html/ is on a detached HEAD and origin has no release tag."
+            echo "  Name the branch or tag to update to:"
+            echo "    ./update.sh main"
+            exit 1
+        fi
     else
-        echo "  html/ shares no history with origin/$BRANCH, so the remote branch was rewritten."
+        REF="main"
     fi
-    echo ""
-    echo "  To take the remote as it is, discarding local commits in html/:"
-    echo "    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH"
-    echo ""
-    echo "  Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git."
-    exit 1
+fi
+
+# A tag names one commit, so there is nothing to fast-forward: check it out,
+# which leaves html/ detached at that release. Everything in the else branch
+# is the branch case, unchanged.
+if git "${GIT_SAFE[@]}" rev-parse -q --verify "refs/tags/$REF" >/dev/null; then
+    TAG_HEAD=$(git "${GIT_SAFE[@]}" rev-parse "refs/tags/$REF^{commit}")
+    if [ "$(git "${GIT_SAFE[@]}" rev-parse HEAD)" = "$TAG_HEAD" ]; then
+        echo "  html/ is already at $REF."
+    else
+        echo "  Moving html/ to $REF..."
+        git "${GIT_SAFE[@]}" -c advice.detachedHead=false checkout --detach "refs/tags/$REF"
+    fi
+else
+    BRANCH="$REF"
+    if [ "$CURRENT_BRANCH" = "HEAD" ]; then
+        echo "  Switching html/ from a detached HEAD to $BRANCH..."
+        git "${GIT_SAFE[@]}" checkout "$BRANCH" 2>/dev/null \
+            || git "${GIT_SAFE[@]}" checkout -b "$BRANCH" --track "origin/$BRANCH"
+    elif [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
+        echo "  Switching html/ from $CURRENT_BRANCH to $BRANCH..."
+        git "${GIT_SAFE[@]}" checkout "$BRANCH" 2>/dev/null \
+            || git "${GIT_SAFE[@]}" checkout -b "$BRANCH" --track "origin/$BRANCH"
+    fi
+
+    # Fast-forward only. A merge commit in html/ would make every later update
+    # diverge further, and `git pull`'s own failure modes ("refusing to merge
+    # unrelated histories", "divergent branches") arrive as a bare fatal: with
+    # no hint of what to do next. Decide the case here and name the remedy.
+    LOCAL_HEAD=$(git "${GIT_SAFE[@]}" rev-parse HEAD)
+    REMOTE_HEAD=$(git "${GIT_SAFE[@]}" rev-parse "origin/$BRANCH")
+    if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
+        echo "  html/ is already at origin/$BRANCH."
+    elif git "${GIT_SAFE[@]}" merge-base --is-ancestor "$LOCAL_HEAD" "$REMOTE_HEAD"; then
+        git "${GIT_SAFE[@]}" merge --ff-only "origin/$BRANCH"
+    else
+        if git "${GIT_SAFE[@]}" merge-base "$LOCAL_HEAD" "$REMOTE_HEAD" >/dev/null 2>&1; then
+            echo "  html/ has diverged from origin/$BRANCH: it carries commits the remote does not have."
+        else
+            echo "  html/ shares no history with origin/$BRANCH, so the remote branch was rewritten."
+        fi
+        echo ""
+        echo "  To take the remote as it is, discarding local commits in html/:"
+        echo "    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH"
+        echo ""
+        echo "  Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git."
+        exit 1
+    fi
 fi
 cd ..
 
