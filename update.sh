@@ -106,6 +106,21 @@ cd html
 HTML_DIR="$(pwd)"
 GIT_SAFE=(-c "safe.directory=$HTML_DIR")
 
+# Reading the repository from the host side is fine, but writing the worktree
+# is not: Linux does not virtualize bind-mount ownership, so once setup.sh has
+# handed html/ to www-data the host user can no longer unlink or create files
+# in it, and `git checkout` fails with "unable to unlink old '.gitignore':
+# Permission denied". macOS never shows this, which is why it went unnoticed.
+#
+# Do those writes where root already is. The app container runs as root, its
+# image installs git and already marks /var/www/html a safe directory for it
+# (see the Dockerfile), and the ownership step at the end of this script hands
+# whatever git wrote back to www-data.
+git_write() {
+    docker compose exec -T -w /var/www/html dixlase.test \
+        git -c safe.directory=/var/www/html "$@"
+}
+
 # A pull cannot do anything useful with local edits to tracked files: git
 # aborts with "Your local changes would be overwritten". Untracked files
 # are not a problem (installed plugins and themes are gitignored), so only
@@ -125,12 +140,12 @@ if [ -n "$DIRTY" ]; then
         printf '%s\n' "$UNEXPECTED" | sed 's/^/    /'
         echo ""
         echo "  Keep or discard them, then run ./update.sh again:"
-        echo "    git -C html -c safe.directory=$HTML_DIR stash          # keep for later"
-        echo "    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard"
+        echo "    docker compose exec dixlase.test git stash          # keep for later"
+        echo "    docker compose exec dixlase.test git checkout -- .  # discard"
         exit 1
     fi
     echo "  Restoring html/.gitignore, which core rewrites for the bundled theme."
-    git "${GIT_SAFE[@]}" checkout -- .gitignore
+    git_write checkout -- .gitignore
 fi
 
 CURRENT_BRANCH=$(git "${GIT_SAFE[@]}" rev-parse --abbrev-ref HEAD)
@@ -175,18 +190,18 @@ if git "${GIT_SAFE[@]}" rev-parse -q --verify "refs/tags/$REF" >/dev/null; then
         echo "  html/ is already at $REF."
     else
         echo "  Moving html/ to $REF..."
-        git "${GIT_SAFE[@]}" -c advice.detachedHead=false checkout --detach "refs/tags/$REF"
+        git_write -c advice.detachedHead=false checkout --detach "refs/tags/$REF"
     fi
 else
     BRANCH="$REF"
     if [ "$CURRENT_BRANCH" = "HEAD" ]; then
         echo "  Switching html/ from a detached HEAD to $BRANCH..."
-        git "${GIT_SAFE[@]}" checkout "$BRANCH" 2>/dev/null \
-            || git "${GIT_SAFE[@]}" checkout -b "$BRANCH" --track "origin/$BRANCH"
+        git_write checkout "$BRANCH" 2>/dev/null \
+            || git_write checkout -b "$BRANCH" --track "origin/$BRANCH"
     elif [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
         echo "  Switching html/ from $CURRENT_BRANCH to $BRANCH..."
-        git "${GIT_SAFE[@]}" checkout "$BRANCH" 2>/dev/null \
-            || git "${GIT_SAFE[@]}" checkout -b "$BRANCH" --track "origin/$BRANCH"
+        git_write checkout "$BRANCH" 2>/dev/null \
+            || git_write checkout -b "$BRANCH" --track "origin/$BRANCH"
     fi
 
     # Fast-forward only. A merge commit in html/ would make every later update
@@ -198,7 +213,7 @@ else
     if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
         echo "  html/ is already at origin/$BRANCH."
     elif git "${GIT_SAFE[@]}" merge-base --is-ancestor "$LOCAL_HEAD" "$REMOTE_HEAD"; then
-        git "${GIT_SAFE[@]}" merge --ff-only "origin/$BRANCH"
+        git_write merge --ff-only "origin/$BRANCH"
     else
         if git "${GIT_SAFE[@]}" merge-base "$LOCAL_HEAD" "$REMOTE_HEAD" >/dev/null 2>&1; then
             echo "  html/ has diverged from origin/$BRANCH: it carries commits the remote does not have."
@@ -207,12 +222,20 @@ else
         fi
         echo ""
         echo "  To take the remote as it is, discarding local commits in html/:"
-        echo "    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH"
+        echo "    docker compose exec dixlase.test git reset --hard origin/$BRANCH"
         echo ""
         echo "  Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git."
         exit 1
     fi
 fi
+
+# The commands above ran as root, so the files git touched inside .git are
+# root-owned now. setup.sh promises .git stays host-owned — that is what lets
+# the operator run git in html/ themselves, and what the commands this script
+# prints rely on — so give it back. -h and find rather than chown -R: an asset
+# link with no target must not be followed (#47).
+docker compose exec -T dixlase.test \
+    find /var/www/html/.git -exec chown -h "$(id -u):$(id -g)" {} + || true
 cd ..
 
 # -------------------------------------------------
