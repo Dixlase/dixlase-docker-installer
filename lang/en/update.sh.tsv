@@ -44,6 +44,15 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
 # "detected dubious ownership in repository". Allow this one path for	# "detected dubious ownership in repository". Allow this one path for
 # these commands instead of touching the operator's global git config.	# these commands instead of touching the operator's global git config.
 # setup.sh leaves .git itself host-owned, so these writes still work.	# setup.sh leaves .git itself host-owned, so these writes still work.
+# Reading the repository from the host side is fine, but writing the worktree	# Reading the repository from the host side is fine, but writing the worktree
+# is not: Linux does not virtualize bind-mount ownership, so once setup.sh has	# is not: Linux does not virtualize bind-mount ownership, so once setup.sh has
+# handed html/ to www-data the host user can no longer unlink or create files	# handed html/ to www-data the host user can no longer unlink or create files
+# in it, and `git checkout` fails with "unable to unlink old '.gitignore':	# in it, and `git checkout` fails with "unable to unlink old '.gitignore':
+# Permission denied". macOS never shows this, which is why it went unnoticed.	# Permission denied". macOS never shows this, which is why it went unnoticed.
+# Do those writes where root already is. The app container runs as root, its	# Do those writes where root already is. The app container runs as root, its
+# image installs git and already marks /var/www/html a safe directory for it	# image installs git and already marks /var/www/html a safe directory for it
+# (see the Dockerfile), and the ownership step at the end of this script hands	# (see the Dockerfile), and the ownership step at the end of this script hands
+# whatever git wrote back to www-data.	# whatever git wrote back to www-data.
 # A pull cannot do anything useful with local edits to tracked files: git	# A pull cannot do anything useful with local edits to tracked files: git
 # aborts with "Your local changes would be overwritten". Untracked files	# aborts with "Your local changes would be overwritten". Untracked files
 # are not a problem (installed plugins and themes are gitignored), so only	# are not a problem (installed plugins and themes are gitignored), so only
@@ -57,8 +66,8 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
   html/ has local changes to tracked files:	  html/ has local changes to tracked files:
   Restoring html/.gitignore, which core rewrites for the bundled theme.	  Restoring html/.gitignore, which core rewrites for the bundled theme.
   Keep or discard them, then run ./update.sh again:	  Keep or discard them, then run ./update.sh again:
-    git -C html -c safe.directory=$HTML_DIR stash          # keep for later	    git -C html -c safe.directory=$HTML_DIR stash          # keep for later
-    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard	    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard
+    docker compose exec dixlase.test git stash          # keep for later	    docker compose exec dixlase.test git stash          # keep for later
+    docker compose exec dixlase.test git checkout -- .  # discard	    docker compose exec dixlase.test git checkout -- .  # discard
 # --tags, because a plain fetch does not always bring new tags along, and a	# --tags, because a plain fetch does not always bring new tags along, and a
 # release install is identified by one.	# release install is identified by one.
 # The newest release tag, read from the tags just fetched so this costs no	# The newest release tag, read from the tags just fetched so this costs no
@@ -86,8 +95,13 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
   html/ has diverged from origin/$BRANCH: it carries commits the remote does not have.	  html/ has diverged from origin/$BRANCH: it carries commits the remote does not have.
   html/ shares no history with origin/$BRANCH, so the remote branch was rewritten.	  html/ shares no history with origin/$BRANCH, so the remote branch was rewritten.
   To take the remote as it is, discarding local commits in html/:	  To take the remote as it is, discarding local commits in html/:
-    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH	    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH
+    docker compose exec dixlase.test git reset --hard origin/$BRANCH	    docker compose exec dixlase.test git reset --hard origin/$BRANCH
   Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git.	  Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git.
+# The commands above ran as root, so the files git touched inside .git are	# The commands above ran as root, so the files git touched inside .git are
+# root-owned now. setup.sh promises .git stays host-owned — that is what lets	# root-owned now. setup.sh promises .git stays host-owned — that is what lets
+# the operator run git in html/ themselves, and what the commands this script	# the operator run git in html/ themselves, and what the commands this script
+# prints rely on — so give it back. -h and find rather than chown -R: an asset	# prints rely on — so give it back. -h and find rather than chown -R: an asset
+# link with no target must not be followed (#47).	# link with no target must not be followed (#47).
 # 2. Update PHP dependencies	# 2. Update PHP dependencies
 [2/6] Updating dependencies...	[2/6] Updating dependencies...
 # Every package core requires is public, so composer needs no credential	# Every package core requires is public, so composer needs no credential

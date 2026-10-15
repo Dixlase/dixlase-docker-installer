@@ -44,6 +44,15 @@ Usage: ./update.sh [ref] [--dev]	使い方: ./update.sh [ref] [--dev]
 # "detected dubious ownership in repository". Allow this one path for	# "detected dubious ownership in repository" として拒否される。運用者のグローバル
 # these commands instead of touching the operator's global git config.	# git 設定を変更する代わりに、これらのコマンドに限りこのパスを許可する。
 # setup.sh leaves .git itself host-owned, so these writes still work.	# setup.sh は .git 自体をホスト所有のまま残すので、これらの書き込みは成立する。
+# Reading the repository from the host side is fine, but writing the worktree	# リポジトリをホスト側から読むのは問題ないが、worktree に書くのはそうではない。
+# is not: Linux does not virtualize bind-mount ownership, so once setup.sh has	# Linux はバインドマウントの所有権を仮想化しないので、setup.sh が html/ を www-data に
+# handed html/ to www-data the host user can no longer unlink or create files	# 渡したあと、ホストのユーザーはその中のファイルを unlink したり作ったりできず、
+# in it, and `git checkout` fails with "unable to unlink old '.gitignore':	# `git checkout` が "unable to unlink old '.gitignore': Permission denied" で
+# Permission denied". macOS never shows this, which is why it went unnoticed.	# 失敗する。macOS では現れないので、これまで気づかれなかった。
+# Do those writes where root already is. The app container runs as root, its	# この書き込みは、すでに root がいる場所で行う。app コンテナは root で動き、イメージは
+# image installs git and already marks /var/www/html a safe directory for it	# git を入れており、/var/www/html を safe directory として登録済みである
+# (see the Dockerfile), and the ownership step at the end of this script hands	# (Dockerfile を参照)。git が書いたものは、このスクリプトの最後にある所有者変更の
+# whatever git wrote back to www-data.	# ステップが www-data に戻す。
 # A pull cannot do anything useful with local edits to tracked files: git	# 追跡対象ファイルにローカル変更があると pull は何も出来ず、git は
 # aborts with "Your local changes would be overwritten". Untracked files	# "Your local changes would be overwritten" で中断する。未追跡ファイルは
 # are not a problem (installed plugins and themes are gitignored), so only	# 問題ない（インストール済みプラグインとテーマは gitignore 対象）ので、
@@ -57,8 +66,8 @@ Usage: ./update.sh [ref] [--dev]	使い方: ./update.sh [ref] [--dev]
   html/ has local changes to tracked files:	  html/ の追跡対象ファイルにローカル変更があります:
   Restoring html/.gitignore, which core rewrites for the bundled theme.	  html/.gitignore を元に戻します (コアが同梱テーマ用に書き換えるファイルです)。
   Keep or discard them, then run ./update.sh again:	  変更を退避または破棄してから、もう一度 ./update.sh を実行してください:
-    git -C html -c safe.directory=$HTML_DIR stash          # keep for later	    git -C html -c safe.directory=$HTML_DIR stash          # 後で戻す
-    git -C html -c safe.directory=$HTML_DIR checkout -- .  # discard	    git -C html -c safe.directory=$HTML_DIR checkout -- .  # 破棄
+    docker compose exec dixlase.test git stash          # keep for later	    docker compose exec dixlase.test git stash          # 後で戻す
+    docker compose exec dixlase.test git checkout -- .  # discard	    docker compose exec dixlase.test git checkout -- .  # 破棄
 # --tags, because a plain fetch does not always bring new tags along, and a	# --tags を付けるのは、素の fetch では新しいタグが来ないことがあり、リリースで
 # release install is identified by one.	# 入れたインストールはそのタグで見分けるからである。
 # The newest release tag, read from the tags just fetched so this costs no	# いま fetch したタグから最新のリリースタグを読む。ネットワーク呼び出しを
@@ -86,8 +95,13 @@ Usage: ./update.sh [ref] [--dev]	使い方: ./update.sh [ref] [--dev]
   html/ has diverged from origin/$BRANCH: it carries commits the remote does not have.	  html/ が origin/$BRANCH から分岐しています: リモートに無いコミットを持っています。
   html/ shares no history with origin/$BRANCH, so the remote branch was rewritten.	  html/ と origin/$BRANCH に共通の履歴がありません（リモートのブランチが書き換えられています）。
   To take the remote as it is, discarding local commits in html/:	  html/ のローカルコミットを捨ててリモートをそのまま取り込むには:
-    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH	    git -C html -c safe.directory=$HTML_DIR reset --hard origin/$BRANCH
+    docker compose exec dixlase.test git reset --hard origin/$BRANCH	    docker compose exec dixlase.test git reset --hard origin/$BRANCH
   Nothing outside html/ is affected: .env, mysql/ and storage/ are not in git.	  html/ の外は影響を受けません: .env・mysql/・storage/ は git の管理外です。
+# The commands above ran as root, so the files git touched inside .git are	# 上のコマンドは root で動いたので、git が触った .git の中のファイルは root 所有に
+# root-owned now. setup.sh promises .git stays host-owned — that is what lets	# なっている。setup.sh は .git をホスト所有のままにすると約束しており、運用者が html/ で
+# the operator run git in html/ themselves, and what the commands this script	# 自分で git を使えるのも、このスクリプトが表示するコマンドが成り立つのもそのためなので、
+# prints rely on — so give it back. -h and find rather than chown -R: an asset	# 戻しておく。chown -R ではなく find と -h を使うのは、リンク先の無いアセットのリンクを
+# link with no target must not be followed (#47).	# たどってはならないため(#47)。
 # 2. Update PHP dependencies	# 2. PHP 依存パッケージの更新
 [2/6] Updating dependencies...	[2/6] 依存パッケージを更新中...
 # Every package core requires is public, so composer needs no credential	# コアが require するパッケージはすべて public なので、composer に資格情報は
