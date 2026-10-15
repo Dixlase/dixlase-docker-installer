@@ -396,11 +396,24 @@ jobs:
       # The admin path segment is an obviously invented CI value and the
       # password is generated in this step: neither belongs in a workflow file,
       # and this stack is destroyed in the teardown either way.
+      #
+      # The DB_* variables are not redundant with the --db-* options: the
+      # command runs a pre-flight query before the settings it was given are
+      # in effect, against an html/.env it has just copied from core's
+      # .env.example, which points at 127.0.0.1. Laravel's dotenv is
+      # immutable, so the values handed to this exec win over that file (the
+      # same mechanism docker-compose.yml relies on for CORE_FPM_RESET_*).
       - name: Install Dixlase from the command line
         run: |
           set -e
           docker compose exec -T \
             -e DIXLASE_ADMIN_PASSWORD="Ci$(openssl rand -hex 12)9" \
+            -e DB_CONNECTION=mysql \
+            -e DB_HOST=mysql \
+            -e DB_PORT=3306 \
+            -e DB_DATABASE=dixlase \
+            -e DB_USERNAME=dixlase \
+            -e DB_PASSWORD=dixlase \
             dixlase.test php artisan dls:install \
               --no-interaction --force \
               --site-name="Smoke test" \
