@@ -3,8 +3,8 @@ name: Smoke test (E2E)
 on:
   workflow_dispatch:
   # Run daily as well. The pull_request and push triggers only fire on
-  # installer changes, but the first job installs the current dixlase-core
-  # main and the second one core's newest release, so a change on either
+  # installer changes, but the jobs install the current dixlase-core main,
+  # core's newest release and the release before it, so a change on either
   # side can break new installs without this workflow ever running (on
   # 2026-09-23 a core PR removed patches/ and every new install failed for
   # about 24 hours before anyone noticed). 18:00 UTC = 03:00 JST.
@@ -23,6 +23,7 @@ on:
       - main
     paths:
       - 'setup.sh'
+      - 'update.sh'
       - 'Dockerfile'
       - 'Dockerfile.vite'
       - 'docker-compose.yml'
@@ -37,6 +38,7 @@ on:
       - main
     paths:
       - 'setup.sh'
+      - 'update.sh'
       - 'Dockerfile'
       - 'Dockerfile.vite'
       - 'docker-compose.yml'
@@ -314,6 +316,193 @@ jobs:
       - name: setup.sh log (on failure)
         if: failure()
         run: tail -n 200 /tmp/setup-anon.log || true
+
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker compose logs --tail 200
+
+      - name: Laravel storage log (on failure)
+        if: failure()
+        run: |
+          docker compose exec -T dixlase.test sh -c 'tail -n 200 storage/logs/laravel.log 2>/dev/null || echo "(no laravel.log)"' || true
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose down -v 2>/dev/null || true
+          docker run --rm -v "$PWD:/work" alpine rm -rf /work/html 2>/dev/null || true
+          rm -rf html 2>/dev/null || true
+
+  # The update path, which neither job above touches: they install and stop.
+  # update.sh is what an operator runs repeatedly, against a site that already
+  # holds their content, so a break there costs more than a break in a fresh
+  # install. #55 rewrote its git section (a release-tag path, with the branch
+  # path moved into the else of a new condition) and CI could only see the
+  # setup.sh half of that change.
+  #
+  # The job installs the release before the newest one and updates to the
+  # newest, so it always exercises a real N-1 -> N step rather than a tag
+  # frozen into this file.
+  smoke-update:
+    name: End-to-end update from the previous release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout installer (no persisted credentials)
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Resolve core's newest and previous release tags
+        run: |
+          set -e
+          tags=$(git ls-remote --tags --refs https://github.com/Dixlase/dixlase-core.git \
+            | awk '{print $2}' | sed 's|refs/tags/||' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sed 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n | sed 's/^/v/')
+          newest=$(printf '%s\n' "$tags" | tail -n 1)
+          previous=$(printf '%s\n' "$tags" | tail -n 2 | head -n 1)
+          if [ -z "$previous" ] || [ "$newest" = "$previous" ]; then
+            echo "This job needs two release tags to update between; core has:" >&2
+            printf '%s\n' "$tags" >&2
+            exit 1
+          fi
+          echo "NEWEST_TAG=$newest" >> "$GITHUB_ENV"
+          echo "PREVIOUS_TAG=$previous" >> "$GITHUB_ENV"
+          echo "updating $previous -> $newest"
+
+      - name: Run setup.sh with the previous release
+        run: |
+          set -o pipefail
+          ./setup.sh "$PREVIOUS_TAG" 2>&1 | tee /tmp/setup-previous.log
+
+      - name: Assert the previous release is what landed
+        run: |
+          set -e
+          grep -qF "Core:   $PREVIOUS_TAG" /tmp/setup-previous.log
+          safe="-c safe.directory=$PWD/html"
+          head_sha=$(git -C html $safe rev-parse HEAD)
+          tag_sha=$(git -C html $safe rev-parse "refs/tags/$PREVIOUS_TAG^{commit}")
+          test "$head_sha" = "$tag_sha"
+          echo "OK: html/ is at $PREVIOUS_TAG, VERSION reads $(tr -d '\r\n' < html/VERSION)."
+
+      # update.sh ends on dls:core:reconcile, which needs rows in the core
+      # version ledger; an install that never ran the wizard has none and the
+      # step fails for want of them. Core ships a command-line installer, so
+      # install for real here rather than bootstrapping html/.env by hand the
+      # way the two jobs above do.
+      #
+      # The admin path segment is an obviously invented CI value and the
+      # password is generated in this step: neither belongs in a workflow file,
+      # and this stack is destroyed in the teardown either way.
+      #
+      # The DB_* variables are not redundant with the --db-* options: the
+      # command runs a pre-flight query before the settings it was given are
+      # in effect, against an html/.env it has just copied from core's
+      # .env.example, which points at 127.0.0.1. Laravel's dotenv is
+      # immutable, so the values handed to this exec win over that file (the
+      # same mechanism docker-compose.yml relies on for CORE_FPM_RESET_*).
+      - name: Install Dixlase from the command line
+        run: |
+          set -e
+          docker compose exec -T \
+            -e DIXLASE_ADMIN_PASSWORD="Ci$(openssl rand -hex 12)9" \
+            -e DB_CONNECTION=mysql \
+            -e DB_HOST=mysql \
+            -e DB_PORT=3306 \
+            -e DB_DATABASE=dixlase \
+            -e DB_USERNAME=dixlase \
+            -e DB_PASSWORD=dixlase \
+            dixlase.test php artisan dls:install \
+              --no-interaction --force \
+              --site-name="Smoke test" \
+              --admin-name=ciadmin \
+              --admin-display-name="CI" \
+              --admin-email=ci@example.invalid \
+              --url=localhost:40080 \
+              --admin-url=admin-ci \
+              --app-env=local \
+              --timezone=UTC \
+              --locale=en \
+              --db=mysql \
+              --db-host=mysql \
+              --db-port=3306 \
+              --db-database=dixlase \
+              --db-username=dixlase \
+              --db-password=dixlase
+          # dls:install runs as root in the container, so hand the file it
+          # wrote back to the user php-fpm serves the site as.
+          docker compose exec -T dixlase.test chown www-data:www-data /var/www/html/.env
+
+      - name: Run update.sh with no argument
+        run: |
+          set -o pipefail
+          ./update.sh 2>&1 | tee /tmp/update-newest.log
+
+      # An exit 0 above is already half the assertion: every step of update.sh
+      # has to succeed, the ledger reconcile included.
+      - name: Assert the install moved to the newest release
+        run: |
+          set -e
+          grep -qF "Moving html/ to $NEWEST_TAG" /tmp/update-newest.log
+          safe="-c safe.directory=$PWD/html"
+          head_sha=$(git -C html $safe rev-parse HEAD)
+          tag_sha=$(git -C html $safe rev-parse "refs/tags/$NEWEST_TAG^{commit}")
+          test "$head_sha" = "$tag_sha"
+          version=$(tr -d '\r\n' < html/VERSION)
+          echo "html/VERSION: $version"
+          case "$version" in
+            *-dev*)
+              echo "VERSION carries a -dev suffix, so this is not a release: $version" >&2
+              exit 1
+              ;;
+          esac
+          echo "OK: $PREVIOUS_TAG -> $NEWEST_TAG, VERSION reads $version."
+
+      - name: Smoke check — the site still answers after the update
+        run: |
+          set -e
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:40080/ || true)
+            if [ -n "$code" ] && [ "$code" != "000" ] && [ "$code" -lt 500 ]; then
+              echo "OK: CMS responded with HTTP $code (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code (not ready), waiting..."
+            sleep 4
+          done
+          echo "CMS did not respond with a non-5xx status within the time budget."
+          exit 1
+
+      # The other half of what #55 changed: a checkout that tracks a branch
+      # keeps the behaviour it had. --dev only skips the asset rebuild, which
+      # the run above already covered.
+      - name: Run update.sh main
+        run: |
+          set -o pipefail
+          ./update.sh main --dev 2>&1 | tee /tmp/update-main.log
+
+      - name: Assert the branch path still switches and updates
+        run: |
+          set -e
+          grep -qF "Switching html/ from a detached HEAD to main" /tmp/update-main.log
+          safe="-c safe.directory=$PWD/html"
+          test "$(git -C html $safe rev-parse --abbrev-ref HEAD)" = "main"
+          echo "OK: html/ tracks main again."
+
+      - name: Show running containers
+        if: always()
+        run: docker compose ps
+
+      - name: setup.sh and update.sh logs (on failure)
+        if: failure()
+        run: |
+          for log in /tmp/setup-previous.log /tmp/update-newest.log /tmp/update-main.log; do
+            [ -f "$log" ] || continue
+            echo "--- $log (last 120 lines) ---"
+            tail -n 120 "$log"
+          done
 
       - name: Container logs (on failure)
         if: failure()
