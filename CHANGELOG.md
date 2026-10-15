@@ -8,6 +8,32 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.3] — 2026-10-15
+
+### Changed
+
+- `setup.sh` installs core's **newest release** instead of the tip of core's development branch. It reads the newest `vX.Y.Z` tag from the core repository with `git ls-remote` — no GitHub API, so no rate limit and no new dependency — and clones that. An explicit ref still wins: `./setup.sh main` installs the development branch, `./setup.sh v0.1.11` installs that release. When no tag can be read (a fork with no releases, or no network), the run says so and falls back to `main` instead of failing (#54).
+- `update.sh` moves an install made from a release tag to the newest release. It used to refuse, because a tag checkout is a detached `HEAD` and there was no branch to update. An install that tracks a branch is fast-forwarded exactly as before (#54).
+- The banner of `setup.sh` reads `Core:` rather than `Branch:`, since the value can now be a tag, and the Japanese dictionaries cover that banner — it was the one part of the output that stayed English after `./convert-comments.sh ja` (#54).
+- The README describes the release-based install and both update paths, in both languages (#53, #54).
+
+### Fixed
+
+- The ownership step at the end of `setup.sh` and `update.sh` no longer prints `cannot dereference` for a plugin or theme whose public asset link points at a missing directory. `chown -h` changes the link itself instead of following it, so a successful run no longer ends on what looked like a failure (#47).
+
+### Changed (CI)
+
+- The smoke test runs on pull requests, not only on pushes to `main` and the nightly schedule. A pull request that broke the end-to-end install used to go green and surface only after the merge (#51).
+- The credential-free smoke job asserts that the install is core's newest release: `html/` checked out at that tag, and a `VERSION` that is not a `-dev` build (#54).
+
+### Upgrade notes
+
+Your existing install is not touched by updating the installer: `html/` stays on whatever it is on now, and nothing in this release moves it.
+
+What changes is the next fresh install. `./setup.sh` with no argument now gives you core's newest release, not `main`. If you want the development branch, name it: `./setup.sh main`.
+
+A release install leaves `html/` on a detached `HEAD` — that is simply what a tag checkout is in git — and `./update.sh` moves it to the next release. An install that came from `main` keeps following `main` when you run `./update.sh` with no argument.
+
 ## [0.1.2] — 2026-10-10
 
 ### Removed
