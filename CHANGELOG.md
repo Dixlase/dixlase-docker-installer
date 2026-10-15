@@ -8,6 +8,23 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.4] — 2026-10-15
+
+### Fixed
+
+- `./update.sh` can update `html/` on Linux again. `setup.sh` hands `html/` to `www-data` so php-fpm can write there, and Linux — unlike macOS — enforces that ownership on a bind mount, so the host user could no longer write inside `html/`. Every git command that moves the checkout failed, starting with the `html/.gitignore` restore, and the update stopped at step `[1/6]` with `Permission denied`. Those writes now go through the app container, which runs as root. `.git` is still handed back to you, so your own git commands in `html/` keep working. This had been the case since 0.1.0; macOS was never affected (#58).
+- The commands `update.sh` prints when it stops — `git stash`, `git checkout -- .`, `git reset --hard` — name a form that works on Linux. The host-side ones it printed before would have been refused for the same reason (#58).
+
+### Changed (CI)
+
+- The smoke test runs the update path, which it never did: it installs the release before the newest one, installs Dixlase from the command line, updates to the newest release and then to `main`. `update.sh` is in the workflow's path filter now, so a change to it runs the end-to-end test instead of nothing (#56).
+
+### Upgrade notes
+
+If `./update.sh` stopped on Linux with `error: unable to unlink old '.gitignore': Permission denied`, this release clears it. Update the installer with `git pull`, then run `./update.sh` again. The run that failed stopped at `[1/6]`, before composer, the migrations and the assets, so there is nothing to undo.
+
+Nothing to do otherwise.
+
 ## [0.1.3] — 2026-10-15
 
 ### Changed
