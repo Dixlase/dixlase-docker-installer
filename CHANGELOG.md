@@ -8,6 +8,16 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.5] — 2026-10-17
+
+### Changed (docs)
+
+- The documentation, the comments in `docker-compose.yml` and `docker-compose.deploy.yml`, and `.env.example` no longer name a plugin that is not distributed publicly. Everything they say stays: the host's SSH keys are **not** mounted into the app container, and `docker-compose.deploy.yml` mounts them read-only for people who deploy from inside it — where every process in the container can then read those keys. What the mount is for is now described by what it does, deployment tooling run inside the container, rather than by the name of something a reader of this repository cannot obtain, open a link to or check. The `artisan` commands that only that plugin ships are gone with the name (#60).
+
+### Upgrade notes
+
+Nothing to do. This release changes text only. No script, compose file, environment variable, volume or service name changed, so `docker-compose.deploy.yml` and a `COMPOSE_FILE` line already set in your `.env` keep working exactly as before.
+
 ## [0.1.4] — 2026-10-15
 
 ### Fixed
