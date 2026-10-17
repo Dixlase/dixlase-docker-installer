@@ -1,9 +1,9 @@
-# Dixlase Docker Environment — DixlaseDeploy override (opt-in)
+# Dixlase Docker Environment — SSH deployment override (opt-in)
 #
-# Mounts the host's SSH keys into the app container read-only, which the
-# DixlaseDeploy plugin's CLI (php artisan deploy:push / deploy:pull) needs to
-# authenticate to remote hosts. The plugin keeps its own UserKnownHostsFile,
-# so :ro is enough for it.
+# Mounts the host's SSH keys into the app container read-only, for deployment
+# tooling that runs inside the container and authenticates to remote hosts
+# with them. Read-only is enough as long as the tooling keeps its own
+# UserKnownHostsFile instead of writing to ~/.ssh/known_hosts.
 #
 # This is a separate file because the mount is not free: every process in the
 # container can read those keys, including install scripts of any composer or

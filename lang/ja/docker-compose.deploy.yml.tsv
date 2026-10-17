@@ -1,8 +1,8 @@
-# Dixlase Docker Environment — DixlaseDeploy override (opt-in)	# Dixlase Docker 環境 — DixlaseDeploy 用オーバーライド (任意)
-# Mounts the host's SSH keys into the app container read-only, which the	# ホストの SSH 鍵をアプリコンテナへ読み取り専用でマウントする。DixlaseDeploy
-# DixlaseDeploy plugin's CLI (php artisan deploy:push / deploy:pull) needs to	# プラグインの CLI (php artisan deploy:push / deploy:pull) がリモートホストへ
-# authenticate to remote hosts. The plugin keeps its own UserKnownHostsFile,	# 認証するために必要なものである。プラグインは独自の UserKnownHostsFile を
-# so :ro is enough for it.	# 持つので、:ro で足りる。
+# Dixlase Docker Environment — SSH deployment override (opt-in)	# Dixlase Docker 環境 — SSH デプロイ用オーバーライド (任意)
+# Mounts the host's SSH keys into the app container read-only, for deployment	# ホストの SSH 鍵をアプリコンテナへ読み取り専用でマウントする。コンテナ内で動かす
+# tooling that runs inside the container and authenticates to remote hosts	# デプロイ用のツールが、その鍵でリモートホストへ認証するためである。
+# with them. Read-only is enough as long as the tooling keeps its own	# ツールが ~/.ssh/known_hosts へ書き込まず独自の UserKnownHostsFile を持つ限り、
+# UserKnownHostsFile instead of writing to ~/.ssh/known_hosts.	# 読み取り専用のマウントで足りる。
 # This is a separate file because the mount is not free: every process in the	# 別ファイルにしてあるのは、このマウントが無償ではないからである: コンテナ内の
 # container can read those keys, including install scripts of any composer or	# あらゆるプロセスがその鍵を読める。composer や npm の依存パッケージの install
 # npm dependency, and setup.sh / update.sh run those as root. Only turn it on	# スクリプトも含み、setup.sh / update.sh はそれらを root で実行する。実際に

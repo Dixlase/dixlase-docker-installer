@@ -37,11 +37,11 @@
 # 127.0.0.1 only, so running ./setup.sh on a VPS or a shared network does not	# VPS や共有ネットワークで ./setup.sh を実行しても、データベース・Adminer・
 # hand the database, Adminer or the mail catcher to whoever can reach the	# メールキャッチャーがホストに到達できる相手に渡らないようにするためである。
 # host. Read SECURITY.md before changing any *_BIND_ADDRESS.	# *_BIND_ADDRESS を変更する前に SECURITY.md を読むこと。
-# The host's SSH keys are NOT mounted here. The DixlaseDeploy plugin's	# ホストの SSH 鍵はここではマウントしない。DixlaseDeploy プラグインの CLI
-# CLI (php artisan deploy:push/pull) needs them, but so could anything	# (php artisan deploy:push/pull) は必要とするが、このコンテナで動くものは
-# else that runs in this container — composer and npm install scripts	# 何でも読めてしまう — composer と npm の install スクリプトを含み、
-# included — and setup.sh / update.sh run those as root. Deploy users	# setup.sh / update.sh はそれらを root で実行する。Deploy を使う場合は
-# opt in with docker-compose.deploy.yml (see that file and SECURITY.md).	# docker-compose.deploy.yml で明示的に有効化する (同ファイルと SECURITY.md 参照)。
+# The host's SSH keys are NOT mounted here. Deployment tooling run	# ホストの SSH 鍵はここではマウントしない。コンテナ内で動かすデプロイ用の
+# inside the container needs them, but so could anything else that	# ツールはそれを必要とするが、ここで動くものは何でも読めてしまう —
+# runs here — composer and npm install scripts included — and	# composer と npm の install スクリプトを含み、
+# setup.sh / update.sh run those as root. Opt in with	# setup.sh / update.sh はそれらを root で実行する。必要な場合は
+# docker-compose.deploy.yml (see that file and SECURITY.md).	# docker-compose.deploy.yml で明示的に有効化する (同ファイルと SECURITY.md 参照)。
 # Activated by the "tools" profile (TOOLS in .env, on by default).	# "tools" プロファイルで起動する (.env の TOOLS、既定は有効)。
 # Adminer signs in to MariaDB with the credentials from .env, so	# Adminer は .env の認証情報で MariaDB にサインインするため、Adminer を公開
 # publishing Adminer publishes the database: full read/write, which is	# することはデータベースを公開することになる: 読み書き全権で、管理者を作って
