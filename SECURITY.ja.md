@@ -153,11 +153,11 @@ TLS を終端してください。
 
 ### ホストの SSH 鍵はマウントしません（任意で有効化）
 
-DixlaseDeploy プラグインの CLI はリモートホストへの認証にホストの SSH 鍵を必要としますが、
-app コンテナ内のあらゆるプロセスがその鍵を読めてしまいます — composer や npm の依存
-パッケージの install スクリプトも含み、`setup.sh` と `update.sh` はそれらを root で実行
-します。そのためこのマウントは `docker-compose.yml` に**入っていません**。デプロイする場合は
-`docker-compose.deploy.yml` で明示的に有効化してください（コマンドごとに
+コンテナ内で動かすデプロイ用のツールは、リモートホストへの認証にホストの SSH 鍵を
+必要としますが、app コンテナ内のあらゆるプロセスがその鍵を読めてしまいます — composer や
+npm の依存パッケージの install スクリプトも含み、`setup.sh` と `update.sh` はそれらを
+root で実行します。そのためこのマウントは `docker-compose.yml` に**入っていません**。
+デプロイする場合は `docker-compose.deploy.yml` で明示的に有効化してください（コマンドごとに
 `docker compose -f docker-compose.yml -f docker-compose.deploy.yml …` とするか、`.env` に
 `COMPOSE_FILE` を設定します）。普段使いの鍵ではなく、デプロイ専用の鍵を推奨します。
 

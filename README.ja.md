@@ -158,9 +158,9 @@ DB_ROOT_PASSWORD=root
 - **到達可能なホストで `--dev`（`VITE=true`）を使わない。** Vite 開発サーバーは
   `/@fs/` パス経由で `html/` 配下のファイルを読めます。
 - **`TOOLS=false` も検討する。** Adminer と Mailpit をそもそも起動しません。
-- ホストの SSH 鍵はコンテナへ**マウントしません**。DixlaseDeploy プラグインで
-  デプロイする場合は `docker-compose.deploy.yml` で明示的に有効化してください —
-  コンテナ内で動くものは（依存パッケージの install スクリプトを含め）その鍵を読めます。
+- ホストの SSH 鍵はコンテナへ**マウントしません**。コンテナ内からデプロイする場合は
+  `docker-compose.deploy.yml` で明示的に有効化してください — コンテナ内で動くものは
+  （依存パッケージの install スクリプトを含め）その鍵を読めます。
 
 このスタックが何を守り、何を守らないかの全体像は `SECURITY.ja.md` にあります。
 

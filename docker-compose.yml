@@ -22,11 +22,11 @@ services:
     volumes:
       - ./html:/var/www/html
       - ./certs:/etc/ssl/private
-      # The host's SSH keys are NOT mounted here. The DixlaseDeploy plugin's
-      # CLI (php artisan deploy:push/pull) needs them, but so could anything
-      # else that runs in this container — composer and npm install scripts
-      # included — and setup.sh / update.sh run those as root. Deploy users
-      # opt in with docker-compose.deploy.yml (see that file and SECURITY.md).
+      # The host's SSH keys are NOT mounted here. Deployment tooling run
+      # inside the container needs them, but so could anything else that
+      # runs here — composer and npm install scripts included — and
+      # setup.sh / update.sh run those as root. Opt in with
+      # docker-compose.deploy.yml (see that file and SECURITY.md).
     environment:
       - PHP_FPM_LISTEN_MODE=666
       # After a web-triggered core update the app refreshes php-fpm's

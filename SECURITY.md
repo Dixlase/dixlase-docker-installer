@@ -158,13 +158,13 @@ in place and a service is bound wider than loopback.
 
 ### Host SSH keys are not mounted (opt-in)
 
-The DixlaseDeploy plugin's CLI needs the host's SSH keys to authenticate to remote
-hosts, but every process in the app container could read them — including the
-install scripts of any composer or npm dependency, which `setup.sh` and
-`update.sh` run as root. The mount is therefore **not** in `docker-compose.yml`.
-Deploy users opt in with `docker-compose.deploy.yml`, either per command
-(`docker compose -f docker-compose.yml -f docker-compose.deploy.yml …`) or by
-setting `COMPOSE_FILE` in `.env`. Prefer a key dedicated to deployment.
+Deployment tooling run inside the app container needs the host's SSH keys to
+authenticate to remote hosts, but every process in the container could read
+them — including the install scripts of any composer or npm dependency, which
+`setup.sh` and `update.sh` run as root. The mount is therefore **not** in
+`docker-compose.yml`. Opt in with `docker-compose.deploy.yml`, either per
+command (`docker compose -f docker-compose.yml -f docker-compose.deploy.yml …`)
+or by setting `COMPOSE_FILE` in `.env`. Prefer a key dedicated to deployment.
 
 ### php-fpm opcache reset endpoint
 

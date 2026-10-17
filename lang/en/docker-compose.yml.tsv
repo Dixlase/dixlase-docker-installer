@@ -37,11 +37,11 @@
 # 127.0.0.1 only, so running ./setup.sh on a VPS or a shared network does not	# 127.0.0.1 only, so running ./setup.sh on a VPS or a shared network does not
 # hand the database, Adminer or the mail catcher to whoever can reach the	# hand the database, Adminer or the mail catcher to whoever can reach the
 # host. Read SECURITY.md before changing any *_BIND_ADDRESS.	# host. Read SECURITY.md before changing any *_BIND_ADDRESS.
-# The host's SSH keys are NOT mounted here. The DixlaseDeploy plugin's	# The host's SSH keys are NOT mounted here. The DixlaseDeploy plugin's
-# CLI (php artisan deploy:push/pull) needs them, but so could anything	# CLI (php artisan deploy:push/pull) needs them, but so could anything
-# else that runs in this container — composer and npm install scripts	# else that runs in this container — composer and npm install scripts
-# included — and setup.sh / update.sh run those as root. Deploy users	# included — and setup.sh / update.sh run those as root. Deploy users
-# opt in with docker-compose.deploy.yml (see that file and SECURITY.md).	# opt in with docker-compose.deploy.yml (see that file and SECURITY.md).
+# The host's SSH keys are NOT mounted here. Deployment tooling run	# The host's SSH keys are NOT mounted here. Deployment tooling run
+# inside the container needs them, but so could anything else that	# inside the container needs them, but so could anything else that
+# runs here — composer and npm install scripts included — and	# runs here — composer and npm install scripts included — and
+# setup.sh / update.sh run those as root. Opt in with	# setup.sh / update.sh run those as root. Opt in with
+# docker-compose.deploy.yml (see that file and SECURITY.md).	# docker-compose.deploy.yml (see that file and SECURITY.md).
 # Activated by the "tools" profile (TOOLS in .env, on by default).	# Activated by the "tools" profile (TOOLS in .env, on by default).
 # Adminer signs in to MariaDB with the credentials from .env, so	# Adminer signs in to MariaDB with the credentials from .env, so
 # publishing Adminer publishes the database: full read/write, which is	# publishing Adminer publishes the database: full read/write, which is

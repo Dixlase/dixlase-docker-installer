@@ -154,9 +154,9 @@ and an open door as soon as it does not. Before you expose this host:
 - **Do not run `--dev` (`VITE=true`) on a reachable host.** The Vite dev server
   can read files under `html/` through its `/@fs/` paths.
 - **Consider `TOOLS=false`** so Adminer and Mailpit are not started at all.
-- The host's SSH keys are **not** mounted into the container. If you deploy with
-  the DixlaseDeploy plugin, opt in through `docker-compose.deploy.yml` — anything
-  running in the container can read those keys, install scripts included.
+- The host's SSH keys are **not** mounted into the container. If you deploy from
+  inside it, opt in through `docker-compose.deploy.yml` — anything running in the
+  container can read those keys, install scripts included.
 
 `SECURITY.md` has the full list of what this stack does and does not protect.
 
