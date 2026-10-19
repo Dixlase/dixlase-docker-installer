@@ -2,7 +2,7 @@
 
 For Japanese, see [SECURITY.ja.md](./SECURITY.ja.md).
 
-This repository is the Docker-based installer for Dixlase CMS. It is a thin layer
+This repository is the Docker-based installer for Dixlase. It is a thin layer
 of Dockerfiles, Compose definitions, nginx configuration and shell scripts — most
 application-level security issues belong to [Dixlase Core](https://github.com/Dixlase/dixlase-core),
 not here. See [Scope](#scope) below.
