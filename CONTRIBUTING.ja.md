@@ -51,7 +51,7 @@ AI ツールは現代の開発の一部です。ただし、提出物は人間�
 適用されます。
 
 スコープの区分にご注意ください。本リポジトリが扱うのは Docker パッケージング
-（Dockerfile、Compose、nginx 設定、シェルスクリプト）です。Dixlase CMS 本体の脆弱性は
+（Dockerfile、Compose、nginx 設定、シェルスクリプト）です。Dixlase 本体の脆弱性は
 [Dixlase Core](https://github.com/Dixlase/dixlase-core) の管轄です。
 
 ## インストーラのバグを効果的に報告するには

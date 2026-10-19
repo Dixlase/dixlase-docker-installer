@@ -55,7 +55,7 @@ procedure in [SECURITY.md](./SECURITY.md). The reproducibility and AI-disclosure
 requirements above apply equally to security reports.
 
 Note the scope split: this repository covers the Docker packaging (Dockerfiles,
-Compose, nginx configuration, shell scripts). Vulnerabilities in Dixlase CMS
+Compose, nginx configuration, shell scripts). Vulnerabilities in Dixlase
 itself belong to [Dixlase Core](https://github.com/Dixlase/dixlase-core).
 
 ## Reporting installer bugs effectively

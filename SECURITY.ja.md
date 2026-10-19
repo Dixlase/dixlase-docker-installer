@@ -2,7 +2,7 @@
 
 英語版は [SECURITY.md](./SECURITY.md) を参照してください。
 
-本リポジトリは Dixlase CMS の Docker ベースのインストーラです。Dockerfile・Compose
+本リポジトリは Dixlase の Docker ベースのインストーラです。Dockerfile・Compose
 定義・nginx 設定・シェルスクリプトからなる薄い層であり、アプリケーションレベルの
 セキュリティ問題の大半は本リポジトリではなく
 [Dixlase Core](https://github.com/Dixlase/dixlase-core) に属します。詳細は下記の

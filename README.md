@@ -69,7 +69,7 @@ when the two disagree.)
 
 | Service | URL |
 | --- | --- |
-| Dixlase CMS | `http://localhost:40080` (`https://localhost:40443` when `HTTPS=true`) |
+| Dixlase | `http://localhost:40080` (`https://localhost:40443` when `HTTPS=true`) |
 | Adminer (DB GUI) | `http://localhost:40081` |
 | Mailpit (mail catcher) | `http://localhost:40025` |
 
