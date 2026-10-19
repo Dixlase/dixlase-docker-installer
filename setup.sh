@@ -297,8 +297,22 @@ if [ "$EXISTING_CONTAINERS" -gt 0 ]; then
 fi
 
 # Active profiles are picked up from COMPOSE_PROFILES exported above.
+#
+# In development mode the vite container installs node_modules itself when
+# it finds none, while step [5/6] runs npm install in the app container on
+# the same html/ tree. Run at the same time, the two installs delete each
+# other's directories and leave node_modules broken (ENOTEMPTY, then
+# "vite: not found"). So vite is held back here and started once step
+# [5/6] has finished; its entrypoint then finds node_modules and skips its
+# own install.
+VITE_ENABLED=false
+case ",${COMPOSE_PROFILES}," in *,dev,*) VITE_ENABLED=true ;; esac
 docker compose build
-docker compose up -d
+if [ "$VITE_ENABLED" = true ]; then
+    docker compose up -d --scale vite=0
+else
+    docker compose up -d
+fi
 
 # `up -d` leaves an already-running container untouched, so the
 # entrypoint's self-heal would not run against the html/ tree the steps
@@ -367,6 +381,12 @@ echo "  Refreshing the composer autoload (picks up composer.local.json)..."
 docker compose exec -T dixlase.test composer dump-autoload --optimize --no-interaction
 echo "  Running npm install..."
 docker compose exec -T dixlase.test npm install
+
+# Held back in step [4/6] until node_modules was complete.
+if [ "$VITE_ENABLED" = true ]; then
+    echo "  Starting the Vite dev server..."
+    docker compose up -d vite
+fi
 
 # Seed the Tailwind plugin-sources stub the theme build @imports.
 # Core's dls:tailwind:regenerate-plugin-sources normally writes it.
