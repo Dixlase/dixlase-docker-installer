@@ -552,7 +552,13 @@ echo "========================================"
 echo "  Setup complete!"
 echo "========================================"
 echo ""
-INSTALLER_VERSION=$(tr -d '\r\n' < "$SCRIPT_DIR/VERSION" 2>/dev/null || true)
+# Name the core release that just landed next to the installer's own
+# version, so a report right after a first install can give both. Read from
+# the host file rather than through the container, so the summary still
+# prints when a container is not running.
+CORE_VERSION=$( (tr -d '\r\n' < "$SCRIPT_DIR/html/VERSION") 2>/dev/null || true )
+INSTALLER_VERSION=$( (tr -d '\r\n' < "$SCRIPT_DIR/VERSION") 2>/dev/null || true )
+echo "  Core version:      ${CORE_VERSION:-unknown}"
 echo "  Installer version: ${INSTALLER_VERSION:-unknown}"
 echo ""
 echo "  Access URLs:"

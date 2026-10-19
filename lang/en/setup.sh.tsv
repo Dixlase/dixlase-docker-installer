@@ -250,4 +250,9 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # profile cannot be addressed otherwise. `rm -sf` stops and removes the	# profile cannot be addressed otherwise. `rm -sf` stops and removes the
 # container; named volumes (Redis) are untouched.	# container; named volumes (Redis) are untouched.
   Removing the $disabled_service container (turned off in .env)...	  Removing the $disabled_service container (turned off in .env)...
+# Name the core release that just landed next to the installer's own	# Name the core release that just landed next to the installer's own
+# version, so a report right after a first install can give both. Read from	# version, so a report right after a first install can give both. Read from
+# the host file rather than through the container, so the summary still	# the host file rather than through the container, so the summary still
+# prints when a container is not running.	# prints when a container is not running.
+  Core version:      ${CORE_VERSION:-unknown}	  Core version:      ${CORE_VERSION:-unknown}
   Installer version: ${INSTALLER_VERSION:-unknown}	  Installer version: ${INSTALLER_VERSION:-unknown}
