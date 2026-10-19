@@ -71,8 +71,24 @@ done
 # vendor/ and node_modules/ on every start.
 chown www-data:www-data . 2>/dev/null || true
 
+# dixlase.test and cron build from the same image, mount the same html/ and
+# run this entrypoint with nothing ordering one after the other, so both can
+# reach this point while public/storage does not exist yet. Remove the nested
+# link an earlier start may have left (see below) before the guard runs: -e
+# follows a link, so a dangling one is invisible to it either way.
+if [ -L storage/app/public/public ] && [ ! -e storage/app/public/public ]; then
+  rm -f storage/app/public/public
+fi
+
+# -n keeps ln(1) from following public/storage when it is already a symlink to
+# a directory: plain `ln -s` would then create the link *inside* it, as
+# storage/app/public/public -> ../storage/app/public, which resolves from
+# storage/app/public/ and points at nothing. That dangling path is what a chown
+# without -h stops on, leaving part of html/ owned by the host user. With -f the
+# container that loses the race writes the same link again instead, and a
+# public/storage left dangling by an earlier start is repaired rather than kept.
 if [ ! -e public/storage ] && [ -d storage/app/public ]; then
-  ln -s ../storage/app/public public/storage
+  ln -sfn ../storage/app/public public/storage 2>/dev/null || true
 fi
 
 exec "$@"

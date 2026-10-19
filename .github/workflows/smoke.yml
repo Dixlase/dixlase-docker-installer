@@ -272,6 +272,25 @@ jobs:
           test -f html/themes/DixlaseOnePage/theme.json
           echo "OK: the bundled theme resolved with no credential anywhere."
 
+      # The app and cron containers run the same entrypoint on the same html/
+      # with nothing ordering them, so both can create public/storage. The one
+      # that lost the race used to write its link inside the winner's, leaving
+      # storage/app/public/public pointing at nothing — and a chown without -h
+      # stops on that, so part of html/ kept the host user's ownership and the
+      # install wizard could not write .env. This job runs with the cron
+      # profile on (the default), so the window is open on every run.
+      - name: Assert public/storage is one working link, not a nested one
+        run: |
+          set -e
+          test -L html/public/storage
+          test -d html/public/storage/
+          if [ -e html/storage/app/public/public ] || [ -L html/storage/app/public/public ]; then
+            ls -l html/storage/app/public/ >&2
+            echo "storage/app/public/public exists: the two entrypoints nested their links." >&2
+            exit 1
+          fi
+          echo "OK: html/public/storage resolves and nothing is nested under it."
+
       # Same shortcut as the job above: the install wizard normally writes
       # html/.env on the first browser visit, so CI bootstraps it to let curl
       # probe the stack. Removed in the teardown.
