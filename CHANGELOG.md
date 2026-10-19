@@ -8,6 +8,18 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.7] — 2026-10-20
+
+### Fixed
+
+- `./setup.sh` offers to remove `mysql/` when it re-clones `html/`. It used to replace `html/` and leave the database files of the earlier install in place, and the fresh core then found a fully migrated database while `INSTALLED=false`, took it for an install waiting to be finalized, and sent every step of the install wizard straight to the completion screen — offering to finalize an install whose administrator account belonged to the previous one, and whose encrypted values the new `APP_KEY` cannot read. A `mysql/` that still holds data is now explained before the clone and removed when you press Enter: the database container is removed first, then the files through a throwaway container, the way `reset.sh` does it, and the run stops with instructions if they cannot be removed. Answering `n` keeps `mysql/` and warns that the wizard will skip ahead. Keeping the existing `html/` never touches `mysql/`, and an empty `mysql/` is cleared without asking (#64).
+
+### Upgrade notes
+
+Nothing to do for a working install.
+
+If a re-run of `./setup.sh` has already left you with an install wizard that jumps to the completion screen, start over from an empty database: update the installer with `git pull` and run `./setup.sh` again — it now offers to remove `mysql/` for you — or use `./reset.sh`, which removes `html/` and `mysql/` together.
+
 ## [0.1.6] — 2026-10-19
 
 ### Fixed
