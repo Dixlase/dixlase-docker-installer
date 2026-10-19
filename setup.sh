@@ -31,6 +31,26 @@ docker_root() {
     docker run --rm -v "$SCRIPT_DIR:/work" alpine sh -c "$1" 2>/dev/null || true
 }
 
+# Prompts need a terminal. With stdin redirected or closed - a pipeline, a CI
+# step, < /dev/null - read fails at end of input, and under set -e the run
+# stopped there without saying anything. So ask() answers for itself and
+# prints what it assumed. The assumed answer is always the one that keeps
+# what is on disk, even where the interactive default deletes: a guess must
+# not drop someone's database.
+#
+# $1 is the prompt, $2 the answer to assume. The answer is left in ANSWER.
+ask() {
+    if read -r -p "$1" ANSWER; then
+        # bash prints the -p prompt only to a terminal, so a run that pipes its
+        # answers in would log neither the question nor what was answered.
+        [ -t 0 ] || echo "$1$ANSWER"
+        return
+    fi
+    ANSWER="$2"
+    echo "$1$ANSWER"
+    echo "      (no answer: assumed $ANSWER, which keeps what is already there)"
+}
+
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.
 REPO_URL="${DIXLASE_REPO_URL:-https://github.com/Dixlase/dixlase-core.git}"
 
@@ -105,8 +125,10 @@ offer_to_remove_old_database() {
     fi
     echo "  mysql/ holds the database of an earlier install. A fresh html/"
     echo "  cannot use it: the install wizard would skip to the completion screen."
-    read -r -p "  Delete mysql/ as well? (Y/n): " remove_db
-    if [ "$remove_db" = "n" ] || [ "$remove_db" = "N" ]; then
+    # Without a terminal this keeps mysql/: the interactive default deletes it,
+    # which is not an answer to assume for a database.
+    ask "  Delete mysql/ as well? (Y/n): " n
+    if [ "$ANSWER" = "n" ] || [ "$ANSWER" = "N" ]; then
         echo "  Keeping mysql/. The install wizard will skip to the completion"
         echo "  screen; run ./reset.sh to start from an empty database."
         return
@@ -128,8 +150,8 @@ offer_to_remove_old_database() {
 # -------------------------------------------------
 if [ -d "html" ]; then
     echo "[1/6] html/ already exists."
-    read -r -p "  Delete and re-clone? (y/N): " confirm
-    if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+    ask "  Delete and re-clone? (y/N): " n
+    if [ "$ANSWER" = "y" ] || [ "$ANSWER" = "Y" ]; then
         offer_to_remove_old_database
         echo "  Deleting html/..."
         docker_root 'rm -rf /work/html'
@@ -318,8 +340,8 @@ KEPT_CONTAINERS=false
 EXISTING_CONTAINERS=$(docker compose ps -aq 2>/dev/null | wc -l | tr -d ' ')
 if [ "$EXISTING_CONTAINERS" -gt 0 ]; then
     echo "  Existing containers detected ($EXISTING_CONTAINERS)."
-    read -r -p "  Recreate them for a clean start? (y/N): " recreate
-    if [ "$recreate" = "y" ] || [ "$recreate" = "Y" ]; then
+    ask "  Recreate them for a clean start? (y/N): " n
+    if [ "$ANSWER" = "y" ] || [ "$ANSWER" = "Y" ]; then
         echo "  Removing existing containers..."
         docker compose down
     else

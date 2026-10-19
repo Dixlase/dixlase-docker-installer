@@ -5,6 +5,16 @@
 #   ./setup.sh --dev            # Development mode (Vite hot-reload)	#   ./setup.sh --dev            # Development mode (Vite hot-reload)
 #   ./setup.sh <ref>            # Clone the given branch or tag (default: newest release)	#   ./setup.sh <ref>            # Clone the given branch or tag (default: newest release)
 #   ./setup.sh --dev <ref>      # Development mode + the given branch or tag	#   ./setup.sh --dev <ref>      # Development mode + the given branch or tag
+# Prompts need a terminal. With stdin redirected or closed - a pipeline, a CI	# Prompts need a terminal. With stdin redirected or closed - a pipeline, a CI
+# step, < /dev/null - read fails at end of input, and under set -e the run	# step, < /dev/null - read fails at end of input, and under set -e the run
+# stopped there without saying anything. So ask() answers for itself and	# stopped there without saying anything. So ask() answers for itself and
+# prints what it assumed. The assumed answer is always the one that keeps	# prints what it assumed. The assumed answer is always the one that keeps
+# what is on disk, even where the interactive default deletes: a guess must	# what is on disk, even where the interactive default deletes: a guess must
+# not drop someone's database.	# not drop someone's database.
+# $1 is the prompt, $2 the answer to assume. The answer is left in ANSWER.	# $1 is the prompt, $2 the answer to assume. The answer is left in ANSWER.
+# bash prints the -p prompt only to a terminal, so a run that pipes its	# bash prints the -p prompt only to a terminal, so a run that pipes its
+# answers in would log neither the question nor what was answered.	# answers in would log neither the question nor what was answered.
+      (no answer: assumed $ANSWER, which keeps what is already there)	      (no answer: assumed $ANSWER, which keeps what is already there)
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.	# Repository URLs can be overridden via environment variables. Default is public HTTPS.
 # The newest release tag in the core repository, read from the remote. A git	# The newest release tag in the core repository, read from the remote. A git
 # command rather than the GitHub API: no new dependency, and no anonymous	# command rather than the GitHub API: no new dependency, and no anonymous
@@ -100,6 +110,8 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # reset.sh removes. rmdir clears an empty mysql/ without asking.	# reset.sh removes. rmdir clears an empty mysql/ without asking.
   mysql/ holds the database of an earlier install. A fresh html/	  mysql/ holds the database of an earlier install. A fresh html/
   cannot use it: the install wizard would skip to the completion screen.	  cannot use it: the install wizard would skip to the completion screen.
+# Without a terminal this keeps mysql/: the interactive default deletes it,	# Without a terminal this keeps mysql/: the interactive default deletes it,
+# which is not an answer to assume for a database.	# which is not an answer to assume for a database.
   Delete mysql/ as well? (Y/n): 	  Delete mysql/ as well? (Y/n): 
   Keeping mysql/. The install wizard will skip to the completion	  Keeping mysql/. The install wizard will skip to the completion
   screen; run ./reset.sh to start from an empty database.	  screen; run ./reset.sh to start from an empty database.
