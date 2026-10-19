@@ -5,6 +5,16 @@
 #   ./setup.sh --dev            # Development mode (Vite hot-reload)	#   ./setup.sh --dev            # 開発モード (Vite hot-reload 有効)
 #   ./setup.sh <ref>            # Clone the given branch or tag (default: newest release)	#   ./setup.sh <ref>            # 指定したブランチかタグをクローン (既定: 最新リリース)
 #   ./setup.sh --dev <ref>      # Development mode + the given branch or tag	#   ./setup.sh --dev <ref>      # 開発モード + ブランチかタグの指定
+# Prompts need a terminal. With stdin redirected or closed - a pipeline, a CI	# プロンプトには端末が必要である。標準入力がリダイレクトされているか閉じているとき
+# step, < /dev/null - read fails at end of input, and under set -e the run	# (パイプライン、CI のステップ、< /dev/null)、read は入力の終端で失敗し、
+# stopped there without saying anything. So ask() answers for itself and	# set -e の下では何も言わずにそこで終わっていた。そこで ask() が自分で
+# prints what it assumed. The assumed answer is always the one that keeps	# 答え、何を仮定したかを表示する。仮定する答えは常に、ディスクにあるものを
+# what is on disk, even where the interactive default deletes: a guess must	# 残す側にする。対話での既定が「消す」であってもそうする。推測で他人の
+# not drop someone's database.	# データベースを落としてはいけない。
+# $1 is the prompt, $2 the answer to assume. The answer is left in ANSWER.	# $1 がプロンプト、$2 が仮定する答え。答えは ANSWER に入る。
+# bash prints the -p prompt only to a terminal, so a run that pipes its	# bash は -p のプロンプトを端末にしか表示しないので、答えをパイプで
+# answers in would log neither the question nor what was answered.	# 流し込む実行では、質問も答えた内容もログに残らない。
+      (no answer: assumed $ANSWER, which keeps what is already there)	      (答えが無いので $ANSWER と仮定した。すでにあるものを残す側である)
 # Repository URLs can be overridden via environment variables. Default is public HTTPS.	# リポジトリ URL は環境変数で上書き可能。デフォルトは公開 HTTPS。
 # The newest release tag in the core repository, read from the remote. A git	# コアのリポジトリの最新リリースタグをリモートから読む。GitHub API ではなく
 # command rather than the GitHub API: no new dependency, and no anonymous	# git のコマンドを使うのは、新しい依存を増やさず、匿名のレート制限にも
@@ -100,6 +110,8 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # reset.sh removes. rmdir clears an empty mysql/ without asking.	# 空の mysql/ は rmdir で、尋ねずに消す。
   mysql/ holds the database of an earlier install. A fresh html/	  mysql/ には以前のインストールのデータベースがあります。新しい html/ では
   cannot use it: the install wizard would skip to the completion screen.	  使えません。インストールウィザードが完了画面へ飛んでしまいます。
+# Without a terminal this keeps mysql/: the interactive default deletes it,	# 端末が無いときこれは mysql/ を残す。対話での既定は削除であり、
+# which is not an answer to assume for a database.	# データベースについてそれを仮定してよい答えではない。
   Delete mysql/ as well? (Y/n): 	  mysql/ も削除しますか? (Y/n): 
   Keeping mysql/. The install wizard will skip to the completion	  mysql/ を残します。インストールウィザードは完了画面へ飛びます。
   screen; run ./reset.sh to start from an empty database.	  空のデータベースから始めるには ./reset.sh を実行してください。

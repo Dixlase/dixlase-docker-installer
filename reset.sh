@@ -52,7 +52,14 @@ echo ""
 if [ "$ASSUME_YES" = true ]; then
     echo "  Confirmation skipped (-y)."
 else
-    read -r -p "  Are you sure you want to reset? (y/N): " confirm
+    # This script deletes the database, so there is no answer it can assume
+    # without a terminal. read would fail at end of input and set -e would end
+    # the run without a word, so say what is needed instead.
+    if ! read -r -p "  Are you sure you want to reset? (y/N): " confirm; then
+        echo "  No answer to the confirmation (no terminal, or input ended)."
+        echo "  Run ./reset.sh -y to reset without the question."
+        exit 1
+    fi
     if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
         echo "  Cancelled."
         exit 0
