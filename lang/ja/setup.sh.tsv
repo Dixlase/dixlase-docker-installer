@@ -92,6 +92,21 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
   Cloning from GitHub...	  GitHub からクローン中...
   Keeping existing html/.	  既存の html/ をそのまま使用します。
 [1/6] Cloning from GitHub...	[1/6] GitHub からクローン中...
+# A fresh html/ cannot use the database of an earlier install. Core finds a	# 新しい html/ では、以前のインストールのデータベースを使えない。コアは
+# migrated database while INSTALLED=false, takes it for an install waiting	# INSTALLED=false なのにマイグレーション済みのデータベースを見つけると、
+# to be finalized, and sends every wizard step to the completion screen; the	# 確定待ちのインストールだと判断して、ウィザードのどの手順も完了画面へ送る。
+# new APP_KEY cannot read its encrypted values either. So before html/ is	# 新しい APP_KEY では暗号化された値も読めない。そこで html/ をクローンする前に、
+# cloned, offer to remove a mysql/ that still holds data — the same pair	# データが残っている mysql/ も消すかを尋ねる — reset.sh が消すのと同じ組み合わせ。
+# reset.sh removes. rmdir clears an empty mysql/ without asking.	# 空の mysql/ は rmdir で、尋ねずに消す。
+  mysql/ holds the database of an earlier install. A fresh html/	  mysql/ には以前のインストールのデータベースがあります。新しい html/ では
+  cannot use it: the install wizard would skip to the completion screen.	  使えません。インストールウィザードが完了画面へ飛んでしまいます。
+  Delete mysql/ as well? (Y/n): 	  mysql/ も削除しますか? (Y/n): 
+  Keeping mysql/. The install wizard will skip to the completion	  mysql/ を残します。インストールウィザードは完了画面へ飛びます。
+  screen; run ./reset.sh to start from an empty database.	  空のデータベースから始めるには ./reset.sh を実行してください。
+  Deleting mysql/...	  mysql/ を削除中...
+# The database container keeps its files open; remove it first.	# データベースのコンテナがファイルを開いたままなので、先に削除する。
+  Could not remove mysql/. Remove it by hand (or run ./reset.sh),	  mysql/ を削除できませんでした。手で削除して (または ./reset.sh を実行して)、
+  then run ./setup.sh again.	  ./setup.sh をもう一度実行してください。
   Removed empty submodule placeholder: $submodule_path	  空のサブモジュールプレースホルダーを削除: $submodule_path
 [2/6] Setting up .env...	[2/6] .env をセットアップ中...
   Copied .env.example -> .env (for Docker Compose, mode 600).	  .env.example -> .env をコピーしました (Docker Compose 用・モード 600)。

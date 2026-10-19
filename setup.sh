@@ -93,6 +93,36 @@ echo "  Core:   $CORE_LABEL"
 echo "========================================"
 echo ""
 
+# A fresh html/ cannot use the database of an earlier install. Core finds a
+# migrated database while INSTALLED=false, takes it for an install waiting
+# to be finalized, and sends every wizard step to the completion screen; the
+# new APP_KEY cannot read its encrypted values either. So before html/ is
+# cloned, offer to remove a mysql/ that still holds data — the same pair
+# reset.sh removes. rmdir clears an empty mysql/ without asking.
+offer_to_remove_old_database() {
+    if [ ! -d "mysql" ] || rmdir mysql 2>/dev/null; then
+        return
+    fi
+    echo "  mysql/ holds the database of an earlier install. A fresh html/"
+    echo "  cannot use it: the install wizard would skip to the completion screen."
+    read -r -p "  Delete mysql/ as well? (Y/n): " remove_db
+    if [ "$remove_db" = "n" ] || [ "$remove_db" = "N" ]; then
+        echo "  Keeping mysql/. The install wizard will skip to the completion"
+        echo "  screen; run ./reset.sh to start from an empty database."
+        return
+    fi
+    echo "  Deleting mysql/..."
+    # The database container keeps its files open; remove it first.
+    docker compose rm -sf mysql >/dev/null 2>&1 || true
+    docker_root 'rm -rf /work/mysql'
+    rm -rf mysql 2>/dev/null || true
+    if [ -d "mysql" ]; then
+        echo "  Could not remove mysql/. Remove it by hand (or run ./reset.sh),"
+        echo "  then run ./setup.sh again."
+        exit 1
+    fi
+}
+
 # -------------------------------------------------
 # 1. Clone the core from GitHub
 # -------------------------------------------------
@@ -100,6 +130,7 @@ if [ -d "html" ]; then
     echo "[1/6] html/ already exists."
     read -r -p "  Delete and re-clone? (y/N): " confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+        offer_to_remove_old_database
         echo "  Deleting html/..."
         docker_root 'rm -rf /work/html'
         rm -rf html
@@ -110,6 +141,7 @@ if [ -d "html" ]; then
     fi
 else
     echo "[1/6] Cloning from GitHub..."
+    offer_to_remove_old_database
     git -c advice.detachedHead=false clone -b "$REF" "$REPO_URL" html
 fi
 

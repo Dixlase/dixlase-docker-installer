@@ -92,6 +92,21 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
   Cloning from GitHub...	  Cloning from GitHub...
   Keeping existing html/.	  Keeping existing html/.
 [1/6] Cloning from GitHub...	[1/6] Cloning from GitHub...
+# A fresh html/ cannot use the database of an earlier install. Core finds a	# A fresh html/ cannot use the database of an earlier install. Core finds a
+# migrated database while INSTALLED=false, takes it for an install waiting	# migrated database while INSTALLED=false, takes it for an install waiting
+# to be finalized, and sends every wizard step to the completion screen; the	# to be finalized, and sends every wizard step to the completion screen; the
+# new APP_KEY cannot read its encrypted values either. So before html/ is	# new APP_KEY cannot read its encrypted values either. So before html/ is
+# cloned, offer to remove a mysql/ that still holds data — the same pair	# cloned, offer to remove a mysql/ that still holds data — the same pair
+# reset.sh removes. rmdir clears an empty mysql/ without asking.	# reset.sh removes. rmdir clears an empty mysql/ without asking.
+  mysql/ holds the database of an earlier install. A fresh html/	  mysql/ holds the database of an earlier install. A fresh html/
+  cannot use it: the install wizard would skip to the completion screen.	  cannot use it: the install wizard would skip to the completion screen.
+  Delete mysql/ as well? (Y/n): 	  Delete mysql/ as well? (Y/n): 
+  Keeping mysql/. The install wizard will skip to the completion	  Keeping mysql/. The install wizard will skip to the completion
+  screen; run ./reset.sh to start from an empty database.	  screen; run ./reset.sh to start from an empty database.
+  Deleting mysql/...	  Deleting mysql/...
+# The database container keeps its files open; remove it first.	# The database container keeps its files open; remove it first.
+  Could not remove mysql/. Remove it by hand (or run ./reset.sh),	  Could not remove mysql/. Remove it by hand (or run ./reset.sh),
+  then run ./setup.sh again.	  then run ./setup.sh again.
   Removed empty submodule placeholder: $submodule_path	  Removed empty submodule placeholder: $submodule_path
 [2/6] Setting up .env...	[2/6] Setting up .env...
   Copied .env.example -> .env (for Docker Compose, mode 600).	  Copied .env.example -> .env (for Docker Compose, mode 600).
