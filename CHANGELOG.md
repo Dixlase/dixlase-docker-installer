@@ -8,6 +8,23 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.6] — 2026-10-19
+
+### Fixed
+
+- `./setup.sh --dev` (and so `./reset.sh --dev`) no longer leaves `html/node_modules` broken. Two `npm install` runs were writing it at once: `docker compose up -d` started the vite container, whose entrypoint installs node_modules when it finds none, while step `[5/6]` ran `npm install` in the app container on the same tree. The two deleted each other's directories, and Vite stopped with `npm error ENOTEMPTY` followed by `sh: 1: vite: not found`; restarting it failed with `Cannot find module` from inside the half-written tree. In development mode the stack now comes up with `--scale vite=0`, and vite is started right after step `[5/6]`, where its entrypoint finds node_modules complete and skips its own install. A vite container started on its own with no node_modules still installs them. It was a race, so it did not happen on every run (#62).
+
+### Upgrade notes
+
+Nothing to do unless a `--dev` setup already left you with a Vite container that will not start. In that case, update the installer with `git pull`, delete the half-written tree through the app container (it is owned by `www-data`, so the host user cannot) and run the setup again:
+
+```bash
+docker compose exec -T dixlase.test rm -rf /var/www/html/node_modules
+./setup.sh --dev
+```
+
+Built-assets mode (`./setup.sh` with no `--dev`) was never affected, and no existing install is touched by updating the installer.
+
 ## [0.1.5] — 2026-10-17
 
 ### Changed (docs)
