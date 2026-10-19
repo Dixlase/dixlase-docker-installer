@@ -8,6 +8,26 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.8] — 2026-10-20
+
+### Fixed
+
+- The app and cron containers no longer nest the `public/storage` symlink. Both build from the same image, mount the same `html/` and run the same entrypoint with nothing ordering one after the other, so both could reach the link step while the link did not exist yet. The first `ln` created it; the second ran against a path that was by then a symlink to a directory, which writes the link *inside* it and leaves `storage/app/public/public` pointing at nothing. On Linux that dangling path used to stop the ownership step of `setup.sh`, so part of `html/` kept the host user's ownership: the install wizard could not write `.env`, and an update could not rewrite the integrity baseline. The entrypoint uses `ln -sfn` now, so the container that loses the race writes the same link instead of a nested one, and it removes a nested link left by an earlier start. A `public/storage` left dangling is repaired as well (#46).
+- `setup.sh` and `reset.sh` no longer end a run without a word when a question has no answer behind it. `read` returns non-zero at end of input and both scripts run under `set -e`, so a pipeline one answer short stopped at a step whose output said nothing. `setup.sh` uses a piped or typed answer when there is one and otherwise prints what it assumed, and what it assumes always keeps what is on disk — `html/`, `mysql/` and the containers all stay — even where the interactive default deletes. `reset.sh` exists to delete, so it has nothing safe to assume: it says it needs an answer or `-y`, and stops (#66).
+- `setup.sh` names the core release in its completion summary, above the installer version, which is what the 0.1.1 changelog said both scripts would do. A fresh install never printed which core release it had just put on disk. `unknown` is printed when the file cannot be read, and `update.sh` pads its own line to match and falls back to `unknown` instead of printing an empty value (#45).
+
+### Changed (CI)
+
+- The smoke test asserts that `html/public/storage` resolves and that nothing is nested under it. That job runs with the `cron` profile on, so the window the entrypoint fix closes is open on every run (#46).
+
+### Upgrade notes
+
+The entrypoint lives in the app image, so the storage-link fix reaches a running stack when the image is rebuilt: `git pull`, then `./setup.sh` (which builds), or `docker compose build && docker compose up -d`. `./update.sh` does not rebuild images.
+
+A `storage/app/public/public` left by an earlier run is removed by the new entrypoint the first time it starts. Nothing else is needed — `chown -h` has tolerated that link since 0.1.1, so an install that works today keeps working.
+
+If you drive `./setup.sh` from a script, note that a question it cannot get an answer to is now answered with the option that keeps what is on disk, rather than ending the run. `./reset.sh` in a script needs `-y`, as before, and now says so instead of stopping silently.
+
 ## [0.1.7] — 2026-10-20
 
 ### Fixed
