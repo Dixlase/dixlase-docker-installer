@@ -43,6 +43,13 @@
 # Recreation guarantees a clean state and avoids Docker Desktop bind-mount	# Recreation guarantees a clean state and avoids Docker Desktop bind-mount
 # caching where freshly built host files are not visible to running containers.	# caching where freshly built host files are not visible to running containers.
 # Active profiles are picked up from COMPOSE_PROFILES exported above.	# Active profiles are picked up from COMPOSE_PROFILES exported above.
+# In development mode the vite container installs node_modules itself when	# In development mode the vite container installs node_modules itself when
+# it finds none, while step [5/6] runs npm install in the app container on	# it finds none, while step [5/6] runs npm install in the app container on
+# the same html/ tree. Run at the same time, the two installs delete each	# the same html/ tree. Run at the same time, the two installs delete each
+# other's directories and leave node_modules broken (ENOTEMPTY, then	# other's directories and leave node_modules broken (ENOTEMPTY, then
+# "vite: not found"). So vite is held back here and started once step	# "vite: not found"). So vite is held back here and started once step
+# [5/6] has finished; its entrypoint then finds node_modules and skips its	# [5/6] has finished; its entrypoint then finds node_modules and skips its
+# own install.	# own install.
 # Wait for containers to start	# Wait for containers to start
 # 5. Install Laravel dependencies	# 5. Install Laravel dependencies
 # composer/npm install are the only things setup.sh has to do before	# composer/npm install are the only things setup.sh has to do before
@@ -101,6 +108,8 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 [5/6] Installing Laravel dependencies...	[5/6] Installing Laravel dependencies...
   Running composer install...	  Running composer install...
   Running npm install...	  Running npm install...
+# Held back in step [4/6] until node_modules was complete.	# Held back in step [4/6] until node_modules was complete.
+  Starting the Vite dev server...	  Starting the Vite dev server...
 [6/6] Development mode: Vite dev server is running in the vite container...	[6/6] Development mode: Vite dev server is running in the vite container...
       Build skipped (hot-reload enabled).	      Build skipped (hot-reload enabled).
 [6/6] Building frontend assets...	[6/6] Building frontend assets...

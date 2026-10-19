@@ -43,6 +43,13 @@
 # Recreation guarantees a clean state and avoids Docker Desktop bind-mount	# リクリエイトすればクリーンな状態を保証でき、Docker Desktop のバインドマウント
 # caching where freshly built host files are not visible to running containers.	# キャッシュ問題（ホストで新規作成したファイルが既存コンテナから見えない事象）も回避できる。
 # Active profiles are picked up from COMPOSE_PROFILES exported above.	# 有効な profile は上で export した COMPOSE_PROFILES から拾われる。
+# In development mode the vite container installs node_modules itself when	# 開発モードでは、vite コンテナは node_modules が無ければ自分でインストールする。
+# it finds none, while step [5/6] runs npm install in the app container on	# 一方で手順 [5/6] は、同じ html/ のツリーに対してアプリのコンテナで npm install を
+# the same html/ tree. Run at the same time, the two installs delete each	# 実行する。同時に走ると、2 つのインストールが互いのディレクトリを消し合い、
+# other's directories and leave node_modules broken (ENOTEMPTY, then	# node_modules が壊れた状態で残る (ENOTEMPTY のあとに
+# "vite: not found"). So vite is held back here and started once step	# "vite: not found")。そのため vite はここでは起動せず、手順
+# [5/6] has finished; its entrypoint then finds node_modules and skips its	# [5/6] が終わってから起動する。entrypoint はそのとき node_modules を見つけるので、
+# own install.	# 自分のインストールを飛ばす。
 # Wait for containers to start	# コンテナの起動を待つ
 # 5. Install Laravel dependencies	# 5. Laravel 依存関係のインストール
 # composer/npm install are the only things setup.sh has to do before	# ウィザード実行前に setup.sh がやるべきことは composer / npm install
@@ -101,6 +108,8 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 [5/6] Installing Laravel dependencies...	[5/6] Laravel 依存関係をインストール中...
   Running composer install...	  composer install 実行中...
   Running npm install...	  npm install 実行中...
+# Held back in step [4/6] until node_modules was complete.	# 手順 [4/6] では、node_modules が揃うまで起動を見送っていた。
+  Starting the Vite dev server...	  Vite dev サーバーを起動中...
 [6/6] Development mode: Vite dev server is running in the vite container...	[6/6] 開発モード: Vite dev サーバーが vite コンテナで起動中...
       Build skipped (hot-reload enabled).	      ビルドはスキップされます (hot-reload 有効)。
 [6/6] Building frontend assets...	[6/6] フロントエンドアセットをビルド中...
