@@ -250,4 +250,9 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # profile cannot be addressed otherwise. `rm -sf` stops and removes the	# それ以外の方法では指定できないためである。`rm -sf` はコンテナを停止して削除する
 # container; named volumes (Redis) are untouched.	# が、名前付きボリューム (Redis) には触れない。
   Removing the $disabled_service container (turned off in .env)...	  $disabled_service コンテナを削除します (.env で off になっています)...
+# Name the core release that just landed next to the installer's own	# たった今入ったコアのリリースを、インストーラ自身の版の隣に表示する。
+# version, so a report right after a first install can give both. Read from	# 初回インストールの直後の報告で、両方を書けるようにするためである。
+# the host file rather than through the container, so the summary still	# コンテナ経由ではなくホストのファイルから読むので、コンテナが起動して
+# prints when a container is not running.	# いないときでもサマリは表示される。
+  Core version:      ${CORE_VERSION:-unknown}	  コアバージョン:           ${CORE_VERSION:-unknown}
   Installer version: ${INSTALLER_VERSION:-unknown}	  インストーラのバージョン: ${INSTALLER_VERSION:-unknown}
