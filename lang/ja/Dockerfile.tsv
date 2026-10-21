@@ -39,3 +39,13 @@
 # these when a release ages), and package signatures are still verified: no	# リリースが古くなると変える)、パッケージの署名検証は行われる: ここで
 # --allow-unauthenticated here, since nothing in the list needs it and it would	# --allow-unauthenticated は使わない。この一覧に必要なものは無く、改ざんされた
 # accept a tampered mirror.	# ミラーを受け入れてしまうからである。
+# Pinned, retried, and with a second source to download from. On 2026-10-22	# 版を固定し、やり直しも行い、ダウンロード元を 2 つ持たせる。2026-10-22、
+# pecl.php.net answered this download with 504 for about an hour, right after	# PHP 8.3.36 のセキュリティリリースの直後に pecl.php.net がこのダウンロードへ
+# the PHP 8.3.36 security release, so the build failed at the one moment a	# 1 時間ほど 504 を返し、作り直しが必要なまさにそのときにビルドが失敗した。
+# rebuild was needed. PECL is tried three times; the same version's tag on	# PECL は 3 回試し、だめなら GitHub にある同じ版のタグから、ベースイメージが
+# GitHub is the fallback, built the way the base image builds an extension of	# 自前の拡張をビルドするのと同じ方法でビルドする。版を固定しているので、
+# its own. The version is pinned so both sources install the same code.	# どちらの入手先でも同じコードが入る。
+pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3).	pecl install redis-$REDIS_VERSION が失敗しました (3 回中 $attempt 回目)。
+pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.	pecl.php.net から redis-$REDIS_VERSION を取得できません。同じ版を GitHub のタグからビルドします。
+Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.	pecl.php.net も github.com も phpredis $REDIS_VERSION を返しませんでした。
+An ordinary build reaches both, so run the build again once they answer.	通常のビルドはどちらにも到達します。応答が戻ったらビルドをやり直してください。
