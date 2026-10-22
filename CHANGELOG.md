@@ -21,7 +21,9 @@ To update the installer itself, run `git pull` in its directory, then follow the
 
 ### Upgrade notes
 
-**If your database is not on MariaDB 12.3, say so in `.env` before you run any Docker command.** `cat mysql/mariadb_upgrade_info` names the server that last upgraded the data directory. 12.3.x means there is nothing to do — that is the new default. Anything older goes in `.env` first:
+**A new install needs none of this.** `setup.sh` writes `DB_IMAGE` empty, the default names MariaDB 12.3, and a data directory created now is on that line from the start.
+
+**An existing install whose database is not on MariaDB 12.3 has to say so in `.env` before any Docker command runs.** `cat mysql/mariadb_upgrade_info` names the server that last upgraded the data directory. 12.3.x means there is nothing to do — that is the new default. Anything older goes in `.env` first:
 
 ```bash
 DB_IMAGE=mariadb:12.2   # the line the data directory is already on
