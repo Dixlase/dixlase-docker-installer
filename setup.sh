@@ -39,6 +39,26 @@ docker_root() {
 # not drop someone's database.
 #
 # $1 is the prompt, $2 the answer to assume. The answer is left in ANSWER.
+# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE
+# in .env. MariaDB upgrades mysql/ in place when it starts and no older server
+# will open that directory afterwards, so starting a line other than the one the
+# data directory records cannot be undone. Read both and compare.
+db_image_line() {
+    # mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag
+    # cannot be read as a version (latest, a digest, no tag at all, a registry
+    # that carries a port) comes back empty, so the caller skips a comparison
+    # it has no business making.
+    printf '%s\n' "$1" | sed 's|.*:||' | sed -n 's|^\([0-9][0-9]*\.[0-9][0-9]*\).*|\1|p'
+}
+
+db_image_setting() {
+    _img=$(grep '^DB_IMAGE=' .env 2>/dev/null | cut -d'=' -f2- | tr -d '[:space:]"')
+    if [ -z "$_img" ]; then
+        _img=$(sed -n 's|^[[:space:]]*image: *[$]{DB_IMAGE:-\([^}]*\)}.*|\1|p' docker-compose.yml | head -1)
+    fi
+    printf '%s\n' "$_img"
+}
+
 ask() {
     if read -r -p "$1" ANSWER; then
         # bash prints the -p prompt only to a terminal, so a run that pipes its
@@ -347,6 +367,28 @@ if [ "$EXISTING_CONTAINERS" -gt 0 ]; then
     else
         echo "  Keeping existing containers (in-place restart)."
         KEPT_CONTAINERS=true
+    fi
+fi
+
+# A data directory that MariaDB has upgraded is readable only by that server
+# line or a newer one, so this step stops rather than move the database as a
+# side effect of starting the stack.
+if [ -f mysql/mariadb_upgrade_info ]; then
+    DB_IMAGE_VAL=$(db_image_setting)
+    DATA_LINE=$(db_image_line "$(tr -d '\r\n' < mysql/mariadb_upgrade_info)")
+    IMAGE_LINE=$(db_image_line "$DB_IMAGE_VAL")
+    if [ -n "$DATA_LINE" ] && [ -n "$IMAGE_LINE" ] && [ "$DATA_LINE" != "$IMAGE_LINE" ]; then
+        echo ""
+        echo "  mysql/ was last upgraded by MariaDB $DATA_LINE, and this run would start"
+        echo "  $DB_IMAGE_VAL. MariaDB upgrades the data directory in place, and no older"
+        echo "  server will open it afterwards, so the move cannot be undone."
+        echo ""
+        echo "  To keep the database on the line it is on, set this in .env:"
+        echo "    DB_IMAGE=mariadb:$DATA_LINE"
+        echo ""
+        echo "  To move it on purpose, dump the database on its current line first, then"
+        echo "  set DB_IMAGE to the line you want and run this again."
+        exit 1
     fi
 fi
 

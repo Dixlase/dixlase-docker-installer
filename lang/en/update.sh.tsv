@@ -217,3 +217,19 @@ Rebuilding the images...	Rebuilding the images...
   PHP comes from the image built when this install was made. To move it	  PHP comes from the image built when this install was made. To move it
   to the newest php:8.3-fpm (after a PHP security release, say):	  to the newest php:8.3-fpm (after a PHP security release, say):
     ./update.sh --rebuild	    ./update.sh --rebuild
+# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE	# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE
+# in .env. MariaDB upgrades mysql/ in place when it starts and no older server	# in .env. MariaDB upgrades mysql/ in place when it starts and no older server
+# will open that directory afterwards, so starting a line other than the one the	# will open that directory afterwards, so starting a line other than the one the
+# data directory records cannot be undone. Read both and compare.	# data directory records cannot be undone. Read both and compare.
+# mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag	# mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag
+# cannot be read as a version (latest, a digest, no tag at all, a registry	# cannot be read as a version (latest, a digest, no tag at all, a registry
+# that carries a port) comes back empty, so the caller skips a comparison	# that carries a port) comes back empty, so the caller skips a comparison
+# it has no business making.	# it has no business making.
+# This script never starts the database container, so a mismatch here changes	# This script never starts the database container, so a mismatch here changes
+# nothing today. Say it anyway: the next plain docker compose up -d would make	# nothing today. Say it anyway: the next plain docker compose up -d would make
+# the move, and the operator is the only one who can decide it.	# the move, and the operator is the only one who can decide it.
+  mysql/ was last upgraded by MariaDB $DATA_LINE, while this install is set	  mysql/ was last upgraded by MariaDB $DATA_LINE, while this install is set
+  to $DB_IMAGE_VAL. Starting the database container would upgrade the data	  to $DB_IMAGE_VAL. Starting the database container would upgrade the data
+  directory in place, and no older server would open it afterwards. To keep	  directory in place, and no older server would open it afterwards. To keep
+  it where it is, set this in .env:	  it where it is, set this in .env:
+    DB_IMAGE=mariadb:$DATA_LINE	    DB_IMAGE=mariadb:$DATA_LINE

@@ -249,6 +249,25 @@ is rebuilt anyway — the Debian packages and the PHP extensions included — so
 for rebuilding them when it has **not** moved. Every `update.sh` run prints the PHP the site
 is on at the end, so a run without `--rebuild` still says what is there.
 
+### Moving the database to a newer MariaDB
+
+The database image is pinned to a MariaDB LTS line, `mariadb:12.3` by default. Patch releases
+inside that line still arrive when the image is pulled, and the line is never crossed by a
+pull — which matters because MariaDB upgrades the data directory in place when it starts, and
+no older server will open it afterwards. Set `DB_IMAGE` in `.env` to pin a single version, or
+to stay on the line an existing database is already on:
+
+```bash
+DB_IMAGE=mariadb:12.3.3   # pin one server version
+DB_IMAGE=mariadb:12.2     # stay on an older line
+```
+
+`mysql/mariadb_upgrade_info` names the server that last upgraded the data directory, and
+`setup.sh` stops rather than start a different line against it. To move the database on
+purpose: shut the stack down cleanly (`docker compose down`), take a dump with the line it is
+on now, set `DB_IMAGE` to the line you want, and start it again. The move cannot be undone,
+which is what the dump is for.
+
 ## Troubleshooting
 
 ### Windows: a container exits at once, or the entrypoint is reported missing

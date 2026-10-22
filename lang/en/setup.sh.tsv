@@ -268,3 +268,21 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # prints when a container is not running.	# prints when a container is not running.
   Core version:      ${CORE_VERSION:-unknown}	  Core version:      ${CORE_VERSION:-unknown}
   Installer version: ${INSTALLER_VERSION:-unknown}	  Installer version: ${INSTALLER_VERSION:-unknown}
+# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE	# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE
+# in .env. MariaDB upgrades mysql/ in place when it starts and no older server	# in .env. MariaDB upgrades mysql/ in place when it starts and no older server
+# will open that directory afterwards, so starting a line other than the one the	# will open that directory afterwards, so starting a line other than the one the
+# data directory records cannot be undone. Read both and compare.	# data directory records cannot be undone. Read both and compare.
+# mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag	# mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag
+# cannot be read as a version (latest, a digest, no tag at all, a registry	# cannot be read as a version (latest, a digest, no tag at all, a registry
+# that carries a port) comes back empty, so the caller skips a comparison	# that carries a port) comes back empty, so the caller skips a comparison
+# it has no business making.	# it has no business making.
+# A data directory that MariaDB has upgraded is readable only by that server	# A data directory that MariaDB has upgraded is readable only by that server
+# line or a newer one, so this step stops rather than move the database as a	# line or a newer one, so this step stops rather than move the database as a
+# side effect of starting the stack.	# side effect of starting the stack.
+  mysql/ was last upgraded by MariaDB $DATA_LINE, and this run would start	  mysql/ was last upgraded by MariaDB $DATA_LINE, and this run would start
+  $DB_IMAGE_VAL. MariaDB upgrades the data directory in place, and no older	  $DB_IMAGE_VAL. MariaDB upgrades the data directory in place, and no older
+  server will open it afterwards, so the move cannot be undone.	  server will open it afterwards, so the move cannot be undone.
+  To keep the database on the line it is on, set this in .env:	  To keep the database on the line it is on, set this in .env:
+    DB_IMAGE=mariadb:$DATA_LINE	    DB_IMAGE=mariadb:$DATA_LINE
+  To move it on purpose, dump the database on its current line first, then	  To move it on purpose, dump the database on its current line first, then
+  set DB_IMAGE to the line you want and run this again.	  set DB_IMAGE to the line you want and run this again.

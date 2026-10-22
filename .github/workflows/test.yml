@@ -34,6 +34,24 @@ jobs:
       - name: Validate docker-compose.yml
         run: docker compose config --quiet
 
+      - name: The database image is pinned, not floating
+        run: |
+          set -e
+          # A floating tag here is what #78 fixed: MariaDB upgrades mysql/ in
+          # place when it starts, and no older server opens that directory
+          # afterwards, so a tag that crosses a line makes an ordinary pull a
+          # one-way database upgrade.
+          line=$(sed -n 's|^[[:space:]]*image: *[$]{DB_IMAGE:-\([^}]*\)}.*|\1|p' docker-compose.yml | head -1)
+          case "$line" in
+            mariadb:[0-9]*.[0-9]*)
+              echo "OK: the database service defaults to $line."
+              ;;
+            *)
+              echo "The database service must default to a pinned MariaDB line, not '${line:-nothing}'." >&2
+              exit 1
+              ;;
+          esac
+
       - name: Verify dictionary keys exist verbatim in source
         run: |
           set -e

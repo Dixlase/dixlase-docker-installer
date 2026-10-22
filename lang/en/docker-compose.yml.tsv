@@ -68,3 +68,10 @@
 # only ever sees its own 443). NGINX_ENVSUBST_FILTER keeps the	# only ever sees its own 443). NGINX_ENVSUBST_FILTER keeps the
 # substitution to our own DIXLASE_ variables, so nginx's own $host,	# substitution to our own DIXLASE_ variables, so nginx's own $host,
 # $uri and friends pass through untouched.	# $uri and friends pass through untouched.
+# Pinned to an LTS line rather than a floating tag. MariaDB upgrades	# Pinned to an LTS line rather than a floating tag. MariaDB upgrades
+# ./mysql in place when it starts, and no older server will open that	# ./mysql in place when it starts, and no older server will open that
+# directory afterwards, so a tag that crosses a line turns an ordinary	# directory afterwards, so a tag that crosses a line turns an ordinary
+# docker compose pull into a one-way database upgrade. Patch releases	# docker compose pull into a one-way database upgrade. Patch releases
+# inside the line still arrive. Set DB_IMAGE in .env to pin harder	# inside the line still arrive. Set DB_IMAGE in .env to pin harder
+# (mariadb:12.3.3), or to the line an existing data directory names in	# (mariadb:12.3.3), or to the line an existing data directory names in
+# mysql/mariadb_upgrade_info.	# mysql/mariadb_upgrade_info.

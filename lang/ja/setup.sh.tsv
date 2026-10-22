@@ -268,3 +268,21 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # prints when a container is not running.	# いないときでもサマリは表示される。
   Core version:      ${CORE_VERSION:-unknown}	  コアバージョン:           ${CORE_VERSION:-unknown}
   Installer version: ${INSTALLER_VERSION:-unknown}	  インストーラのバージョン: ${INSTALLER_VERSION:-unknown}
+# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE	# データベースのイメージは docker-compose.yml でピン留めしてあり、.env の
+# in .env. MariaDB upgrades mysql/ in place when it starts and no older server	# DB_IMAGE で上書きできる。MariaDB は起動時に mysql/ をその場でアップグレードし、
+# will open that directory afterwards, so starting a line other than the one the	# そのあとは古いサーバーではそのディレクトリを開けない。データディレクトリが
+# data directory records cannot be undone. Read both and compare.	# 記録している系列以外を起動するのは、取り消せない。両方を読んで比べる。
+# mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag	# mariadb:12.3.3 は 12.3、12.3.3-MariaDB も 12.3 になる。タグを版として
+# cannot be read as a version (latest, a digest, no tag at all, a registry	# 読めない場合 (latest、digest、タグ無し、ポート付きのレジストリ) は、
+# that carries a port) comes back empty, so the caller skips a comparison	# 空を返す。呼び出し側は、根拠のない比較を飛ばす。
+# it has no business making.	# 判断できないときは判断しない。
+# A data directory that MariaDB has upgraded is readable only by that server	# MariaDB がアップグレードしたデータディレクトリは、そのサーバーの系列か
+# line or a newer one, so this step stops rather than move the database as a	# それより新しいものでしか読めない。このステップは、スタックを起動した副作用で
+# side effect of starting the stack.	# データベースを動かすのではなく、止まる。
+  mysql/ was last upgraded by MariaDB $DATA_LINE, and this run would start	  mysql/ を最後にアップグレードしたのは MariaDB $DATA_LINE で、この実行が起動
+  $DB_IMAGE_VAL. MariaDB upgrades the data directory in place, and no older	  するのは $DB_IMAGE_VAL です。MariaDB はデータディレクトリをその場でアップグレード
+  server will open it afterwards, so the move cannot be undone.	  し、そのあとは古いサーバーでは開けません。この移行は取り消せません。
+  To keep the database on the line it is on, set this in .env:	  今の系列のままにするには、.env にこう書いてください:
+    DB_IMAGE=mariadb:$DATA_LINE	    DB_IMAGE=mariadb:$DATA_LINE
+  To move it on purpose, dump the database on its current line first, then	  意図して移行するなら、まず今の系列でデータベースをダンプし、それから
+  set DB_IMAGE to the line you want and run this again.	  DB_IMAGE を移行先の系列にして、もう一度実行してください。

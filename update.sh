@@ -87,6 +87,26 @@ step() {
     echo "[$STEP/$STEP_TOTAL] $1"
 }
 
+# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE
+# in .env. MariaDB upgrades mysql/ in place when it starts and no older server
+# will open that directory afterwards, so starting a line other than the one the
+# data directory records cannot be undone. Read both and compare.
+db_image_line() {
+    # mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag
+    # cannot be read as a version (latest, a digest, no tag at all, a registry
+    # that carries a port) comes back empty, so the caller skips a comparison
+    # it has no business making.
+    printf '%s\n' "$1" | sed 's|.*:||' | sed -n 's|^\([0-9][0-9]*\.[0-9][0-9]*\).*|\1|p'
+}
+
+db_image_setting() {
+    _img=$(grep '^DB_IMAGE=' .env 2>/dev/null | cut -d'=' -f2- | tr -d '[:space:]"')
+    if [ -z "$_img" ]; then
+        _img=$(sed -n 's|^[[:space:]]*image: *[$]{DB_IMAGE:-\([^}]*\)}.*|\1|p' docker-compose.yml | head -1)
+    fi
+    printf '%s\n' "$_img"
+}
+
 echo "========================================"
 echo "  Dixlase - Source update"
 echo "========================================"
@@ -470,4 +490,21 @@ if [ "$REBUILD" = false ]; then
     echo "  to the newest php:8.3-fpm (after a PHP security release, say):"
     echo "    ./update.sh --rebuild"
     echo ""
+fi
+
+# This script never starts the database container, so a mismatch here changes
+# nothing today. Say it anyway: the next plain docker compose up -d would make
+# the move, and the operator is the only one who can decide it.
+if [ -f mysql/mariadb_upgrade_info ]; then
+    DB_IMAGE_VAL=$(db_image_setting)
+    DATA_LINE=$(db_image_line "$(tr -d '\r\n' < mysql/mariadb_upgrade_info)")
+    IMAGE_LINE=$(db_image_line "$DB_IMAGE_VAL")
+    if [ -n "$DATA_LINE" ] && [ -n "$IMAGE_LINE" ] && [ "$DATA_LINE" != "$IMAGE_LINE" ]; then
+        echo "  mysql/ was last upgraded by MariaDB $DATA_LINE, while this install is set"
+        echo "  to $DB_IMAGE_VAL. Starting the database container would upgrade the data"
+        echo "  directory in place, and no older server would open it afterwards. To keep"
+        echo "  it where it is, set this in .env:"
+        echo "    DB_IMAGE=mariadb:$DATA_LINE"
+        echo ""
+    fi
 fi

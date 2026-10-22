@@ -68,3 +68,10 @@
 # only ever sees its own 443). NGINX_ENVSUBST_FILTER keeps the	# NGINX_ENVSUBST_FILTER で置換対象を自前の DIXLASE_ 変数に限っているので、nginx の
 # substitution to our own DIXLASE_ variables, so nginx's own $host,	# $host や $uri などはそのまま通る。
 # $uri and friends pass through untouched.	# （nginx 側の変数は置換されない。）
+# Pinned to an LTS line rather than a floating tag. MariaDB upgrades	# 版を固定しないタグではなく、LTS の系列にピン留めしている。MariaDB は
+# ./mysql in place when it starts, and no older server will open that	# 起動時に ./mysql をその場でアップグレードし、そのあとは古いサーバーでは
+# directory afterwards, so a tag that crosses a line turns an ordinary	# そのディレクトリを開けない。つまり系列を跨ぐタグは、普通の
+# docker compose pull into a one-way database upgrade. Patch releases	# docker compose pull を、戻せないデータベースのアップグレードに変えてしまう。
+# inside the line still arrive. Set DB_IMAGE in .env to pin harder	# 系列内のパッチリリースは届く。もっと固定したいとき (mariadb:12.3.3)、または
+# (mariadb:12.3.3), or to the line an existing data directory names in	# 既存のデータディレクトリが mysql/mariadb_upgrade_info に記録している系列に
+# mysql/mariadb_upgrade_info.	# 合わせたいときは、.env の DB_IMAGE を設定する。
