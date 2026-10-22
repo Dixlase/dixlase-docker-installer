@@ -217,3 +217,19 @@ Rebuilding the images...	イメージを作り直し中...
   PHP comes from the image built when this install was made. To move it	  PHP は、このインストールを作ったときのイメージから来ています。最新の
   to the newest php:8.3-fpm (after a PHP security release, say):	  php:8.3-fpm に移すには (PHP のセキュリティリリースの後など):
     ./update.sh --rebuild	    ./update.sh --rebuild
+# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE	# データベースのイメージは docker-compose.yml でピン留めしてあり、.env の
+# in .env. MariaDB upgrades mysql/ in place when it starts and no older server	# DB_IMAGE で上書きできる。MariaDB は起動時に mysql/ をその場でアップグレードし、
+# will open that directory afterwards, so starting a line other than the one the	# そのあとは古いサーバーではそのディレクトリを開けない。データディレクトリが
+# data directory records cannot be undone. Read both and compare.	# 記録している系列以外を起動するのは、取り消せない。両方を読んで比べる。
+# mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag	# mariadb:12.3.3 は 12.3、12.3.3-MariaDB も 12.3 になる。タグを版として
+# cannot be read as a version (latest, a digest, no tag at all, a registry	# 読めない場合 (latest、digest、タグ無し、ポート付きのレジストリ) は、
+# that carries a port) comes back empty, so the caller skips a comparison	# 空を返す。呼び出し側は、根拠のない比較を飛ばす。
+# it has no business making.	# 判断できないときは判断しない。
+# This script never starts the database container, so a mismatch here changes	# このスクリプトはデータベースのコンテナを起動しないので、ここでの不一致は
+# nothing today. Say it anyway: the next plain docker compose up -d would make	# 今は何も変えない。それでも伝える。次の素の docker compose up -d が移行を
+# the move, and the operator is the only one who can decide it.	# 行ってしまい、それを決められるのは運用者だけだからである。
+  mysql/ was last upgraded by MariaDB $DATA_LINE, while this install is set	  mysql/ を最後にアップグレードしたのは MariaDB $DATA_LINE ですが、このインストール
+  to $DB_IMAGE_VAL. Starting the database container would upgrade the data	  の設定は $DB_IMAGE_VAL です。データベースのコンテナを起動すると、データ
+  directory in place, and no older server would open it afterwards. To keep	  ディレクトリをその場でアップグレードし、そのあとは古いサーバーでは開けません。
+  it where it is, set this in .env:	  今のままにするには、.env にこう書いてください:
+    DB_IMAGE=mariadb:$DATA_LINE	    DB_IMAGE=mariadb:$DATA_LINE

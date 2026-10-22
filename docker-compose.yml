@@ -72,7 +72,14 @@ services:
 
   mysql:
     container_name: ${CONTAINER_PREFIX:-dixlase}-mysql
-    image: mariadb:latest
+    # Pinned to an LTS line rather than a floating tag. MariaDB upgrades
+    # ./mysql in place when it starts, and no older server will open that
+    # directory afterwards, so a tag that crosses a line turns an ordinary
+    # docker compose pull into a one-way database upgrade. Patch releases
+    # inside the line still arrive. Set DB_IMAGE in .env to pin harder
+    # (mariadb:12.3.3), or to the line an existing data directory names in
+    # mysql/mariadb_upgrade_info.
+    image: ${DB_IMAGE:-mariadb:12.3}
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-root}"
