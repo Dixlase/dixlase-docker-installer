@@ -45,7 +45,39 @@ RUN docker-php-ext-install gd
 # Install Redis PHP extension (PECL); enables Laravel cache / session / queue
 # drivers that target Redis. Required by the Dixlase install wizard's Redis
 # requirement check (extension_loaded('redis')).
-RUN pecl install redis && docker-php-ext-enable redis
+#
+# Pinned, retried, and with a second source to download from. On 2026-10-22
+# pecl.php.net answered this download with 504 for about an hour, right after
+# the PHP 8.3.36 security release, so the build failed at the one moment a
+# rebuild was needed. PECL is tried three times; the same version's tag on
+# GitHub is the fallback, built the way the base image builds an extension of
+# its own. The version is pinned so both sources install the same code.
+ARG REDIS_VERSION=6.3.0
+RUN set -eu; \
+    ext_dir="$(php -r 'echo ini_get("extension_dir");')"; \
+    for attempt in 1 2 3; do \
+        if pecl install --force "redis-$REDIS_VERSION"; then break; fi; \
+        echo "pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3)."; \
+        sleep 5; \
+    done; \
+    if [ -f "$ext_dir/redis.so" ]; then \
+        docker-php-ext-enable redis; \
+    else \
+        echo "pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead."; \
+        if ! curl -fsSL --retry 3 --retry-delay 5 -o /tmp/phpredis.tar.gz \
+                "https://github.com/phpredis/phpredis/archive/refs/tags/$REDIS_VERSION.tar.gz"; then \
+            echo "Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION." >&2; \
+            echo "An ordinary build reaches both, so run the build again once they answer." >&2; \
+            exit 1; \
+        fi; \
+        docker-php-source extract; \
+        mkdir -p /usr/src/php/ext/redis; \
+        tar -xzf /tmp/phpredis.tar.gz -C /usr/src/php/ext/redis --strip-components=1; \
+        rm -f /tmp/phpredis.tar.gz; \
+        docker-php-ext-install redis; \
+        docker-php-source delete; \
+    fi; \
+    php -m | grep -qx redis
 
 # Copy PHP configuration file
 COPY ./php/php.ini /usr/local/etc/php/conf.d/uploads.ini

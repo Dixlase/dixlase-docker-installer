@@ -39,3 +39,13 @@
 # these when a release ages), and package signatures are still verified: no	# these when a release ages), and package signatures are still verified: no
 # --allow-unauthenticated here, since nothing in the list needs it and it would	# --allow-unauthenticated here, since nothing in the list needs it and it would
 # accept a tampered mirror.	# accept a tampered mirror.
+# Pinned, retried, and with a second source to download from. On 2026-10-22	# Pinned, retried, and with a second source to download from. On 2026-10-22
+# pecl.php.net answered this download with 504 for about an hour, right after	# pecl.php.net answered this download with 504 for about an hour, right after
+# the PHP 8.3.36 security release, so the build failed at the one moment a	# the PHP 8.3.36 security release, so the build failed at the one moment a
+# rebuild was needed. PECL is tried three times; the same version's tag on	# rebuild was needed. PECL is tried three times; the same version's tag on
+# GitHub is the fallback, built the way the base image builds an extension of	# GitHub is the fallback, built the way the base image builds an extension of
+# its own. The version is pinned so both sources install the same code.	# its own. The version is pinned so both sources install the same code.
+pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3).	pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3).
+pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.	pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.
+Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.	Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.
+An ordinary build reaches both, so run the build again once they answer.	An ordinary build reaches both, so run the build again once they answer.
