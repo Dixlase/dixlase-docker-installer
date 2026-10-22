@@ -8,6 +8,32 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.9] — 2026-10-22
+
+### Fixed
+
+- `./update.sh --rebuild` builds the images again and replaces the containers with them, which is what moves an install to a newer PHP. `update.sh` advanced the core checkout, ran composer, the migrations and the asset build and cleared the caches — all inside the containers that were already running — and built nothing at all. The `Dockerfile` stands on the floating `php:8.3-fpm` tag, and a floating tag moves for an install only when the image is built again, so an install kept the PHP it was first built with however often `update.sh` ran, with nothing in the output to say so. The PHP 8.3.36 security release made that urgent. The rebuild sits after the core update and before composer, so dependencies are resolved by the PHP that will serve them; it builds the app image, and `cron`'s as well when that container is running, replaces those containers and restarts `web` so nginx reaches the new app container at once. `mysql` stays out of it (`--no-deps`). `--no-cache` rebuilds every layer for the case where the base image did not move, and on its own it is refused rather than quietly ignored. Every run now prints the PHP the container runs, and a run without `--rebuild` says how to move it (#73).
+- The image still builds while `pecl.php.net` cannot serve the redis extension. The extension had one source and no retry, so the build failed outright whenever that download did not answer — as it did for about an hour on 2026-10-22, right after the PHP 8.3.36 security release, the moment every PHP image is being rebuilt and a rebuild matters most. The version is pinned through a `REDIS_VERSION` build argument, PECL is tried three times, and the same version's tag on GitHub is the fallback, built with `docker-php-source` and `docker-php-ext-install`. When neither source answers, the build fails with a message naming both, and the step ends by asserting the extension is loaded, so a build that installed nothing cannot pass as one that did (#74).
+
+### Changed (CI)
+
+- The update smoke job runs `./update.sh --rebuild` and asserts that the PHP version the summary reports is the version the container runs, then checks that the site still answers (#73).
+
+### Changed (docs)
+
+- The documentation calls the product Dixlase rather than Dixlase CMS, which is the name the licence texts in core already use (#72).
+- README and README.ja say when and how to move an install to a newer PHP. SECURITY and SECURITY.ja say that an update of an upstream image reaches an install only through a rebuild (#73).
+
+### Upgrade notes
+
+Run `./update.sh --rebuild` once after `git pull`. An install keeps the PHP its image was built with, so a PHP security release — 8.3.36, here — reaches it only through a rebuild. This supersedes the note in 0.1.8 that `./update.sh` does not rebuild images: it still does not, unless you ask for it with `--rebuild`.
+
+The rebuild replaces the app container, and the cron container when it is running. `mysql` is left alone, and the rebuild itself writes nothing into `html/`, so the database and the site's files are not part of it. The site is served from the old container until the new image is built, and `web` is restarted at the end so nginx picks the new one up at once.
+
+If the build cannot finish — `pecl.php.net` or Docker Hub not answering — the containers keep running on the image they have, but the run stops after `html/` has already been advanced and before composer and the migrations, so the site is then serving a core checkout whose dependencies and database have not caught up with it. Run `./update.sh --rebuild` again once the download answers; it picks the run up from the beginning and is safe to repeat.
+
+The services that use an upstream image directly (`mariadb`, `nginx`, `adminer`, `mailpit`, `redis`) take an update through `docker compose pull && docker compose up -d`. They are not part of `--rebuild`, which builds the images this repository defines.
+
 ## [0.1.8] — 2026-10-20
 
 ### Fixed
