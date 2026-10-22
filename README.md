@@ -200,6 +200,7 @@ docker compose exec dixlase.test bash   # open a shell inside the app container
 ./update.sh                 # move html/ to core's newest release, then refresh the stack
 ./update.sh <ref>           # the same, against a branch or an older release tag
 ./update.sh --dev           # skip the asset build (the Vite dev server serves them)
+./update.sh --rebuild       # build the images again first, taking the current php:8.3-fpm
 ```
 
 `update.sh` advances the **git checkout** in `html/`. An install made from a release tag moves
@@ -224,6 +225,29 @@ three.
 ```
 
 `reset.sh` keeps `.env` and `certs/`; everything it deletes is listed before it asks.
+
+### Moving the install to a newer PHP
+
+`update.sh` works inside the containers that are already running, so on its own it never
+changes PHP. The image is built from the floating `php:8.3-fpm` tag once, when the install is
+made, and an install keeps that PHP however often the script runs afterwards: a PHP security
+release does not reach the site by itself.
+
+```bash
+./update.sh --rebuild              # build the images again from the current php:8.3-fpm
+./update.sh --rebuild --no-cache   # the same, rebuilding every layer instead of reusing the cache
+```
+
+`--rebuild` pulls the base image, builds the app image — and `cron`'s, which runs PHP of its
+own — again, replaces those containers with the result and restarts `web`, so nginx reaches
+the new app container at once rather than answering `502` until its resolver cache expires.
+Nothing outside the images is touched: `html/`, `mysql/`, `.env` and `certs/` are bind mounts,
+and the database container is left alone.
+
+Run it when PHP publishes a security release. Once the base image moves, every layer below it
+is rebuilt anyway — the Debian packages and the PHP extensions included — so `--no-cache` is
+for rebuilding them when it has **not** moved. Every `update.sh` run prints the PHP the site
+is on at the end, so a run without `--rebuild` still says what is there.
 
 ## Troubleshooting
 

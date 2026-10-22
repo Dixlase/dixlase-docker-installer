@@ -18,6 +18,7 @@ set -e
 #   ./update.sh              # newest release, or main for a branch checkout
 #   ./update.sh <ref>        # switch html/ to <ref> (a branch or a tag), then update
 #   ./update.sh --dev        # skip the asset build (Vite serves them)
+#   ./update.sh --rebuild    # rebuild the images first, taking the newest PHP
 # ====================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -25,12 +26,17 @@ cd "$SCRIPT_DIR"
 
 print_usage() {
     cat <<'EOF'
-Usage: ./update.sh [ref] [--dev]
+Usage: ./update.sh [ref] [--dev] [--rebuild [--no-cache]]
 
   [ref]      Branch or tag to update html/ to. The default is the newest
              release for an install made from a tag, and main for one that
              tracks a branch.
   --dev      Skip the production asset build (the Vite dev server serves them)
+  --rebuild  Build the images again from the current php:8.3-fpm and replace
+             the containers with them. This is what moves an install to a
+             newer PHP, a security release included.
+  --no-cache Build every layer again rather than reusing the cache. Only has
+             an effect together with --rebuild.
 EOF
 }
 
@@ -39,14 +45,25 @@ EOF
 # out from the checkout itself.
 REF=""
 DEV_MODE=false
+REBUILD=false
+NO_CACHE=false
 for arg in "$@"; do
     case "$arg" in
         --dev) DEV_MODE=true ;;
+        --rebuild) REBUILD=true ;;
+        --no-cache) NO_CACHE=true ;;
         -h|--help) print_usage; exit 0 ;;
         --*) echo "  Unknown option: $arg" >&2; exit 1 ;;
         *) REF="$arg" ;;
     esac
 done
+
+# --no-cache decides how the rebuild builds, so on its own it would look
+# accepted and do nothing at all.
+if [ "$NO_CACHE" = true ] && [ "$REBUILD" = false ]; then
+    echo "  --no-cache only has an effect together with --rebuild." >&2
+    exit 1
+fi
 
 # Mirror setup.sh: VITE=true in .env means the Vite dev server is the one
 # serving the assets, so there is nothing to build here.
@@ -56,6 +73,19 @@ if [ -f ".env" ]; then
         DEV_MODE=true
     fi
 fi
+
+# The image rebuild is a step of its own, and only when it is asked for, so
+# the steps number themselves as they run instead of carrying the count in
+# every string.
+STEP=0
+STEP_TOTAL=6
+if [ "$REBUILD" = true ]; then
+    STEP_TOTAL=7
+fi
+step() {
+    STEP=$((STEP + 1))
+    echo "[$STEP/$STEP_TOTAL] $1"
+}
 
 echo "========================================"
 echo "  Dixlase - Source update"
@@ -86,7 +116,7 @@ artisan_has() {
 # -------------------------------------------------
 # 1. Update the source
 # -------------------------------------------------
-echo "[1/6] Updating html/ from GitHub..."
+step "Updating html/ from GitHub..."
 # A release ZIP carries no .git, so there is nothing here to fast-forward.
 # Without this the git commands below just print "fatal: not a git
 # repository" twice and the script dies at exit 128. That install updates
@@ -239,10 +269,61 @@ docker compose exec -T dixlase.test \
 cd ..
 
 # -------------------------------------------------
-# 2. Update PHP dependencies
+# 2. Rebuild the images (--rebuild only)
+# -------------------------------------------------
+if [ "$REBUILD" = true ]; then
+    echo ""
+    step "Rebuilding the images..."
+    # The Dockerfile builds on php:8.3-fpm, a tag that moves with every PHP
+    # release — but it moves for an install only when the image is built
+    # again, and nothing else in this script builds anything. Without this
+    # step a site keeps the PHP it was installed with, so a PHP security
+    # release never reaches it however often update.sh runs.
+    #
+    # --pull is what fetches the base image again. Every layer below it is
+    # rebuilt on its own once its digest changes, the apt packages and the
+    # PHP extensions included, so --no-cache is for the operator who wants
+    # the layers rebuilt even when the base image did not move.
+    BUILD_ARGS=(--pull)
+    if [ "$NO_CACHE" = true ]; then
+        BUILD_ARGS+=(--no-cache)
+    fi
+    # The cron service runs PHP from an image of its own, built from this same
+    # Dockerfile, so it needs the same rebuild. It sits in a profile, which has
+    # to be named for compose to address the service at all — and only while it
+    # is running, because naming it is enough to start one that the operator
+    # turned off in .env or stopped by hand.
+    REBUILD_SERVICES=(dixlase.test)
+    REBUILD_PROFILES=""
+    if [ -n "$(COMPOSE_PROFILES=cron docker compose ps -q cron 2>/dev/null)" ]; then
+        REBUILD_SERVICES+=(cron)
+        REBUILD_PROFILES="cron"
+    fi
+    echo "  Building: ${REBUILD_SERVICES[*]}"
+    COMPOSE_PROFILES="$REBUILD_PROFILES" \
+        docker compose build "${BUILD_ARGS[@]}" "${REBUILD_SERVICES[@]}"
+    # Only a new container runs the new image. --no-deps keeps mysql out of
+    # it: the app container is the one being replaced, and taking the database
+    # down under the update would be a far longer outage than this is.
+    # Compose leaves a container alone when its image did not change, so a run
+    # that found nothing new costs nothing here.
+    COMPOSE_PROFILES="$REBUILD_PROFILES" \
+        docker compose up -d --no-deps "${REBUILD_SERVICES[@]}"
+    # nginx holds the app container's address for as long as its resolver says
+    # (valid=30s, see nginx/nginx.*.conf), so a replaced container means 502s
+    # until that expires. Restarting web ends the window at once.
+    echo "  Restarting web so nginx reaches the new app container..."
+    docker compose restart web
+    # The steps below exec into the container that was just replaced. Give it
+    # the same few seconds setup.sh waits for after `up -d`.
+    sleep 5
+fi
+
+# -------------------------------------------------
+# 3. Update PHP dependencies
 # -------------------------------------------------
 echo ""
-echo "[2/6] Updating dependencies..."
+step "Updating dependencies..."
 # Every package core requires is public, so composer needs no credential
 # here. Anything it cannot fetch is a network or a packaging problem.
 if ! docker compose exec -T dixlase.test composer install --no-interaction; then
@@ -263,10 +344,10 @@ echo "  composer install complete."
 docker compose exec -T dixlase.test composer dump-autoload --optimize --no-interaction
 
 # -------------------------------------------------
-# 3. Realign the migration bookkeeping
+# 4. Realign the migration bookkeeping
 # -------------------------------------------------
 echo ""
-echo "[3/6] Realigning migration bookkeeping..."
+step "Realigning migration bookkeeping..."
 # Until core's GA its baseline migrations are renumbered in place (core:
 # docs/operations/upgrading.md, "Beta series only: reconcile renamed
 # migrations"). A renumbered file looks new to `migrate`, which then tries
@@ -282,21 +363,21 @@ else
 fi
 
 # -------------------------------------------------
-# 4. Run migrations
+# 5. Run migrations
 # -------------------------------------------------
 echo ""
-echo "[4/6] Running migrations..."
+step "Running migrations..."
 docker compose exec -T dixlase.test php artisan migrate --force
 echo "  Migrations complete."
 
 # -------------------------------------------------
-# 5. Rebuild the frontend assets
+# 6. Rebuild the frontend assets
 # -------------------------------------------------
 echo ""
 if [ "$DEV_MODE" = true ]; then
-    echo "[5/6] Development mode: Vite dev server serves the assets, build skipped."
+    step "Development mode: Vite dev server serves the assets, build skipped."
 else
-    echo "[5/6] Rebuilding frontend assets..."
+    step "Rebuilding frontend assets..."
     # public/assets/build is gitignored, so the pull above brought new
     # sources but left the previous build in place. Rebuild it the same way
     # setup.sh does, or the pages keep asking for asset URLs that the new
@@ -320,10 +401,10 @@ else
 fi
 
 # -------------------------------------------------
-# 6. Clear caches and reconcile the bookkeeping
+# 7. Clear caches and reconcile the bookkeeping
 # -------------------------------------------------
 echo ""
-echo "[6/6] Clearing caches..."
+step "Clearing caches..."
 docker compose exec -T dixlase.test php artisan config:clear
 docker compose exec -T dixlase.test php artisan cache:clear
 docker compose exec -T dixlase.test php artisan view:clear
@@ -372,8 +453,21 @@ echo "========================================"
 echo ""
 CORE_VERSION=$(docker compose exec -T dixlase.test cat VERSION 2>/dev/null | tr -d '\r')
 echo "  Core version:      ${CORE_VERSION:-unknown}"
+# PHP comes from the image, not from html/, so an install keeps the version it
+# was built with until --rebuild replaces it. Print it: an operator asking
+# whether a PHP security release has reached the site reads the answer here.
+PHP_VERSION=$(docker compose exec -T dixlase.test php -r 'echo PHP_VERSION;' 2>/dev/null | tr -d '\r')
+echo "  PHP version:       ${PHP_VERSION:-unknown}"
 # This script updates core (html/), not the installer itself. Show which
 # installer version ran it, so a report can name both.
 INSTALLER_VERSION=$(tr -d '\r\n' < "$SCRIPT_DIR/VERSION" 2>/dev/null || true)
 echo "  Installer version: ${INSTALLER_VERSION:-unknown}"
 echo ""
+# Say it where the version is in sight, because nothing else does: a run
+# without --rebuild has not touched PHP, and that is not visible in its output.
+if [ "$REBUILD" = false ]; then
+    echo "  PHP comes from the image built when this install was made. To move it"
+    echo "  to the newest php:8.3-fpm (after a PHP security release, say):"
+    echo "    ./update.sh --rebuild"
+    echo ""
+fi

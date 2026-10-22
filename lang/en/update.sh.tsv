@@ -9,7 +9,7 @@
 #   ./update.sh              # newest release, or main for a branch checkout	#   ./update.sh              # newest release, or main for a branch checkout
 #   ./update.sh <ref>        # switch html/ to <ref> (a branch or a tag), then update	#   ./update.sh <ref>        # switch html/ to <ref> (a branch or a tag), then update
 #   ./update.sh --dev        # skip the asset build (Vite serves them)	#   ./update.sh --dev        # skip the asset build (Vite serves them)
-Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
+Usage: ./update.sh [ref] [--dev] [--rebuild [--no-cache]]	Usage: ./update.sh [ref] [--dev] [--rebuild [--no-cache]]
   [ref]      Branch or tag to update html/ to. The default is the newest	  [ref]      Branch or tag to update html/ to. The default is the newest
              release for an install made from a tag, and main for one that	             release for an install made from a tag, and main for one that
              tracks a branch.	             tracks a branch.
@@ -38,7 +38,7 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
 # script use core's newer maintenance commands without breaking against an	# script use core's newer maintenance commands without breaking against an
 # older checkout that does not have them yet.	# older checkout that does not have them yet.
 # 1. Update the source	# 1. Update the source
-[1/6] Updating html/ from GitHub...	[1/6] Updating html/ from GitHub...
+Updating html/ from GitHub...	Updating html/ from GitHub...
 # setup.sh hands html/ to www-data so the install wizard can write there,	# setup.sh hands html/ to www-data so the install wizard can write there,
 # so git sees a worktree owned by another user and refuses it with	# so git sees a worktree owned by another user and refuses it with
 # "detected dubious ownership in repository". Allow this one path for	# "detected dubious ownership in repository". Allow this one path for
@@ -102,8 +102,8 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
 # the operator run git in html/ themselves, and what the commands this script	# the operator run git in html/ themselves, and what the commands this script
 # prints rely on — so give it back. -h and find rather than chown -R: an asset	# prints rely on — so give it back. -h and find rather than chown -R: an asset
 # link with no target must not be followed (#47).	# link with no target must not be followed (#47).
-# 2. Update PHP dependencies	# 2. Update PHP dependencies
-[2/6] Updating dependencies...	[2/6] Updating dependencies...
+# 3. Update PHP dependencies	# 3. Update PHP dependencies
+Updating dependencies...	Updating dependencies...
 # Every package core requires is public, so composer needs no credential	# Every package core requires is public, so composer needs no credential
 # here. Anything it cannot fetch is a network or a packaging problem.	# here. Anything it cannot fetch is a network or a packaging problem.
   composer install failed.	  composer install failed.
@@ -112,8 +112,8 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
   is reachable and healthy, then the repositories entries in	  is reachable and healthy, then the repositories entries in
   html/composer.json. Run ./update.sh again once the cause is cleared.	  html/composer.json. Run ./update.sh again once the cause is cleared.
   composer install complete.	  composer install complete.
-# 3. Realign the migration bookkeeping	# 3. Realign the migration bookkeeping
-[3/6] Realigning migration bookkeeping...	[3/6] Realigning migration bookkeeping...
+# 4. Realign the migration bookkeeping	# 4. Realign the migration bookkeeping
+Realigning migration bookkeeping...	Realigning migration bookkeeping...
 # Until core's GA its baseline migrations are renumbered in place (core:	# Until core's GA its baseline migrations are renumbered in place (core:
 # docs/operations/upgrading.md, "Beta series only: reconcile renamed	# docs/operations/upgrading.md, "Beta series only: reconcile renamed
 # migrations"). A renumbered file looks new to `migrate`, which then tries	# migrations"). A renumbered file looks new to `migrate`, which then tries
@@ -123,12 +123,12 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
 # renamed. Rows whose file is gone are left alone on purpose; `--prune`	# renamed. Rows whose file is gone are left alone on purpose; `--prune`
 # would delete them.	# would delete them.
   This core has no dls:migration:resync (skipped).	  This core has no dls:migration:resync (skipped).
-# 4. Run migrations	# 4. Run migrations
-[4/6] Running migrations...	[4/6] Running migrations...
+# 5. Run migrations	# 5. Run migrations
+Running migrations...	Running migrations...
   Migrations complete.	  Migrations complete.
-# 5. Rebuild the frontend assets	# 5. Rebuild the frontend assets
-[5/6] Development mode: Vite dev server serves the assets, build skipped.	[5/6] Development mode: Vite dev server serves the assets, build skipped.
-[5/6] Rebuilding frontend assets...	[5/6] Rebuilding frontend assets...
+# 6. Rebuild the frontend assets	# 6. Rebuild the frontend assets
+Development mode: Vite dev server serves the assets, build skipped.	Development mode: Vite dev server serves the assets, build skipped.
+Rebuilding frontend assets...	Rebuilding frontend assets...
 # public/assets/build is gitignored, so the pull above brought new	# public/assets/build is gitignored, so the pull above brought new
 # sources but left the previous build in place. Rebuild it the same way	# sources but left the previous build in place. Rebuild it the same way
 # setup.sh does, or the pages keep asking for asset URLs that the new	# setup.sh does, or the pages keep asking for asset URLs that the new
@@ -140,8 +140,8 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
 # mounts on macOS sometimes hide files that appeared after the container	# mounts on macOS sometimes hide files that appeared after the container
 # started; restarting forces nginx to re-read the mounted directory.	# started; restarting forces nginx to re-read the mounted directory.
   Restarting web to refresh asset mount...	  Restarting web to refresh asset mount...
-# 6. Clear caches and reconcile the bookkeeping	# 6. Clear caches and reconcile the bookkeeping
-[6/6] Clearing caches...	[6/6] Clearing caches...
+# 7. Clear caches and reconcile the bookkeeping	# 7. Clear caches and reconcile the bookkeeping
+Clearing caches...	Clearing caches...
   Caches cleared.	  Caches cleared.
 # Advancing html/ with git writes no core_version_history row, so the	# Advancing html/ with git writes no core_version_history row, so the
 # ledger still names the version installed before this run and a later	# ledger still names the version installed before this run and a later
@@ -168,3 +168,52 @@ Usage: ./update.sh [ref] [--dev]	Usage: ./update.sh [ref] [--dev]
   Installer version: ${INSTALLER_VERSION:-unknown}	  Installer version: ${INSTALLER_VERSION:-unknown}
 # This script updates core (html/), not the installer itself. Show which	# This script updates core (html/), not the installer itself. Show which
 # installer version ran it, so a report can name both.	# installer version ran it, so a report can name both.
+#   ./update.sh --rebuild    # rebuild the images first, taking the newest PHP	#   ./update.sh --rebuild    # rebuild the images first, taking the newest PHP
+  --rebuild  Build the images again from the current php:8.3-fpm and replace	  --rebuild  Build the images again from the current php:8.3-fpm and replace
+             the containers with them. This is what moves an install to a	             the containers with them. This is what moves an install to a
+             newer PHP, a security release included.	             newer PHP, a security release included.
+  --no-cache Build every layer again rather than reusing the cache. Only has	  --no-cache Build every layer again rather than reusing the cache. Only has
+             an effect together with --rebuild.	             an effect together with --rebuild.
+# --no-cache decides how the rebuild builds, so on its own it would look	# --no-cache decides how the rebuild builds, so on its own it would look
+# accepted and do nothing at all.	# accepted and do nothing at all.
+  --no-cache only has an effect together with --rebuild.	  --no-cache only has an effect together with --rebuild.
+# The image rebuild is a step of its own, and only when it is asked for, so	# The image rebuild is a step of its own, and only when it is asked for, so
+# the steps number themselves as they run instead of carrying the count in	# the steps number themselves as they run instead of carrying the count in
+# every string.	# every string.
+# 2. Rebuild the images (--rebuild only)	# 2. Rebuild the images (--rebuild only)
+Rebuilding the images...	Rebuilding the images...
+# The Dockerfile builds on php:8.3-fpm, a tag that moves with every PHP	# The Dockerfile builds on php:8.3-fpm, a tag that moves with every PHP
+# release — but it moves for an install only when the image is built	# release — but it moves for an install only when the image is built
+# again, and nothing else in this script builds anything. Without this	# again, and nothing else in this script builds anything. Without this
+# step a site keeps the PHP it was installed with, so a PHP security	# step a site keeps the PHP it was installed with, so a PHP security
+# release never reaches it however often update.sh runs.	# release never reaches it however often update.sh runs.
+# --pull is what fetches the base image again. Every layer below it is	# --pull is what fetches the base image again. Every layer below it is
+# rebuilt on its own once its digest changes, the apt packages and the	# rebuilt on its own once its digest changes, the apt packages and the
+# PHP extensions included, so --no-cache is for the operator who wants	# PHP extensions included, so --no-cache is for the operator who wants
+# the layers rebuilt even when the base image did not move.	# the layers rebuilt even when the base image did not move.
+# The cron service runs PHP from an image of its own, built from this same	# The cron service runs PHP from an image of its own, built from this same
+# Dockerfile, so it needs the same rebuild. It sits in a profile, which has	# Dockerfile, so it needs the same rebuild. It sits in a profile, which has
+# to be named for compose to address the service at all — and only while it	# to be named for compose to address the service at all — and only while it
+# is running, because naming it is enough to start one that the operator	# is running, because naming it is enough to start one that the operator
+# turned off in .env or stopped by hand.	# turned off in .env or stopped by hand.
+  Building: ${REBUILD_SERVICES[*]}	  Building: ${REBUILD_SERVICES[*]}
+# Only a new container runs the new image. --no-deps keeps mysql out of	# Only a new container runs the new image. --no-deps keeps mysql out of
+# it: the app container is the one being replaced, and taking the database	# it: the app container is the one being replaced, and taking the database
+# down under the update would be a far longer outage than this is.	# down under the update would be a far longer outage than this is.
+# Compose leaves a container alone when its image did not change, so a run	# Compose leaves a container alone when its image did not change, so a run
+# that found nothing new costs nothing here.	# that found nothing new costs nothing here.
+# nginx holds the app container's address for as long as its resolver says	# nginx holds the app container's address for as long as its resolver says
+# (valid=30s, see nginx/nginx.*.conf), so a replaced container means 502s	# (valid=30s, see nginx/nginx.*.conf), so a replaced container means 502s
+# until that expires. Restarting web ends the window at once.	# until that expires. Restarting web ends the window at once.
+  Restarting web so nginx reaches the new app container...	  Restarting web so nginx reaches the new app container...
+# The steps below exec into the container that was just replaced. Give it	# The steps below exec into the container that was just replaced. Give it
+# the same few seconds setup.sh waits for after `up -d`.	# the same few seconds setup.sh waits for after `up -d`.
+# PHP comes from the image, not from html/, so an install keeps the version it	# PHP comes from the image, not from html/, so an install keeps the version it
+# was built with until --rebuild replaces it. Print it: an operator asking	# was built with until --rebuild replaces it. Print it: an operator asking
+# whether a PHP security release has reached the site reads the answer here.	# whether a PHP security release has reached the site reads the answer here.
+  PHP version:       ${PHP_VERSION:-unknown}	  PHP version:       ${PHP_VERSION:-unknown}
+# Say it where the version is in sight, because nothing else does: a run	# Say it where the version is in sight, because nothing else does: a run
+# without --rebuild has not touched PHP, and that is not visible in its output.	# without --rebuild has not touched PHP, and that is not visible in its output.
+  PHP comes from the image built when this install was made. To move it	  PHP comes from the image built when this install was made. To move it
+  to the newest php:8.3-fpm (after a PHP security release, say):	  to the newest php:8.3-fpm (after a PHP security release, say):
+    ./update.sh --rebuild	    ./update.sh --rebuild

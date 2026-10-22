@@ -191,6 +191,23 @@ where they must. On Linux hosts this is visible on the host side of the bind
 mount. This is intended behaviour, not a defect — but it does mean the
 application user can write to those paths.
 
+### An upstream image update reaches an install only through a rebuild
+
+The images are built from floating tags (`php:8.3-fpm`, `mariadb:latest`,
+`nginx:alpine`), and a floating tag moves for an install only when the image is
+built again. `./update.sh` on its own updates the core checkout inside the
+containers that are already running, so a PHP security release does not reach the
+site until the image is rebuilt:
+
+```bash
+./update.sh --rebuild
+```
+
+That is the step to run after an upstream PHP release; every `update.sh` run
+prints the PHP the site is on at the end. The services that use an upstream image
+directly (`mariadb`, `nginx`, `adminer`, `mailpit`, `redis`) move with
+`docker compose pull && docker compose up -d`.
+
 ## Safe Harbor for Security Research
 
 We support good-faith security research and will not pursue legal action against

@@ -510,6 +510,51 @@ jobs:
           test "$(git -C html $safe rev-parse --abbrev-ref HEAD)" = "main"
           echo "OK: html/ tracks main again."
 
+      # #73: no step of update.sh rebuilt the images, so an install kept the
+      # PHP it was first built with and a PHP security release never reached
+      # it. The rebuild is cheap in this job — the base image the setup above
+      # built from is still the current one, so --pull finds nothing newer and
+      # the layers come from the cache — and what it has to show is that the
+      # containers come back on the rebuilt image, that the run reports the PHP
+      # they actually run, and that the site still answers afterwards.
+      - name: Run update.sh --rebuild
+        run: |
+          set -o pipefail
+          ./update.sh --rebuild --dev 2>&1 | tee /tmp/update-rebuild.log
+
+      - name: Assert the rebuild ran and named the PHP the container runs
+        run: |
+          set -e
+          grep -qF "Rebuilding the images..." /tmp/update-rebuild.log
+          printed=$(sed -n 's/^  PHP version: *//p' /tmp/update-rebuild.log | tr -d '\r')
+          running=$(docker compose exec -T dixlase.test php -r 'echo PHP_VERSION;')
+          echo "reported: $printed / running in the container: $running"
+          test -n "$printed"
+          test "$printed" = "$running"
+          # A run that leaves PHP alone has to say how it is moved, and a run
+          # that just moved it must not repeat the advice.
+          grep -qF "./update.sh --rebuild" /tmp/update-main.log
+          if grep -qF "PHP comes from the image built when this install was made" /tmp/update-rebuild.log; then
+            echo "The --rebuild run still printed the hint meant for runs without it." >&2
+            exit 1
+          fi
+          echo "OK: --rebuild rebuilt the images and reported PHP $running."
+
+      - name: Smoke check — the site still answers after the rebuild
+        run: |
+          set -e
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:40080/ || true)
+            if [ -n "$code" ] && [ "$code" != "000" ] && [ "$code" -lt 500 ]; then
+              echo "OK: CMS responded with HTTP $code (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code (not ready), waiting..."
+            sleep 4
+          done
+          echo "CMS did not respond with a non-5xx status within the time budget."
+          exit 1
+
       - name: Show running containers
         if: always()
         run: docker compose ps
@@ -517,7 +562,8 @@ jobs:
       - name: setup.sh and update.sh logs (on failure)
         if: failure()
         run: |
-          for log in /tmp/setup-previous.log /tmp/update-newest.log /tmp/update-main.log; do
+          for log in /tmp/setup-previous.log /tmp/update-newest.log /tmp/update-main.log \
+                     /tmp/update-rebuild.log; do
             [ -f "$log" ] || continue
             echo "--- $log (last 120 lines) ---"
             tail -n 120 "$log"
