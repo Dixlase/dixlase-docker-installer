@@ -8,6 +8,31 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.10] — 2026-10-22
+
+### Fixed
+
+- The database service no longer tracks a floating tag. It ran `image: mariadb:latest`, so `./setup.sh`, `docker compose pull` or a plain `docker compose up -d` could start a different MariaDB server against an existing `mysql/`. MariaDB upgrades a data directory in place when it starts, and that is one-way: the directory records the server that last touched it (`mysql/mariadb_upgrade_info`) and no older server will open it afterwards, so a pull could change the database version with no way back short of a dump taken beforehand. The tag has already crossed 12.2 to 12.3, and data directories on the older line are still in use. The service now names `${DB_IMAGE:-mariadb:12.3}` — a MariaDB LTS line, so patch releases still arrive while a pull never crosses the line — and `DB_IMAGE` in `.env` either pins a single version (`mariadb:12.3.3`) or holds an install on the line its data directory records. `setup.sh` stops before it starts the stack when the two differ, and says how to keep the database where it is or move it on purpose; `update.sh` never starts the database container, so it says the same thing rather than stopping. A tag that cannot be read as a version (`latest`, a digest, no tag at all, a registry carrying a port) makes both scripts skip the comparison rather than guess (#78).
+
+### Changed (CI)
+
+- The install step of the update smoke job passes `--db-*` and no `DB_*` environment variables. They worked around a core defect that core fixed in 0.1.15, and while they were there the job installed with the environment already pointing at the right database — which is the condition that hid the bug. It now installs the way an operator does, so the one layout this installer always has, a database in another container, is covered from the command line (#71).
+- `test.yml` fails if the database service goes back to a floating tag (#78).
+
+### Upgrade notes
+
+**If your database is not on MariaDB 12.3, say so in `.env` before you run any Docker command.** `cat mysql/mariadb_upgrade_info` names the server that last upgraded the data directory. 12.3.x means there is nothing to do — that is the new default. Anything older goes in `.env` first:
+
+```bash
+DB_IMAGE=mariadb:12.2   # the line the data directory is already on
+```
+
+`./setup.sh` stops rather than start a different line against an existing data directory, and `./update.sh` says so in its summary, but a bare `docker compose up -d` is not guarded and would upgrade the directory in place.
+
+To move the database to a newer line on purpose: shut the stack down cleanly, take a dump with the line it is on now, set `DB_IMAGE` to the line you want, and start it again. The move cannot be undone, which is what the dump is for. README describes this under "Moving the database to a newer MariaDB".
+
+Nothing else is needed for a working install, and this release does not ask for an image rebuild.
+
 ## [0.1.9] — 2026-10-22
 
 ### Fixed
