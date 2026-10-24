@@ -107,6 +107,28 @@ db_image_setting() {
     printf '%s\n' "$_img"
 }
 
+# True once the git section has advanced html/. html/ is bind-mounted into the
+# app and web containers, so from that moment the site serves the new core
+# while its dependencies, its migrations and its built assets are still the
+# ones from before. A run that stops after that point says nothing about it
+# otherwise: the last thing printed is whatever failed (#80).
+CORE_MOVED=false
+
+on_exit() {
+    _status=$?
+    if [ "$_status" -ne 0 ] && [ "$CORE_MOVED" = true ]; then
+        _core=$(tr -d '\r\n' < html/VERSION 2>/dev/null || true)
+        [ -n "$_core" ] || _core="a newer release"
+        echo ""
+        echo "  This run stopped with html/ already updated to $_core."
+        echo "  The site is serving that core now, while its dependencies, its"
+        echo "  migrations and its built assets are still the ones from before."
+        echo "  Running this script again picks the update up from the beginning,"
+        echo "  and is safe to repeat."
+    fi
+}
+trap on_exit EXIT
+
 echo "========================================"
 echo "  Dixlase - Source update"
 echo "========================================"
@@ -134,7 +156,66 @@ artisan_has() {
 }
 
 # -------------------------------------------------
-# 1. Update the source
+# 1. Rebuild the images (--rebuild only)
+# -------------------------------------------------
+# First, and before html/ is touched. The build needs nothing from the new
+# checkout, and it is the step most likely to fail for a reason outside this
+# install: a registry or pecl.php.net that does not answer (#74). Failing
+# here costs a run that changed nothing, rather than leaving the site serving
+# a core release whose dependencies and migrations have not caught up with it
+# (#80). composer, the migrations and the asset build all stay after the
+# checkout, so everything that has to run against the PHP that will serve the
+# site still does.
+if [ "$REBUILD" = true ]; then
+    step "Rebuilding the images..."
+    # The Dockerfile builds on php:8.3-fpm, a tag that moves with every PHP
+    # release — but it moves for an install only when the image is built
+    # again, and nothing else in this script builds anything. Without this
+    # step a site keeps the PHP it was installed with, so a PHP security
+    # release never reaches it however often update.sh runs.
+    #
+    # --pull is what fetches the base image again. Every layer below it is
+    # rebuilt on its own once its digest changes, the apt packages and the
+    # PHP extensions included, so --no-cache is for the operator who wants
+    # the layers rebuilt even when the base image did not move.
+    BUILD_ARGS=(--pull)
+    if [ "$NO_CACHE" = true ]; then
+        BUILD_ARGS+=(--no-cache)
+    fi
+    # The cron service runs PHP from an image of its own, built from this same
+    # Dockerfile, so it needs the same rebuild. It sits in a profile, which has
+    # to be named for compose to address the service at all — and only while it
+    # is running, because naming it is enough to start one that the operator
+    # turned off in .env or stopped by hand.
+    REBUILD_SERVICES=(dixlase.test)
+    REBUILD_PROFILES=""
+    if [ -n "$(COMPOSE_PROFILES=cron docker compose ps -q cron 2>/dev/null)" ]; then
+        REBUILD_SERVICES+=(cron)
+        REBUILD_PROFILES="cron"
+    fi
+    echo "  Building: ${REBUILD_SERVICES[*]}"
+    COMPOSE_PROFILES="$REBUILD_PROFILES" \
+        docker compose build "${BUILD_ARGS[@]}" "${REBUILD_SERVICES[@]}"
+    # Only a new container runs the new image. --no-deps keeps mysql out of
+    # it: the app container is the one being replaced, and taking the database
+    # down under the update would be a far longer outage than this is.
+    # Compose leaves a container alone when its image did not change, so a run
+    # that found nothing new costs nothing here.
+    COMPOSE_PROFILES="$REBUILD_PROFILES" \
+        docker compose up -d --no-deps "${REBUILD_SERVICES[@]}"
+    # nginx holds the app container's address for as long as its resolver says
+    # (valid=30s, see nginx/nginx.*.conf), so a replaced container means 502s
+    # until that expires. Restarting web ends the window at once.
+    echo "  Restarting web so nginx reaches the new app container..."
+    docker compose restart web
+    # The steps below exec into the container that was just replaced. Give it
+    # the same few seconds setup.sh waits for after `up -d`.
+    sleep 5
+    echo ""
+fi
+
+# -------------------------------------------------
+# 2. Update the source
 # -------------------------------------------------
 step "Updating html/ from GitHub..."
 # A release ZIP carries no .git, so there is nothing here to fast-forward.
@@ -241,6 +322,7 @@ if git "${GIT_SAFE[@]}" rev-parse -q --verify "refs/tags/$REF" >/dev/null; then
     else
         echo "  Moving html/ to $REF..."
         git_write -c advice.detachedHead=false checkout --detach "refs/tags/$REF"
+        CORE_MOVED=true
     fi
 else
     BRANCH="$REF"
@@ -248,10 +330,12 @@ else
         echo "  Switching html/ from a detached HEAD to $BRANCH..."
         git_write checkout "$BRANCH" 2>/dev/null \
             || git_write checkout -b "$BRANCH" --track "origin/$BRANCH"
+        CORE_MOVED=true
     elif [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
         echo "  Switching html/ from $CURRENT_BRANCH to $BRANCH..."
         git_write checkout "$BRANCH" 2>/dev/null \
             || git_write checkout -b "$BRANCH" --track "origin/$BRANCH"
+        CORE_MOVED=true
     fi
 
     # Fast-forward only. A merge commit in html/ would make every later update
@@ -264,6 +348,7 @@ else
         echo "  html/ is already at origin/$BRANCH."
     elif git "${GIT_SAFE[@]}" merge-base --is-ancestor "$LOCAL_HEAD" "$REMOTE_HEAD"; then
         git_write merge --ff-only "origin/$BRANCH"
+        CORE_MOVED=true
     else
         if git "${GIT_SAFE[@]}" merge-base "$LOCAL_HEAD" "$REMOTE_HEAD" >/dev/null 2>&1; then
             echo "  html/ has diverged from origin/$BRANCH: it carries commits the remote does not have."
@@ -287,57 +372,6 @@ fi
 docker compose exec -T dixlase.test \
     find /var/www/html/.git -exec chown -h "$(id -u):$(id -g)" {} + || true
 cd ..
-
-# -------------------------------------------------
-# 2. Rebuild the images (--rebuild only)
-# -------------------------------------------------
-if [ "$REBUILD" = true ]; then
-    echo ""
-    step "Rebuilding the images..."
-    # The Dockerfile builds on php:8.3-fpm, a tag that moves with every PHP
-    # release — but it moves for an install only when the image is built
-    # again, and nothing else in this script builds anything. Without this
-    # step a site keeps the PHP it was installed with, so a PHP security
-    # release never reaches it however often update.sh runs.
-    #
-    # --pull is what fetches the base image again. Every layer below it is
-    # rebuilt on its own once its digest changes, the apt packages and the
-    # PHP extensions included, so --no-cache is for the operator who wants
-    # the layers rebuilt even when the base image did not move.
-    BUILD_ARGS=(--pull)
-    if [ "$NO_CACHE" = true ]; then
-        BUILD_ARGS+=(--no-cache)
-    fi
-    # The cron service runs PHP from an image of its own, built from this same
-    # Dockerfile, so it needs the same rebuild. It sits in a profile, which has
-    # to be named for compose to address the service at all — and only while it
-    # is running, because naming it is enough to start one that the operator
-    # turned off in .env or stopped by hand.
-    REBUILD_SERVICES=(dixlase.test)
-    REBUILD_PROFILES=""
-    if [ -n "$(COMPOSE_PROFILES=cron docker compose ps -q cron 2>/dev/null)" ]; then
-        REBUILD_SERVICES+=(cron)
-        REBUILD_PROFILES="cron"
-    fi
-    echo "  Building: ${REBUILD_SERVICES[*]}"
-    COMPOSE_PROFILES="$REBUILD_PROFILES" \
-        docker compose build "${BUILD_ARGS[@]}" "${REBUILD_SERVICES[@]}"
-    # Only a new container runs the new image. --no-deps keeps mysql out of
-    # it: the app container is the one being replaced, and taking the database
-    # down under the update would be a far longer outage than this is.
-    # Compose leaves a container alone when its image did not change, so a run
-    # that found nothing new costs nothing here.
-    COMPOSE_PROFILES="$REBUILD_PROFILES" \
-        docker compose up -d --no-deps "${REBUILD_SERVICES[@]}"
-    # nginx holds the app container's address for as long as its resolver says
-    # (valid=30s, see nginx/nginx.*.conf), so a replaced container means 502s
-    # until that expires. Restarting web ends the window at once.
-    echo "  Restarting web so nginx reaches the new app container..."
-    docker compose restart web
-    # The steps below exec into the container that was just replaced. Give it
-    # the same few seconds setup.sh waits for after `up -d`.
-    sleep 5
-fi
 
 # -------------------------------------------------
 # 3. Update PHP dependencies

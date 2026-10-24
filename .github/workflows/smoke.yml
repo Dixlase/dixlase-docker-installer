@@ -552,6 +552,43 @@ jobs:
           echo "CMS did not respond with a non-5xx status within the time budget."
           exit 1
 
+      # #80: update.sh advanced html/ before it built anything, so a build that
+      # could not finish — the pecl.php.net outage of #74, a registry that does
+      # not answer — left the site serving a core release whose dependencies and
+      # migrations had not caught up with it. The build is the first step now, so
+      # a run that cannot build has to leave the install exactly as it was.
+      #
+      # Last in the job on purpose: it puts html/ back one release so the run has
+      # something to pull, and the teardown follows immediately.
+      - name: Assert a failed build leaves the install untouched
+        run: |
+          set -e
+          set -o pipefail
+          safe="-c safe.directory=$PWD/html"
+          docker compose exec -T -w /var/www/html dixlase.test \
+            git -c safe.directory=/var/www/html reset --hard "refs/tags/$PREVIOUS_TAG"
+          before_sha=$(git -C html $safe rev-parse HEAD)
+          before_version=$(tr -d '\r\n' < html/VERSION)
+          before_app=$(docker compose ps -q dixlase.test)
+          cp Dockerfile /tmp/Dockerfile.orig
+          printf '\nRUN echo "simulated upstream outage (#80)" >&2 && exit 1\n' >> Dockerfile
+          if ./update.sh --rebuild --dev "$NEWEST_TAG" 2>&1 | tee /tmp/update-failed-build.log; then
+            cp /tmp/Dockerfile.orig Dockerfile
+            echo "update.sh exited 0 although the image cannot be built." >&2
+            exit 1
+          fi
+          cp /tmp/Dockerfile.orig Dockerfile
+          test "$(git -C html $safe rev-parse HEAD)" = "$before_sha"
+          test "$(tr -d '\r\n' < html/VERSION)" = "$before_version"
+          test "$(docker compose ps -q dixlase.test)" = "$before_app"
+          # The checkout never happened, so the warning for a run that stopped
+          # after it must not be printed either.
+          if grep -qF "This run stopped with html/ already updated" /tmp/update-failed-build.log; then
+            echo "The run reported a half-updated install although it never pulled." >&2
+            exit 1
+          fi
+          echo "OK: the failed build left html/ at $before_version on $before_sha."
+
       - name: Show running containers
         if: always()
         run: docker compose ps
