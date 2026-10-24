@@ -21,7 +21,7 @@ cd dixlase
 ./setup.sh
 ```
 
-This clones the latest installer from `main`. To use a fixed release instead, add `--branch` with a version from [Releases](https://github.com/Dixlase/dixlase-docker-installer/releases), e.g. `git clone --branch v0.1.1 …`. The installed version is in `VERSION` and is printed at the end of `setup.sh` and `update.sh`; what changed in each version, and what to do after updating, is in [CHANGELOG.md](./CHANGELOG.md).
+This clones `main`, which is always the newest release of the installer: `main` moves only when a release is tagged, and development happens on `next`. To pin a fixed release instead, add `--branch` with a version from [Releases](https://github.com/Dixlase/dixlase-docker-installer/releases), e.g. `git clone --branch v0.1.1 …`. The installed version is in `VERSION` and is printed at the end of `setup.sh` and `update.sh`; what changed in each version, and what to do after updating, is in [CHANGELOG.md](./CHANGELOG.md).
 
 **`setup.sh` installs core's newest release.** It reads the newest `vX.Y.Z` tag straight from
 the core repository and clones that, so a fresh install is a version someone chose to release

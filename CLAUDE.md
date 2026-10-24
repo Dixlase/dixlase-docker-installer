@@ -4,6 +4,14 @@ For Japanese, see [CLAUDE.ja.md](./CLAUDE.ja.md).
 
 Rules every contributor (human or AI) must follow when working in this repository.
 
+## Branches
+
+- **`main` is exactly the latest release** — the commit the newest `vX.Y.Z` tag points at. It is pushed only when a release is cut, because the quick start in the README clones it: `git clone` with no `--branch` has to give an operator a released installer.
+- **`next` is the next version under development.** Its `VERSION` carries a `-dev` suffix (`0.1.11-dev`), so a checkout of it never claims a released version.
+- Cut every branch from `origin/next` (`git fetch origin` first), and open every pull request with `--base next`. Never open a pull request against `main`, and never push or merge to it outside a release.
+- GitHub's default branch stays `main`, which is the one deviation from the flow the Dixlase extensions follow — they are installed as packages, this repository is cloned by hand. The base of a pull request is therefore always named explicitly.
+- A release is cut on `main` from the contents of `next` (`git merge --ff-only origin/next`, then the version bump, the changelog, the annotated tag and the GitHub Release). Immediately afterwards `next` is moved up to the release commit and reopened on the following `-dev` version.
+
 ## Commit Message Convention
 
 Follow the unified commit message convention used across all Dixlase projects.

@@ -22,7 +22,7 @@ cd dixlase
 ./setup.sh
 ```
 
-これで `main` の最新のインストーラが clone されます。決まったリリースを使う場合は、[Releases](https://github.com/Dixlase/dixlase-docker-installer/releases) の版を `--branch` に指定してください(例: `git clone --branch v0.1.1 …`)。入っている版は `VERSION` にあり、`setup.sh` と `update.sh` の最後にも表示されます。版ごとの変更と、更新のあとにやることは [CHANGELOG.ja.md](./CHANGELOG.ja.md) にあります。
+これで `main` が clone されます。`main` は常にインストーラの最新リリースで、リリースのタグを打つときにしか動きません(開発は `next` で行います)。決まったリリースに固定する場合は、[Releases](https://github.com/Dixlase/dixlase-docker-installer/releases) の版を `--branch` に指定してください(例: `git clone --branch v0.1.1 …`)。入っている版は `VERSION` にあり、`setup.sh` と `update.sh` の最後にも表示されます。版ごとの変更と、更新のあとにやることは [CHANGELOG.ja.md](./CHANGELOG.ja.md) にあります。
 
 **`setup.sh` が入れるのはコアの最新リリースです。** コアのリポジトリから最新の `vX.Y.Z` タグを
 読み、それを clone します。新規インストールは、その時点の `main` の内容ではなく、誰かがリリース

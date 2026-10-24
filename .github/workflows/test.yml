@@ -1,11 +1,14 @@
 name: Test
 
 on:
+  # next is where development lands and main is the latest release, so both
+  # are worth a run: next on every merge, main when a release is pushed.
   push:
     branches:
       - main
-  # Every pull request, not only the ones that target main: a PR stacked on
-  # another PR's branch (base != main) otherwise reports no checks at all, and
+      - next
+  # Every pull request, not only the ones that target next: a PR stacked on
+  # another PR's branch (base != next) otherwise reports no checks at all, and
   # a base change alone does not fire this workflow either, so the stack would
   # stay unverified until after it merged.
   pull_request:
