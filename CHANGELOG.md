@@ -8,6 +8,27 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.11] — 2026-10-24
+
+### Fixed
+
+- `./update.sh` builds the images before it advances `html/`. The git section ran first and the build second, and `html/` is bind-mounted into the running app and web containers with no opcache in front of it, so a build that could not finish left the live site serving a core release whose dependencies, migrations and built assets were still the ones from before. The `pecl.php.net` outage behind 0.1.9 (#74) is exactly that case, and a registry that does not answer is another; neither is anything the operator did. Measured on an install moved across a core release that carries a migration: every page kept answering 200, the admin panel included, while a query behind one of them failed with `SQLSTATE[42S22] Column not found` and a write raised — a failure no screen shows. The build needs nothing from the new checkout, so it goes first, and a run that cannot build now leaves the install exactly as it was. composer, the migrations and the asset build all stay after the checkout, so everything that has to run against the PHP that will serve the site still does. A failure the order cannot prevent — anything after the checkout — ends by naming the core release on disk and saying that running the script again picks the update up from the beginning (#80).
+
+### Changed (CI)
+
+- The update smoke job breaks the `Dockerfile` on purpose and asserts that the run leaves `html/`'s commit, `html/VERSION` and the app container untouched, and that it does not report a half-updated install (#80).
+- `test.yml` and the end-to-end jobs run for pull requests against `next` and for pushes to it (#82).
+
+### Changed (docs)
+
+- The repository develops on `next` and keeps `main` at the latest release: `main` is the commit the newest tag points at and moves only when a release is cut, so a `git clone` with no `--branch` lands on a release. `CLAUDE.md`, `CONTRIBUTING.md` and their Japanese counterparts describe the flow, and the README pair says what `main` is instead of calling it "the latest installer from `main`" (#82).
+
+### Upgrade notes
+
+Nothing to do, and this release does not ask for an image rebuild. `git pull` in the installer directory is enough.
+
+**This supersedes the last paragraph of 0.1.9's upgrade notes.** A build that cannot finish no longer advances `html/` first: the run stops before anything in the install has changed, and the site keeps serving the core release it already had. A failure after the checkout — composer, a migration, the asset build — is still possible, and the run now ends by saying which core release is on disk and that `./update.sh` can simply be run again, from the beginning.
+
 ## [0.1.10] — 2026-10-22
 
 ### Fixed
