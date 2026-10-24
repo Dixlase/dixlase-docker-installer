@@ -9,26 +9,49 @@
 #   ./update.sh              # newest release, or main for a branch checkout	#   ./update.sh              # 最新リリース、ブランチのチェックアウトなら main
 #   ./update.sh <ref>        # switch html/ to <ref> (a branch or a tag), then update	#   ./update.sh <ref>        # html/ を <ref> (ブランチかタグ) に切り替えてから更新
 #   ./update.sh --dev        # skip the asset build (Vite serves them)	#   ./update.sh --dev        # アセットビルドを省略 (Vite が配信)
+#   ./update.sh --rebuild    # rebuild the images first, taking the newest PHP	#   ./update.sh --rebuild    # 先にイメージを作り直す (最新の PHP を取る)
 Usage: ./update.sh [ref] [--dev] [--rebuild [--no-cache]]	使い方: ./update.sh [ref] [--dev] [--rebuild [--no-cache]]
   [ref]      Branch or tag to update html/ to. The default is the newest	  [ref]      html/ を更新する先のブランチかタグ。既定は、タグで入れた
              release for an install made from a tag, and main for one that	             インストールなら最新のリリース、ブランチを追っている
              tracks a branch.	             インストールなら main。
   --dev      Skip the production asset build (the Vite dev server serves them)	  --dev      本番用アセットのビルドを省略 (Vite 開発サーバーが配信)
+  --rebuild  Build the images again from the current php:8.3-fpm and replace	  --rebuild  その時点の php:8.3-fpm からイメージを作り直し、コンテナを
+             the containers with them. This is what moves an install to a	             それに入れ替える。インストールを新しい PHP (セキュリティ
+             newer PHP, a security release included.	             リリースを含む) へ移すのはこの処理である。
+  --no-cache Build every layer again rather than reusing the cache. Only has	  --no-cache キャッシュを使わず全レイヤを作り直す。--rebuild と一緒のとき
+             an effect together with --rebuild.	             だけ効果がある。
 # Left empty here on purpose: what the default is depends on whether html/	# ここでは空のままにする。既定が何になるかは、html/ がブランチを追っているのか
 # tracks a branch or sits on a release tag, which the git section below works	# リリースタグの上にいるのかで変わり、それは下の git の節がチェックアウト自体から
 # out from the checkout itself.	# 判断する。
   Unknown option: $arg	  不明なオプション: $arg
+# --no-cache decides how the rebuild builds, so on its own it would look	# --no-cache は作り直しの方法を決めるものなので、単体では受け付けられたように
+# accepted and do nothing at all.	# 見えて、実際には何もしない。
+  --no-cache only has an effect together with --rebuild.	  --no-cache は --rebuild と一緒に指定したときだけ効果があります。
 # Mirror setup.sh: VITE=true in .env means the Vite dev server is the one	# setup.sh と同じ判定: .env の VITE=true はアセットを Vite 開発サーバーが
 # serving the assets, so there is nothing to build here.	# 配信することを意味するので、ここでビルドするものは無い。
+# The image rebuild is a step of its own, and only when it is asked for, so	# イメージの作り直しは、指定されたときだけ現れる独立したステップなので、
+# the steps number themselves as they run instead of carrying the count in	# 各ステップは実行時に自分で番号を振る。文字列の中に総数を持たせない。
+# every string.	# (表示のたびに数え直す。)
+# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE	# データベースのイメージは docker-compose.yml でピン留めしてあり、.env の
+# in .env. MariaDB upgrades mysql/ in place when it starts and no older server	# DB_IMAGE で上書きできる。MariaDB は起動時に mysql/ をその場でアップグレードし、
+# will open that directory afterwards, so starting a line other than the one the	# そのあとは古いサーバーではそのディレクトリを開けない。データディレクトリが
+# data directory records cannot be undone. Read both and compare.	# 記録している系列以外を起動するのは、取り消せない。両方を読んで比べる。
+# mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag	# mariadb:12.3.3 は 12.3、12.3.3-MariaDB も 12.3 になる。タグを版として
+# cannot be read as a version (latest, a digest, no tag at all, a registry	# 読めない場合 (latest、digest、タグ無し、ポート付きのレジストリ) は、
+# that carries a port) comes back empty, so the caller skips a comparison	# 空を返す。呼び出し側は、根拠のない比較を飛ばす。
+# it has no business making.	# 判断できないときは判断しない。
+# True once the git section has advanced html/. html/ is bind-mounted into the	# git の処理が html/ を進めたら true になる。html/ は app と web にバインド
+# app and web containers, so from that moment the site serves the new core	# マウントされているので、その瞬間からサイトは新しいコアを配信し、依存・
+# while its dependencies, its migrations and its built assets are still the	# マイグレーション・ビルド済みアセットは前のままになる。そこから先で止まった
+# ones from before. A run that stops after that point says nothing about it	# 実行は、ほかにそれを伝えるものが無い。最後に表示されるのは失敗したものだけ
+# otherwise: the last thing printed is whatever failed (#80).	# である (#80)。
+  This run stopped with html/ already updated to $_core.	  この実行は、html/ を $_core に更新したあとで止まりました。
+  The site is serving that core now, while its dependencies, its	  サイトはいまそのコアを配信していますが、依存・マイグレーション・
+  migrations and its built assets are still the ones from before.	  ビルド済みアセットはこの実行の前のままです。
+  Running this script again picks the update up from the beginning,	  このスクリプトをもう一度実行すれば、更新は最初からやり直されます。
+  and is safe to repeat.	  繰り返しても安全です。
   Dixlase - Source update	  Dixlase - ソース更新
   html/ not found. Run setup.sh first.	  html/ が見つかりません。setup.sh を先に実行してください。
-# A release ZIP carries no .git, so there is nothing here to fast-forward.	# リリース ZIP には .git が無いので、ここに fast-forward するものは無い。この判定が
-# Without this the git commands below just print "fatal: not a git	# 無いと、下の git コマンドが "fatal: not a git repository" を 2 回出して exit 128 で
-# repository" twice and the script dies at exit 128. That install updates	# 死ぬだけになる。その形のインストールは、ダウンロードしたツリーを置き換えられる
-# through core, which knows how to replace a downloaded tree.	# コア側の機能で更新する。
-  html/ is not a git checkout, so there is nothing to pull.	  html/ は git チェックアウトではないため、pull するものがありません。
-  An install expanded from a release ZIP looks like this. Update it through core:	  リリース ZIP を展開したインストールはこの形です。コア側の機能で更新してください:
-    docker compose exec dixlase.test php artisan dls:core:update	    docker compose exec dixlase.test php artisan dls:core:update
 # Every step after the git pull runs inside the app container, so say so	# git pull より後のステップはすべてアプリコンテナ内で動くので、
 # once here instead of letting `docker compose exec` fail six times.	# `docker compose exec` を 6 回失敗させる代わりにここで 1 度だけ伝える。
   The dixlase.test container is not running.	  dixlase.test コンテナが起動していません。
@@ -37,8 +60,51 @@ Usage: ./update.sh [ref] [--dev] [--rebuild [--no-cache]]	使い方: ./update.sh
 # True when the running core provides the named artisan command. Lets this	# 稼働中のコアが指定した artisan コマンドを持つとき真。これにより、まだ
 # script use core's newer maintenance commands without breaking against an	# そのコマンドを持たない古いチェックアウトを壊さずに、コアの新しい保守
 # older checkout that does not have them yet.	# コマンドを利用できる。
-# 1. Update the source	# 1. ソースの更新
+# 1. Rebuild the images (--rebuild only)	# 1. イメージの作り直し (--rebuild のときだけ)
+# First, and before html/ is touched. The build needs nothing from the new	# 最初に、html/ に触る前に実行する。ビルドは新しいチェックアウトを何も必要
+# checkout, and it is the step most likely to fail for a reason outside this	# とせず、このインストールの外の理由で失敗する可能性がいちばん高いステップ
+# install: a registry or pecl.php.net that does not answer (#74). Failing	# でもある。レジストリや pecl.php.net が応答しない場合である (#74)。ここで
+# here costs a run that changed nothing, rather than leaving the site serving	# 失敗する分には、何も変えなかった実行 1 回で済む。依存とマイグレーションが
+# a core release whose dependencies and migrations have not caught up with it	# 追いついていないコアのリリースをサイトが配信する状態にはならない (#80)。
+# (#80). composer, the migrations and the asset build all stay after the	# composer・マイグレーション・アセットのビルドはどれもチェックアウトの後に
+# checkout, so everything that has to run against the PHP that will serve the	# 残るので、配信する PHP に対して動かす必要があるものは、これまでどおり
+# site still does.	# 変わらずそうなる。
+Rebuilding the images...	イメージを作り直し中...
+# The Dockerfile builds on php:8.3-fpm, a tag that moves with every PHP	# Dockerfile の土台は php:8.3-fpm で、このタグは PHP のリリースごとに動く。
+# release — but it moves for an install only when the image is built	# ただし、インストールにとって動くのはイメージを作り直したときだけであり、
+# again, and nothing else in this script builds anything. Without this	# このスクリプトの他のどこもビルドを行わない。このステップが無いと、
+# step a site keeps the PHP it was installed with, so a PHP security	# サイトはインストール時の PHP のまま残り、update.sh を何度実行しても
+# release never reaches it however often update.sh runs.	# PHP のセキュリティリリースが届かない。
+# --pull is what fetches the base image again. Every layer below it is	# ベースイメージを取り直すのは --pull である。その digest が変われば、下の
+# rebuilt on its own once its digest changes, the apt packages and the	# レイヤは apt のパッケージや PHP 拡張を含めて自動的に作り直される。
+# PHP extensions included, so --no-cache is for the operator who wants	# そのため --no-cache は、ベースイメージが動いていないときにもレイヤを
+# the layers rebuilt even when the base image did not move.	# 作り直したい運用者のためのものである。
+# The cron service runs PHP from an image of its own, built from this same	# cron サービスは、この同じ Dockerfile から作った自分のイメージで PHP を
+# Dockerfile, so it needs the same rebuild. It sits in a profile, which has	# 動かすので、同じ作り直しが必要になる。profile に属しているため、compose に
+# to be named for compose to address the service at all — and only while it	# サービスを指定させるには profile を名指しする必要がある。名指しするのは
+# is running, because naming it is enough to start one that the operator	# 動いている間だけとする。名指しすると、運用者が .env で止めた、あるいは
+# turned off in .env or stopped by hand.	# 手で止めたコンテナまで起動してしまうからである。
+  Building: ${REBUILD_SERVICES[*]}	  ビルド対象: ${REBUILD_SERVICES[*]}
+# Only a new container runs the new image. --no-deps keeps mysql out of	# 新しいイメージで動くのは新しいコンテナだけである。--no-deps で mysql を
+# it: the app container is the one being replaced, and taking the database	# 対象から外す。入れ替えるのはアプリのコンテナであり、更新の最中に
+# down under the update would be a far longer outage than this is.	# データベースを落とすと、これよりはるかに長い停止になる。
+# Compose leaves a container alone when its image did not change, so a run	# compose はイメージが変わっていないコンテナには手を触れないので、新しい
+# that found nothing new costs nothing here.	# ものが無かった実行では、ここで何も起こらない。
+# nginx holds the app container's address for as long as its resolver says	# nginx はアプリコンテナのアドレスを resolver の指定のあいだ保持する
+# (valid=30s, see nginx/nginx.*.conf), so a replaced container means 502s	# (valid=30s、nginx/nginx.*.conf を参照)。入れ替えると、それが切れるまで
+# until that expires. Restarting web ends the window at once.	# 502 を返す。web を再起動すれば、その時間をすぐに終わらせられる。
+  Restarting web so nginx reaches the new app container...	  nginx が新しいアプリコンテナに届くよう web を再起動中...
+# The steps below exec into the container that was just replaced. Give it	# 以降のステップは、いま入れ替えたコンテナに exec する。setup.sh が
+# the same few seconds setup.sh waits for after `up -d`.	# `up -d` のあとに待つのと同じ数秒を与える。
+# 2. Update the source	# 2. ソースの更新
 Updating html/ from GitHub...	GitHub から html/ を更新中...
+# A release ZIP carries no .git, so there is nothing here to fast-forward.	# リリース ZIP には .git が無いので、ここに fast-forward するものは無い。この判定が
+# Without this the git commands below just print "fatal: not a git	# 無いと、下の git コマンドが "fatal: not a git repository" を 2 回出して exit 128 で
+# repository" twice and the script dies at exit 128. That install updates	# 死ぬだけになる。その形のインストールは、ダウンロードしたツリーを置き換えられる
+# through core, which knows how to replace a downloaded tree.	# コア側の機能で更新する。
+  html/ is not a git checkout, so there is nothing to pull.	  html/ は git チェックアウトではないため、pull するものがありません。
+  An install expanded from a release ZIP looks like this. Update it through core:	  リリース ZIP を展開したインストールはこの形です。コア側の機能で更新してください:
+    docker compose exec dixlase.test php artisan dls:core:update	    docker compose exec dixlase.test php artisan dls:core:update
 # setup.sh hands html/ to www-data so the install wizard can write there,	# setup.sh は install ウィザードが書き込めるよう html/ を www-data に渡すため、
 # so git sees a worktree owned by another user and refuses it with	# git からは他ユーザー所有の作業ツリーに見え、
 # "detected dubious ownership in repository". Allow this one path for	# "detected dubious ownership in repository" として拒否される。運用者のグローバル
@@ -64,10 +130,10 @@ Updating html/ from GitHub...	GitHub から html/ を更新中...
 # to deal with it — core rewrites it whenever it needs to, and leaving it	# 必要なときに書き直すし、残したままだと下の fast-forward が更新を拒否する。
 # would make the fast-forward below refuse the update.	# （残したままにすると更新そのものが進まない。）
   html/ has local changes to tracked files:	  html/ の追跡対象ファイルにローカル変更があります:
-  Restoring html/.gitignore, which core rewrites for the bundled theme.	  html/.gitignore を元に戻します (コアが同梱テーマ用に書き換えるファイルです)。
   Keep or discard them, then run ./update.sh again:	  変更を退避または破棄してから、もう一度 ./update.sh を実行してください:
     docker compose exec dixlase.test git stash          # keep for later	    docker compose exec dixlase.test git stash          # 後で戻す
     docker compose exec dixlase.test git checkout -- .  # discard	    docker compose exec dixlase.test git checkout -- .  # 破棄
+  Restoring html/.gitignore, which core rewrites for the bundled theme.	  html/.gitignore を元に戻します (コアが同梱テーマ用に書き換えるファイルです)。
 # --tags, because a plain fetch does not always bring new tags along, and a	# --tags を付けるのは、素の fetch では新しいタグが来ないことがあり、リリースで
 # release install is identified by one.	# 入れたインストールはそのタグで見分けるからである。
 # The newest release tag, read from the tags just fetched so this costs no	# いま fetch したタグから最新のリリースタグを読む。ネットワーク呼び出しを
@@ -112,6 +178,10 @@ Updating dependencies...	依存パッケージを更新中...
   is reachable and healthy, then the repositories entries in	  そして html/composer.json の repositories の記述を、この順に確認して
   html/composer.json. Run ./update.sh again once the cause is cleared.	  ください。原因が解消したら ./update.sh をもう一度実行します。
   composer install complete.	  composer install 完了。
+# Same reason as in setup.sh: core writes composer.local.json (the PSR-4 roots of	# setup.sh と同じ理由: コアは composer.local.json (インストール済み拡張の PSR-4
+# the installed extensions) from a post-autoload-dump hook, so a run that changes	# ルート) を post-autoload-dump のフックから書くため、それが変わる実行では dump 済み
+# it leaves the dumped maps one step behind — and core's own repair cannot run	# のマップが 1 手遅れる。さらにコア自身の修復は php-fpm では動かない (PHP_BINARY が
+# under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.	# CLI のインタプリタではなく php-fpm になるため)。
 # 4. Realign the migration bookkeeping	# 4. マイグレーション台帳の整合
 Realigning migration bookkeeping...	マイグレーション台帳を整合中...
 # Until core's GA its baseline migrations are renumbered in place (core:	# コアが GA になるまで、ベースライン移行はその場で採番し直される（コアの
@@ -161,70 +231,18 @@ Clearing caches...	キャッシュをクリア中...
   Setting html/ ownership to www-data (container app user)...	  html/ の所有者を www-data (コンテナのアプリユーザー) に設定中...
   Update complete!	  更新完了!
   Core version:      ${CORE_VERSION:-unknown}	  コアバージョン:           ${CORE_VERSION:-unknown}
-# Same reason as in setup.sh: core writes composer.local.json (the PSR-4 roots of	# setup.sh と同じ理由: コアは composer.local.json (インストール済み拡張の PSR-4
-# the installed extensions) from a post-autoload-dump hook, so a run that changes	# ルート) を post-autoload-dump のフックから書くため、それが変わる実行では dump 済み
-# it leaves the dumped maps one step behind — and core's own repair cannot run	# のマップが 1 手遅れる。さらにコア自身の修復は php-fpm では動かない (PHP_BINARY が
-# under php-fpm, where PHP_BINARY is php-fpm rather than the CLI interpreter.	# CLI のインタプリタではなく php-fpm になるため)。
-  Installer version: ${INSTALLER_VERSION:-unknown}	  インストーラのバージョン: ${INSTALLER_VERSION:-unknown}
-# This script updates core (html/), not the installer itself. Show which	# このスクリプトが更新するのはコア(html/)で、インストーラ自体ではない。どの
-# installer version ran it, so a report can name both.	# インストーラの版で実行したかを表示し、報告で両方を書けるようにする。
-#   ./update.sh --rebuild    # rebuild the images first, taking the newest PHP	#   ./update.sh --rebuild    # 先にイメージを作り直す (最新の PHP を取る)
-  --rebuild  Build the images again from the current php:8.3-fpm and replace	  --rebuild  その時点の php:8.3-fpm からイメージを作り直し、コンテナを
-             the containers with them. This is what moves an install to a	             それに入れ替える。インストールを新しい PHP (セキュリティ
-             newer PHP, a security release included.	             リリースを含む) へ移すのはこの処理である。
-  --no-cache Build every layer again rather than reusing the cache. Only has	  --no-cache キャッシュを使わず全レイヤを作り直す。--rebuild と一緒のとき
-             an effect together with --rebuild.	             だけ効果がある。
-# --no-cache decides how the rebuild builds, so on its own it would look	# --no-cache は作り直しの方法を決めるものなので、単体では受け付けられたように
-# accepted and do nothing at all.	# 見えて、実際には何もしない。
-  --no-cache only has an effect together with --rebuild.	  --no-cache は --rebuild と一緒に指定したときだけ効果があります。
-# The image rebuild is a step of its own, and only when it is asked for, so	# イメージの作り直しは、指定されたときだけ現れる独立したステップなので、
-# the steps number themselves as they run instead of carrying the count in	# 各ステップは実行時に自分で番号を振る。文字列の中に総数を持たせない。
-# every string.	# (表示のたびに数え直す。)
-# 2. Rebuild the images (--rebuild only)	# 2. イメージの作り直し (--rebuild のときだけ)
-Rebuilding the images...	イメージを作り直し中...
-# The Dockerfile builds on php:8.3-fpm, a tag that moves with every PHP	# Dockerfile の土台は php:8.3-fpm で、このタグは PHP のリリースごとに動く。
-# release — but it moves for an install only when the image is built	# ただし、インストールにとって動くのはイメージを作り直したときだけであり、
-# again, and nothing else in this script builds anything. Without this	# このスクリプトの他のどこもビルドを行わない。このステップが無いと、
-# step a site keeps the PHP it was installed with, so a PHP security	# サイトはインストール時の PHP のまま残り、update.sh を何度実行しても
-# release never reaches it however often update.sh runs.	# PHP のセキュリティリリースが届かない。
-# --pull is what fetches the base image again. Every layer below it is	# ベースイメージを取り直すのは --pull である。その digest が変われば、下の
-# rebuilt on its own once its digest changes, the apt packages and the	# レイヤは apt のパッケージや PHP 拡張を含めて自動的に作り直される。
-# PHP extensions included, so --no-cache is for the operator who wants	# そのため --no-cache は、ベースイメージが動いていないときにもレイヤを
-# the layers rebuilt even when the base image did not move.	# 作り直したい運用者のためのものである。
-# The cron service runs PHP from an image of its own, built from this same	# cron サービスは、この同じ Dockerfile から作った自分のイメージで PHP を
-# Dockerfile, so it needs the same rebuild. It sits in a profile, which has	# 動かすので、同じ作り直しが必要になる。profile に属しているため、compose に
-# to be named for compose to address the service at all — and only while it	# サービスを指定させるには profile を名指しする必要がある。名指しするのは
-# is running, because naming it is enough to start one that the operator	# 動いている間だけとする。名指しすると、運用者が .env で止めた、あるいは
-# turned off in .env or stopped by hand.	# 手で止めたコンテナまで起動してしまうからである。
-  Building: ${REBUILD_SERVICES[*]}	  ビルド対象: ${REBUILD_SERVICES[*]}
-# Only a new container runs the new image. --no-deps keeps mysql out of	# 新しいイメージで動くのは新しいコンテナだけである。--no-deps で mysql を
-# it: the app container is the one being replaced, and taking the database	# 対象から外す。入れ替えるのはアプリのコンテナであり、更新の最中に
-# down under the update would be a far longer outage than this is.	# データベースを落とすと、これよりはるかに長い停止になる。
-# Compose leaves a container alone when its image did not change, so a run	# compose はイメージが変わっていないコンテナには手を触れないので、新しい
-# that found nothing new costs nothing here.	# ものが無かった実行では、ここで何も起こらない。
-# nginx holds the app container's address for as long as its resolver says	# nginx はアプリコンテナのアドレスを resolver の指定のあいだ保持する
-# (valid=30s, see nginx/nginx.*.conf), so a replaced container means 502s	# (valid=30s、nginx/nginx.*.conf を参照)。入れ替えると、それが切れるまで
-# until that expires. Restarting web ends the window at once.	# 502 を返す。web を再起動すれば、その時間をすぐに終わらせられる。
-  Restarting web so nginx reaches the new app container...	  nginx が新しいアプリコンテナに届くよう web を再起動中...
-# The steps below exec into the container that was just replaced. Give it	# 以降のステップは、いま入れ替えたコンテナに exec する。setup.sh が
-# the same few seconds setup.sh waits for after `up -d`.	# `up -d` のあとに待つのと同じ数秒を与える。
 # PHP comes from the image, not from html/, so an install keeps the version it	# PHP は html/ ではなくイメージから来るので、--rebuild で入れ替えるまで、
 # was built with until --rebuild replaces it. Print it: an operator asking	# インストールはビルド時の版のまま残る。ここで表示する。PHP のセキュリティ
 # whether a PHP security release has reached the site reads the answer here.	# リリースがサイトに届いたかを知りたい運用者は、ここで答えを読む。
   PHP version:       ${PHP_VERSION:-unknown}	  PHP のバージョン:         ${PHP_VERSION:-unknown}
+# This script updates core (html/), not the installer itself. Show which	# このスクリプトが更新するのはコア(html/)で、インストーラ自体ではない。どの
+# installer version ran it, so a report can name both.	# インストーラの版で実行したかを表示し、報告で両方を書けるようにする。
+  Installer version: ${INSTALLER_VERSION:-unknown}	  インストーラのバージョン: ${INSTALLER_VERSION:-unknown}
 # Say it where the version is in sight, because nothing else does: a run	# 版が見えているこの場所で伝える。他のどこも伝えないからである。--rebuild
 # without --rebuild has not touched PHP, and that is not visible in its output.	# の無い実行は PHP に触れておらず、そのことは出力からは分からない。
   PHP comes from the image built when this install was made. To move it	  PHP は、このインストールを作ったときのイメージから来ています。最新の
   to the newest php:8.3-fpm (after a PHP security release, say):	  php:8.3-fpm に移すには (PHP のセキュリティリリースの後など):
     ./update.sh --rebuild	    ./update.sh --rebuild
-# The database image is pinned in docker-compose.yml, overridable with DB_IMAGE	# データベースのイメージは docker-compose.yml でピン留めしてあり、.env の
-# in .env. MariaDB upgrades mysql/ in place when it starts and no older server	# DB_IMAGE で上書きできる。MariaDB は起動時に mysql/ をその場でアップグレードし、
-# will open that directory afterwards, so starting a line other than the one the	# そのあとは古いサーバーではそのディレクトリを開けない。データディレクトリが
-# data directory records cannot be undone. Read both and compare.	# 記録している系列以外を起動するのは、取り消せない。両方を読んで比べる。
-# mariadb:12.3.3 -> 12.3, and 12.3.3-MariaDB -> 12.3. Everything the tag	# mariadb:12.3.3 は 12.3、12.3.3-MariaDB も 12.3 になる。タグを版として
-# cannot be read as a version (latest, a digest, no tag at all, a registry	# 読めない場合 (latest、digest、タグ無し、ポート付きのレジストリ) は、
-# that carries a port) comes back empty, so the caller skips a comparison	# 空を返す。呼び出し側は、根拠のない比較を飛ばす。
-# it has no business making.	# 判断できないときは判断しない。
 # This script never starts the database container, so a mismatch here changes	# このスクリプトはデータベースのコンテナを起動しないので、ここでの不一致は
 # nothing today. Say it anyway: the next plain docker compose up -d would make	# 今は何も変えない。それでも伝える。次の素の docker compose up -d が移行を
 # the move, and the operator is the only one who can decide it.	# 行ってしまい、それを決められるのは運用者だけだからである。
