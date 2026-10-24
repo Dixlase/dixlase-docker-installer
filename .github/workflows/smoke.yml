@@ -17,10 +17,11 @@ on:
   # Run before the merge, not after it. On 2026-10-10 a pull request removed
   # the step setup.sh had been asserted to perform; every check that pull
   # request ran was green, and the failure would first have shown up in the
-  # nightly run or the next push to main.
+  # nightly run or the next push to next.
   pull_request:
     branches:
       - main
+      - next
     paths:
       - 'setup.sh'
       - 'update.sh'
@@ -36,6 +37,7 @@ on:
   push:
     branches:
       - main
+      - next
     paths:
       - 'setup.sh'
       - 'update.sh'

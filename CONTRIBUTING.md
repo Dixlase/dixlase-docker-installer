@@ -79,6 +79,30 @@ saves everyone time:
 - **Docker Desktop bind-mount timing on macOS.** Files written inside the
   container are occasionally not visible to the next operation immediately.
 
+## Branches
+
+Development happens on `next`; `main` is the latest release.
+
+- **`main` is exactly the latest release** — the commit the newest `vX.Y.Z` tag points at. It
+  moves only when a release is cut, so `git clone` and `git pull` give an operator a released
+  installer rather than a half-finished change.
+- **`next` is the next version under development.** Its `VERSION` carries a `-dev` suffix
+  (`0.1.11-dev`), and **every pull request targets it**.
+
+GitHub's default branch stays `main`, because this repository is cloned by hand rather than
+installed as a package and the quick start uses no `--branch`. So name the base explicitly:
+
+```bash
+git fetch origin
+git switch -c fix/<issue>-<slug> origin/next
+# ... commit ...
+gh pr create --base next --title "..." --body "Fixes #<issue>"
+```
+
+A release is cut on `main` from the contents of `next` (`git merge --ff-only origin/next`,
+then the version bump, the changelog, the annotated tag and the GitHub Release), and `next` is
+moved up to the release commit immediately afterwards.
+
 ## For maintainers and forks
 
 The checks below are what CI runs. They are documented here because they are also
@@ -112,8 +136,8 @@ the full rules are in [CLAUDE.md](./CLAUDE.md).
 
 The end-to-end smoke workflow (`.github/workflows/smoke.yml`) clones the private
 Dixlase Core repository and cannot run without a maintainer token. It runs on
-pushes to `main` and via `workflow_dispatch`; a maintainer runs it against a
-branch before merging.
+pushes to `next` and `main`, on pull requests against either, and via
+`workflow_dispatch`.
 
 ## License
 

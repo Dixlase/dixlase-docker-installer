@@ -74,6 +74,31 @@ AI ツールは現代の開発の一部です。ただし、提出物は人間�
 - **macOS の Docker Desktop における bind mount のタイミング。** コンテナ内で書き込んだ
   ファイルが、直後の操作から一時的に見えないことがあります。
 
+## ブランチ
+
+開発は `next` で行い、`main` は最新リリースそのものです。
+
+- **`main` は常に最新リリース** — 最新の `vX.Y.Z` タグが指すコミットです。動くのはリリースを
+  切るときだけなので、`git clone` と `git pull` は作りかけの変更ではなく、リリース済みの
+  インストーラを返します。
+- **`next` が開発中の次のバージョン**です。`VERSION` は `-dev` の suffix を持ち
+  (`0.1.11-dev`)、**プルリクエストはすべてここを対象にします**。
+
+GitHub のデフォルトブランチは `main` のままです。このリポジトリはパッケージとして入るのでは
+なく手で clone されるもので、クイックスタートが `--branch` を付けないためです。したがって
+ベースは明示してください。
+
+```bash
+git fetch origin
+git switch -c fix/<issue>-<slug> origin/next
+# ... コミット ...
+gh pr create --base next --title "..." --body "Fixes #<issue>"
+```
+
+リリースは `next` の内容から `main` 上で切ります (`git merge --ff-only origin/next` のあと、
+バージョンの更新、CHANGELOG、注釈付きタグ、GitHub Release)。その直後に `next` をリリースの
+コミットまで進めます。
+
 ## メンテナおよびフォーク利用者向け
 
 以下は CI が実行しているチェックです。本リポジトリを自身のデプロイ用にフォークする場合にも
@@ -105,8 +130,8 @@ diff -r /tmp/before/nginx nginx && for f in setup.sh reset.sh update.sh Dockerfi
 完全なルールは [CLAUDE.md](./CLAUDE.md) にあります。
 
 E2E のスモークワークフロー（`.github/workflows/smoke.yml`）は private な Dixlase Core
-リポジトリをクローンするため、メンテナ用トークンなしでは実行できません。`main` への
-push と `workflow_dispatch` で動作し、マージ前にメンテナがブランチに対して実行します。
+リポジトリをクローンするため、メンテナ用トークンなしでは実行できません。`next` と `main` への
+push、そのどちらかを対象にしたプルリクエスト、`workflow_dispatch` で動作します。
 
 ## ライセンス
 

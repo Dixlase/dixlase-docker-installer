@@ -4,6 +4,14 @@ For English, see [CLAUDE.md](./CLAUDE.md).
 
 このリポジトリで作業するすべての貢献者 (人間・AI 双方) が従うべきルール。
 
+## ブランチ
+
+- **`main` は常に最新リリースそのもの** — 最新の `vX.Y.Z` タグが指すコミット。push するのはリリースを切るときだけ。README のクイックスタートが `main` を clone するため、`--branch` なしの `git clone` はリリース済みのインストーラにならなければならない。
+- **`next` が開発中の次のバージョン。** `VERSION` は `-dev` の suffix を持つ (`0.1.11-dev`) ので、`next` のチェックアウトがリリース済みの版を名乗ることはない。
+- ブランチは必ず `origin/next` から切る (先に `git fetch origin`)。プルリクエストは必ず `--base next` で作る。`main` に対してプルリクエストを作ってはならず、リリース以外で `main` に push・マージしてもならない。
+- GitHub のデフォルトブランチは `main` のままにする。Dixlase の拡張が従うフローからの唯一の逸脱で、理由は拡張はパッケージとして入るがこのリポジトリは手で clone されるものだから。したがってプルリクエストのベースは常に明示する。
+- リリースは `next` の内容から `main` 上で切る (`git merge --ff-only origin/next` のあと、バージョンの更新、CHANGELOG、注釈付きタグ、GitHub Release)。その直後に `next` をリリースのコミットまで進め、次の `-dev` バージョンで開き直す。
+
 ## Commit Message Convention
 
 Dixlase プロジェクト全体で統一されたコミットメッセージ規約に従う。
