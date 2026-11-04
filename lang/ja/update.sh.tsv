@@ -203,8 +203,21 @@ Rebuilding frontend assets...	フロントエンドアセットを再ビルド�
 # sources but left the previous build in place. Rebuild it the same way	# 持ってきて、以前のビルド結果を残す。setup.sh と同じ手順で作り直さないと、
 # setup.sh does, or the pages keep asking for asset URLs that the new	# setup.sh と同じ手順で作り直す。さもないと画面は、新しいマニフェストに
 # manifest no longer lists.	# 無いアセット URL を要求し続ける。
-# The bundled theme has its own build. On a cold npm cache this step	# 同梱テーマは独自のビルドを持つ。npm キャッシュが空の場合、この処理は
-# can take several minutes.	# 数分かかることがある。
+# The bundled theme is published two ways, and which one is on disk	# 同梱テーマの配布の形は 2 通りあり、ディスクにどちらがあるかで、ここでの
+# decides what happens here. From theme v0.5.3 on, the release carries its	# 動きが決まる。テーマ v0.5.3 以降は、ビルド済みの resources/assets/ がリリース
+# built resources/assets/ and the theme's signature covers those files, so	# に含まれ、テーマの署名がそのファイルを対象にしている。そのため作り直すと
+# building them again would rewrite signed files and the site would report	# 署名されたファイルを書き換えてしまい、サイトはテーマを
+# the theme as signature_invalid. Core's dls:theme:build has no "skip when	# signature_invalid と報告しうる。コアの dls:theme:build には「ビルド済みなら
+# already built" mode: it always runs npm and Vite (#84).	# 飛ばす」動きが無く、必ず npm と Vite を実行する (#84)。
+# The signature's own file list is what tells the two apart. A theme that	# 両者を見分けるのは、署名そのもののファイル一覧である。サイトでビルドした
+# was built on the site has resources/assets/manifest.json as well, but	# テーマも resources/assets/manifest.json を持つが、その theme.json はそれを
+# its theme.json does not name it, because naming it would need a new	# 名指ししない。名指しするには新しい
+# signature. Publishing is then all that is left to do: the symlink	# 署名が必要になるからである。あとは公開するだけでよい。symlink のコマンドが
+# command points public/assets/themes/<name> at the theme's	# public/assets/themes/<name> をテーマの resources/assets/ に向け、
+# resources/assets/, and it is idempotent.	# これは冪等である。
+# A theme that ships sources only is built as before. On a cold npm cache	# ソースだけを同梱するテーマは、これまでどおりビルドする。npm のキャッシュが
+# that step can take several minutes.	# 空のときは、この手順に数分かかることがある。
+  Publishing the theme's own build (themes/DixlaseOnePage)...	  テーマ自身のビルドを公開中 (themes/DixlaseOnePage)...
   Building theme assets (themes/DixlaseOnePage)...	  テーマアセットをビルド中 (themes/DixlaseOnePage)...
 # Restart web so nginx sees freshly built assets. Docker Desktop bind	# nginx に新しいアセットを認識させるため web を再起動する。macOS の Docker
 # mounts on macOS sometimes hide files that appeared after the container	# Desktop のバインドマウントは、コンテナ起動後に現れたファイルを見せない

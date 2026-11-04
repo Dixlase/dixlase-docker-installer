@@ -484,6 +484,22 @@ if [ "$VITE_ENABLED" = true ]; then
     docker compose up -d vite
 fi
 
+# The bundled theme is published two ways, and which one is on disk decides
+# what this script does with it. From theme v0.5.3 on, the release carries its
+# built resources/assets/ and the theme's signature covers those files, so
+# building them here would rewrite signed files and the site would report the
+# theme as signature_invalid. Core's dls:theme:build has no "skip when already
+# built" mode: it always runs npm and Vite (#84).
+#
+# The signature's own file list is what tells the two apart. A theme that was
+# built on the site has resources/assets/manifest.json as well, but its
+# theme.json does not name it, because naming it would need a new signature.
+THEME_SHIPS_ASSETS=false
+if [ -f html/themes/DixlaseOnePage/resources/assets/manifest.json ] &&
+    grep -q '"resources/assets/manifest.json"' html/themes/DixlaseOnePage/theme.json 2>/dev/null; then
+    THEME_SHIPS_ASSETS=true
+fi
+
 # Seed the Tailwind plugin-sources stub the theme build @imports.
 # Core's dls:tailwind:regenerate-plugin-sources normally writes it.
 # On a fresh clone neither has happened yet, so seed an empty stub
@@ -497,7 +513,9 @@ fi
 # resources/src/common/css as www-data, so a host-side write there fails
 # with "Permission denied" on hosts that do not virtualize bind-mount
 # ownership (Linux).
-if [ -f html/themes/DixlaseOnePage/package.json ]; then
+#
+# Only the build needs it, so a theme that ships its own build gets no stub.
+if [ -f html/themes/DixlaseOnePage/package.json ] && [ "$THEME_SHIPS_ASSETS" = false ]; then
     PLUGIN_SOURCES=html/resources/src/common/css/dixlase-tailwind-plugin-sources.css
     if [ ! -f "$PLUGIN_SOURCES" ]; then
         IN_CONTAINER="${PLUGIN_SOURCES#html/}"
@@ -541,14 +559,23 @@ else
     docker compose exec -T dixlase.test rm -f public/hot
     docker compose exec -T dixlase.test npm run build
 
-    # Build theme assets via core's dls:theme:build artisan: it runs
-    # npm install + npm run build inside themes/<name>/ and creates the
-    # public/assets/themes/<name> symlink. The theme's tailwind.css
-    # @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,
-    # which core's dls:tailwind:regenerate-plugin-sources rewrites every
-    # time plugins change (and the install wizard calls it after migrate).
-    # The stub it needs on a fresh clone was seeded in step [5/6].
-    if [ -f html/themes/DixlaseOnePage/package.json ]; then
+    # A theme that ships its own build only has to be published: the symlink
+    # command points public/assets/themes/<name> at the theme's
+    # resources/assets/, which is what every /assets/themes/<name>/... request
+    # is served from. It is idempotent, and it exists in every core release
+    # this installer can set up.
+    #
+    # A theme that ships sources only is built via core's dls:theme:build
+    # artisan: it runs npm install + npm run build inside themes/<name>/ and
+    # creates the same symlink. The theme's tailwind.css @imports
+    # resources/src/common/css/dixlase-tailwind-plugin-sources.css, which
+    # core's dls:tailwind:regenerate-plugin-sources rewrites every time
+    # plugins change (and the install wizard calls it after migrate). The stub
+    # it needs on a fresh clone was seeded in step [5/6].
+    if [ "$THEME_SHIPS_ASSETS" = true ]; then
+        echo "  Publishing the theme's own build (themes/DixlaseOnePage)..."
+        docker compose exec -T dixlase.test php artisan dls:theme:symlink create DixlaseOnePage
+    elif [ -f html/themes/DixlaseOnePage/package.json ]; then
         echo "  Building theme assets (themes/DixlaseOnePage)..."
         docker compose exec -T dixlase.test php artisan dls:theme:build DixlaseOnePage
     fi

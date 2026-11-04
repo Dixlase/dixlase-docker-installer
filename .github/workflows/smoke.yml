@@ -274,6 +274,36 @@ jobs:
           test -f html/themes/DixlaseOnePage/theme.json
           echo "OK: the bundled theme resolved with no credential anywhere."
 
+      # #84: from theme v0.5.3 on, the release carries its built
+      # resources/assets/ and the theme's signature covers those files, so
+      # setup.sh publishes them instead of building them again — a rebuild
+      # would rewrite signed files and the site would report the theme as
+      # signature_invalid. Which case applies is decided by the theme that
+      # core's release locks, so assert the one that is actually on disk. The
+      # shipped case starts being covered here the moment that lock moves.
+      - name: Assert the theme's assets match the way the theme ships them
+        run: |
+          set -e
+          theme=html/themes/DixlaseOnePage
+          link=html/public/assets/themes/DixlaseOnePage
+          test -d "$link/"
+          if grep -qF '"resources/assets/manifest.json"' "$theme/theme.json"; then
+            test -f "$link/manifest.json"
+            if [ -d "$theme/node_modules" ]; then
+              echo "npm ran inside the theme although its assets are signed." >&2
+              exit 1
+            fi
+            if grep -qF 'Building theme assets' /tmp/setup-anon.log; then
+              echo "setup.sh built the theme although it ships its own build." >&2
+              exit 1
+            fi
+            grep -qF "Publishing the theme's own build" /tmp/setup-anon.log
+            echo "OK: the theme ships its own build and setup.sh only published it."
+          else
+            grep -qF 'Building theme assets' /tmp/setup-anon.log
+            echo "OK: the theme ships sources only and setup.sh built them."
+          fi
+
       # The app and cron containers run the same entrypoint on the same html/
       # with nothing ordering them, so both can create public/storage. The one
       # that lost the race used to write its link inside the winner's, leaving
@@ -477,6 +507,26 @@ jobs:
               ;;
           esac
           echo "OK: $PREVIOUS_TAG -> $NEWEST_TAG, VERSION reads $version."
+
+      # The same decision as in the anonymous job, for the update path (#84).
+      # update.sh runs on an install whose theme may already ship its build,
+      # and rebuilding it there is what breaks the signature on a live site.
+      - name: Assert the update published the theme the way it ships it
+        run: |
+          set -e
+          theme=html/themes/DixlaseOnePage
+          test -d html/public/assets/themes/DixlaseOnePage/
+          if grep -qF '"resources/assets/manifest.json"' "$theme/theme.json"; then
+            if grep -qF 'Building theme assets' /tmp/update-newest.log; then
+              echo "update.sh built the theme although it ships its own build." >&2
+              exit 1
+            fi
+            grep -qF "Publishing the theme's own build" /tmp/update-newest.log
+            echo "OK: the shipped assets were published, not rebuilt."
+          else
+            grep -qF 'Building theme assets' /tmp/update-newest.log
+            echo "OK: the theme ships sources only and was built."
+          fi
 
       - name: Smoke check — the site still answers after the update
         run: |

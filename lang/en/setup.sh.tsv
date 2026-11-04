@@ -72,12 +72,6 @@
 # Read the actual ports from .env and build the CMS URL. Omit the port	# Read the actual ports from .env and build the CMS URL. Omit the port
 # when it is the standard 80 / 443 for the chosen scheme.	# when it is the standard 80 / 443 for the chosen scheme.
 # Remove the hot file so the built assets are used	# Remove the hot file so the built assets are used
-# Build theme assets via core's dls:theme:build artisan: it runs	# Build theme assets via core's dls:theme:build artisan: it runs
-# npm install + npm run build inside themes/<name>/ and creates the	# npm install + npm run build inside themes/<name>/ and creates the
-# public/assets/themes/<name> symlink. The theme's tailwind.css	# public/assets/themes/<name> symlink. The theme's tailwind.css
-# @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,	# @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,
-# which core's dls:tailwind:regenerate-plugin-sources rewrites every	# which core's dls:tailwind:regenerate-plugin-sources rewrites every
-# time plugins change (and the install wizard calls it after migrate).	# time plugins change (and the install wizard calls it after migrate).
 # On a fresh clone neither has happened yet, so seed an empty stub	# On a fresh clone neither has happened yet, so seed an empty stub
 # in the exact format core emits when no plugin contributes sources	# in the exact format core emits when no plugin contributes sources
 # — the wizard / lifecycle commands overwrite it later with the	# — the wizard / lifecycle commands overwrite it later with the
@@ -141,6 +135,7 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
       Build skipped (hot-reload enabled).	      Build skipped (hot-reload enabled).
 [6/6] Building frontend assets...	[6/6] Building frontend assets...
   Seeded $PLUGIN_SOURCES placeholder for theme build.	  Seeded $PLUGIN_SOURCES placeholder for theme build.
+  Publishing the theme's own build (themes/DixlaseOnePage)...	  Publishing the theme's own build (themes/DixlaseOnePage)...
   Building theme assets (themes/DixlaseOnePage)...	  Building theme assets (themes/DixlaseOnePage)...
   Restarting web to refresh asset mount...	  Restarting web to refresh asset mount...
   Setup complete!	  Setup complete!
@@ -154,6 +149,15 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # Open a shell in the container	# Open a shell in the container
 # Full reset of the environment	# Full reset of the environment
 # Pull latest from GitHub	# Pull latest from GitHub
+# The bundled theme is published two ways, and which one is on disk decides	# The bundled theme is published two ways, and which one is on disk decides
+# what this script does with it. From theme v0.5.3 on, the release carries its	# what this script does with it. From theme v0.5.3 on, the release carries its
+# built resources/assets/ and the theme's signature covers those files, so	# built resources/assets/ and the theme's signature covers those files, so
+# building them here would rewrite signed files and the site would report the	# building them here would rewrite signed files and the site would report the
+# theme as signature_invalid. Core's dls:theme:build has no "skip when already	# theme as signature_invalid. Core's dls:theme:build has no "skip when already
+# built" mode: it always runs npm and Vite (#84).	# built" mode: it always runs npm and Vite (#84).
+# The signature's own file list is what tells the two apart. A theme that was	# The signature's own file list is what tells the two apart. A theme that was
+# built on the site has resources/assets/manifest.json as well, but its	# built on the site has resources/assets/manifest.json as well, but its
+# theme.json does not name it, because naming it would need a new signature.	# theme.json does not name it, because naming it would need a new signature.
 # Seed the Tailwind plugin-sources stub the theme build @imports.	# Seed the Tailwind plugin-sources stub the theme build @imports.
 # Core's dls:tailwind:regenerate-plugin-sources normally writes it.	# Core's dls:tailwind:regenerate-plugin-sources normally writes it.
 # Once the containers have run, app-entrypoint.sh owns several paths	# Once the containers have run, app-entrypoint.sh owns several paths
@@ -200,7 +204,19 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # resources/src/common/css as www-data, so a host-side write there fails	# resources/src/common/css as www-data, so a host-side write there fails
 # with "Permission denied" on hosts that do not virtualize bind-mount	# with "Permission denied" on hosts that do not virtualize bind-mount
 # ownership (Linux).	# ownership (Linux).
-# The stub it needs on a fresh clone was seeded in step [5/6].	# The stub it needs on a fresh clone was seeded in step [5/6].
+# Only the build needs it, so a theme that ships its own build gets no stub.	# Only the build needs it, so a theme that ships its own build gets no stub.
+# A theme that ships its own build only has to be published: the symlink	# A theme that ships its own build only has to be published: the symlink
+# command points public/assets/themes/<name> at the theme's	# command points public/assets/themes/<name> at the theme's
+# resources/assets/, which is what every /assets/themes/<name>/... request	# resources/assets/, which is what every /assets/themes/<name>/... request
+# is served from. It is idempotent, and it exists in every core release	# is served from. It is idempotent, and it exists in every core release
+# this installer can set up.	# this installer can set up.
+# A theme that ships sources only is built via core's dls:theme:build	# A theme that ships sources only is built via core's dls:theme:build
+# artisan: it runs npm install + npm run build inside themes/<name>/ and	# artisan: it runs npm install + npm run build inside themes/<name>/ and
+# creates the same symlink. The theme's tailwind.css @imports	# creates the same symlink. The theme's tailwind.css @imports
+# resources/src/common/css/dixlase-tailwind-plugin-sources.css, which	# resources/src/common/css/dixlase-tailwind-plugin-sources.css, which
+# core's dls:tailwind:regenerate-plugin-sources rewrites every time	# core's dls:tailwind:regenerate-plugin-sources rewrites every time
+# plugins change (and the install wizard calls it after migrate). The stub	# plugins change (and the install wizard calls it after migrate). The stub
+# it needs on a fresh clone was seeded in step [5/6].	# it needs on a fresh clone was seeded in step [5/6].
 # Not called "production mode": this stack is a local trial, and the name	# Not called "production mode": this stack is a local trial, and the name
 # invited people to treat it as hardened for a server. All it decides is	# invited people to treat it as hardened for a server. All it decides is
 # whether Vite serves the assets or they are built ahead of time.	# whether Vite serves the assets or they are built ahead of time.
