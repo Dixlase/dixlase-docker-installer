@@ -13,6 +13,14 @@ For Japanese, see [README.ja.md](./README.ja.md).
 - **A Bash shell.** `setup.sh` is a POSIX Bash script: macOS and Linux have one already,
   Windows needs WSL2 or Git Bash (see [On Windows](#on-windows)).
 
+## What comes with the stack
+
+The list above is what the host has to provide. The services the site runs against are part of the stack, so these need nothing of your own:
+
+- **A database.** A MySQL-compatible server — MariaDB, pinned to an LTS line — runs in its own container. There is no database server to install, and no connection details to type into the install wizard: they come from the `DB_*` values in `.env`, and the wizard opens with MySQL already chosen because the containers tell the core it was installed with Docker (see [What the containers tell the core](#what-the-containers-tell-the-core)).
+- **Somewhere for the mail the site sends.** Mailpit, a development mail catcher, accepts every message and shows it in the browser at `http://localhost:40025` (`FORWARD_MAILPIT_PORT` changes the port). It **delivers nothing**: mail is the one thing this stack does not finish, and a site with real recipients needs a mail server of its own (see [Using this on a server](#using-this-on-a-server)).
+- **Cache and sessions.** A Redis container is included. It is off by default and starts when `REDIS=true`.
+
 ## Quick Start
 
 ```bash
@@ -72,6 +80,8 @@ when the two disagree.)
 | Dixlase | `http://localhost:40080` (`https://localhost:40443` when `HTTPS=true`) |
 | Adminer (DB GUI) | `http://localhost:40081` |
 | Mailpit (mail catcher) | `http://localhost:40025` |
+
+Mailpit is a development mail catcher: it accepts every mail the site sends and shows it in the browser, and **delivers none of it**. Nothing reaches a real recipient until the site is pointed at a mail server of its own — see [Using this on a server](#using-this-on-a-server).
 
 Only the CMS is published on all interfaces. Adminer, Mailpit, MariaDB and the
 Vite dev server are bound to `127.0.0.1`, so they answer from this machine only —
@@ -165,6 +175,11 @@ and an open door as soon as it does not. Before you expose this host:
 - **Do not run `--dev` (`VITE=true`) on a reachable host.** The Vite dev server
   can read files under `html/` through its `/@fs/` paths.
 - **Consider `TOOLS=false`** so Adminer and Mailpit are not started at all.
+- **Point mail at a real destination if the site has to send any.** Mailpit
+  delivers nothing, and `TOOLS=false` does not start it at all, so set the
+  `MAIL_*` values in `html/.env` — or the mail settings in the admin panel — to
+  an SMTP server or a mail service. Core supports SMTP and Sendmail as well as
+  services such as Mailgun, Amazon SES and Postmark.
 - The host's SSH keys are **not** mounted into the container. If you deploy from
   inside it, opt in through `docker-compose.deploy.yml` — anything running in the
   container can read those keys, install scripts included.

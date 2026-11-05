@@ -124,7 +124,7 @@ TLS を終端してください。
 | web (HTTPS) | 全インターフェースの `40443` | `APP_SSL_PORT` |
 | MySQL | **`127.0.0.1:40306`** | `DB_BIND_ADDRESS` / `FORWARD_DB_PORT` — 既定はホスト限定 |
 | Adminer | **`127.0.0.1:40081`** | `ADMINER_BIND_ADDRESS` / `FORWARD_ADMINER_PORT` — **データベース管理 UI**、`tools` プロファイル |
-| Mailpit | **`127.0.0.1:40025`** | `MAILPIT_BIND_ADDRESS` / `FORWARD_MAILPIT_PORT` — 捕捉した送信メールを閲覧可能、`tools` プロファイル |
+| Mailpit | **`127.0.0.1:40025`** | `MAILPIT_BIND_ADDRESS` / `FORWARD_MAILPIT_PORT` — 開発用のメールキャッチャー。捕捉した送信メールを閲覧可能、`tools` プロファイル |
 | Redis | 公開しない | compose ネットワーク内の `redis:6379` からのみ到達可能、`redis` プロファイル |
 | Vite | **`127.0.0.1:40173`** | `VITE_BIND_ADDRESS` / `FORWARD_VITE_PORT` — `dev` プロファイル使用時のみ |
 
