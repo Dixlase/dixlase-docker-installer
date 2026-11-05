@@ -128,7 +128,7 @@ carries different fallbacks for the case where a variable is unset.
 | web (HTTPS) | `40443` on all interfaces | `APP_SSL_PORT` |
 | MySQL | **`127.0.0.1:40306`** | `DB_BIND_ADDRESS` / `FORWARD_DB_PORT` — host-only by default |
 | Adminer | **`127.0.0.1:40081`** | `ADMINER_BIND_ADDRESS` / `FORWARD_ADMINER_PORT` — **database administration UI**, `tools` profile |
-| Mailpit | **`127.0.0.1:40025`** | `MAILPIT_BIND_ADDRESS` / `FORWARD_MAILPIT_PORT` — captured outbound mail is readable, `tools` profile |
+| Mailpit | **`127.0.0.1:40025`** | `MAILPIT_BIND_ADDRESS` / `FORWARD_MAILPIT_PORT` — a development mail catcher: captured outbound mail is readable, `tools` profile |
 | Redis | not published | only reachable at `redis:6379` inside the compose network, `redis` profile |
 | Vite | **`127.0.0.1:40173`** | `VITE_BIND_ADDRESS` / `FORWARD_VITE_PORT` — only with the `dev` profile |
 
