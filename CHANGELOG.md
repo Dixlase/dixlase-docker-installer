@@ -8,6 +8,26 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.13] — 2026-11-05
+
+### Added
+
+- The app and cron containers tell Dixlase how it was installed. `docker-compose.yml` sets `DIXLASE_INSTALL_METHOD=docker`, which the setup wizard reads to choose its defaults — a database in another container rather than a SQLite file, Mailpit rather than an empty mail host — and its guidance. It used to work that out by resolving the service host name `mysql`, which misfires on a host that resolves that name for something else. The same services carry `DIXLASE_MAILPIT_URL`, built from the port this installer publishes Mailpit on (`http://localhost:${FORWARD_MAILPIT_PORT:-8025}`): only the installer knows that port, so without it the wizard links to the current host on 8025 and is wrong wherever the port was changed. Real environment variables are used rather than lines in `html/.env`, because the wizard rewrites that file, and a core release that does not read them ignores them. The cron container carries them too: both containers run artisan against the same `html/`, `bootstrap/cache` included, so a config cache written by one must not be one the other disagrees with (#85).
+
+### Changed (CI)
+
+- The anonymous setup job asserts, through PHP in both containers, that the install method reads `docker` and that the Mailpit URL names the port `.env` publishes. Through PHP rather than the rendered compose file: the variables reach the fpm workers only because the image ships `clear_env=no` (#85).
+
+### Changed (docs)
+
+- README and README.ja describe both variables under Configuration: what they are set to, where they are set, and why (#85).
+
+### Upgrade notes
+
+**An existing install picks both variables up on its next `docker compose up -d`** — or `./setup.sh`, which is idempotent. Nothing else is needed, and this release does not ask for an image rebuild.
+
+They matter from core 0.2.6 on, which is the release that reads them. An older core ignores them.
+
 ## [0.1.12] — 2026-11-05
 
 ### Fixed
