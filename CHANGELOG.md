@@ -8,6 +8,16 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.14] — 2026-11-06
+
+### Changed (docs)
+
+- README says what comes with the stack, as the counterpart to the prerequisites the host has to provide: a MySQL-compatible database (MariaDB, pinned to an LTS line) that needs no server of your own and no connection details typed into the install wizard — it opens with MySQL already chosen, because the containers name the install method — somewhere for the mail the site sends, and Redis for cache and sessions. Mailpit was listed among the services and given a row in the Default URLs table reading "mail catcher", which reads like an inbox that works out of the box: it accepts every mail the site sends and **delivers none of it**, and the only hint of that was in SECURITY, in the context of exposure rather than delivery. A paragraph under that table says so, the server checklist gained an item next to the `TOOLS=false` recommendation it depends on (point `MAIL_*` in `html/.env`, or the admin panel's mail settings, at an SMTP server or a mail service), and the SECURITY files now say what Mailpit is as well as what it exposes (#88).
+
+### Upgrade notes
+
+Nothing to do. This release changes documentation only: no script, no image and no compose service is different from 0.1.13, so an install needs neither an image rebuild nor a restart. `git pull` in the installer directory brings the new README.
+
 ## [0.1.13] — 2026-11-05
 
 ### Added
