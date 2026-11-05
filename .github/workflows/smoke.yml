@@ -304,6 +304,31 @@ jobs:
             echo "OK: the theme ships sources only and setup.sh built them."
           fi
 
+      # #85: the core reads these to choose the wizard's defaults and to link
+      # to Mailpit. Asserted through PHP, not `docker compose config`: the
+      # variables only reach the fpm workers because the image ships
+      # clear_env=no, and a value that stopped at the container would look
+      # identical in the rendered compose file. The cron container runs the
+      # same artisan against the same html/, so it is checked too.
+      - name: Assert PHP sees the install method and the Mailpit URL
+        run: |
+          set -e
+          port=$(sed -n 's/^FORWARD_MAILPIT_PORT=//p' .env | head -1)
+          port="${port:-8025}"
+          for svc in dixlase.test cron; do
+            method=$(docker compose exec -T "$svc" php -r 'echo getenv("DIXLASE_INSTALL_METHOD") ?: "(unset)";' | tr -d '\r')
+            url=$(docker compose exec -T "$svc" php -r 'echo getenv("DIXLASE_MAILPIT_URL") ?: "(unset)";' | tr -d '\r')
+            if [ "$method" != "docker" ]; then
+              echo "$svc reports DIXLASE_INSTALL_METHOD='$method', not 'docker'." >&2
+              exit 1
+            fi
+            if [ "$url" != "http://localhost:$port" ]; then
+              echo "$svc reports DIXLASE_MAILPIT_URL='$url', not the published port $port." >&2
+              exit 1
+            fi
+            echo "OK: $svc reports $method and $url."
+          done
+
       # The app and cron containers run the same entrypoint on the same html/
       # with nothing ordering them, so both can create public/storage. The one
       # that lost the race used to write its link inside the winner's, leaving

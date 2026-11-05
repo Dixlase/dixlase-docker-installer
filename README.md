@@ -134,6 +134,17 @@ DB_ROOT_PASSWORD=root
 After flipping `HTTPS`, `VITE`, or `REDIS`, re-run `./setup.sh` so the derived `NGINX_VARIANT` / `COMPOSE_PROFILES` take effect.  
 `.env` stays user-owned — those derived values are exported by `setup.sh` and never written back. The same applies after `docker compose down`: prefer `./setup.sh` (idempotent) over raw `docker compose up -d` so profiled services (Vite / Redis) come back up.
 
+### What the containers tell the core
+
+The app and cron containers carry two variables that describe this install to Dixlase itself. They are set in `docker-compose.yml`, not in `.env`, so the install wizard rewriting `html/.env` cannot drop them, and an existing install picks them up on its next `docker compose up -d`:
+
+| Variable | Value | Why |
+| --- | --- | --- |
+| `DIXLASE_INSTALL_METHOD` | `docker` | The wizard chooses its defaults (a database in another container, Mailpit for mail) and its guidance by install method, rather than working it out by resolving the `mysql` host name. |
+| `DIXLASE_MAILPIT_URL` | `http://localhost:${FORWARD_MAILPIT_PORT}` | Only this installer knows the host port Mailpit is published on, so the wizard links to the right one instead of assuming 8025. |
+
+A core release that does not read them ignores them. Neither is needed with `TOOLS=false`, where Mailpit does not run and the link is not offered.
+
 When you enable `REDIS`, also point Laravel's `CACHE_STORE` and `SESSION_DRIVER` at `redis`. The `4xxxx` port namespace ("4" = D = Dixlase, alphabetically the 4th letter) avoids common host-port conflicts; if you prefer `80` / `443`, set `APP_PORT=80` / `APP_SSL_PORT=443` in `.env` before running `setup.sh`.
 
 ## Using this on a server

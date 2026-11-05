@@ -10,6 +10,9 @@
 # security setting — actually fires. Operators who run	# 設定 — が実際に発火します。ホストの cron で `php artisan schedule:run`
 # `php artisan schedule:run` from a host cron can set CRON=false to	# を実行している運用者は CRON=false にしてこのコンテナをオプトアウト
 # opt out of the container.	# できます。
+# The same two values the app container is given. Both containers run	# app のコンテナに渡すのと同じ 2 つの値。両方のコンテナが同じ html/
+# artisan against the same html/, bootstrap/cache included, so a config	# に対して artisan を実行し、bootstrap/cache も共有するので、ここで
+# cache written here must not be one the app container disagrees with.	# 書かれた設定キャッシュが app のコンテナと食い違ってはならない。
 # Laravel's scheduler is designed to be invoked every minute; the	# Laravel のスケジューラは毎分呼び出される前提で設計されており、
 # actual cadence of individual jobs (dls:source:check, integrity	# 個々のジョブ (dls:source:check、整合性スキャン等) の実際の実行
 # scan, etc.) is decided inside routes/console.php on each tick. We	# 間隔は毎 tick ごとに routes/console.php 内で決まる。ここで動かす
@@ -26,6 +29,19 @@
 # worker). The image ships clear_env=no, so these reach the fpm	# シグナルを送れないため)。イメージは clear_env=no を同梱するので
 # workers; Laravel's immutable dotenv keeps them over any html/.env	# これらは fpm ワーカーに届き、Laravel の immutable dotenv が
 # value. The token is generated into the root .env by setup.sh.	# html/.env の値より優先する。トークンは setup.sh が root の .env に生成する。
+# The setup wizard chooses its defaults and its guidance by install	# セットアップウィザードは、既定値と案内をインストール方法で切り替える。
+# method: a database in another container and Mailpit for mail here,	# ここではデータベースは別のコンテナ、メールは Mailpit であり、
+# rather than the SQLite file and the empty mail host a plain checkout	# 素のチェックアウトが得る SQLite のファイルと空のメールホストではない。
+# gets. It used to work that out by resolving the service host name	# 以前はサービスのホスト名 mysql を名前解決して判断していたが、
+# mysql, which misfires on a host that resolves that name for	# その名前が別のもので引けるホストでは誤判定する。
+# something else. A real environment variable also survives the wizard	# 本物の環境変数なら、ウィザードが html/.env を書き換えても残り、
+# rewriting html/.env, and an existing install picks it up on its next	# 既存のインストールも次の up -d で反映される。
+# up -d. A core that does not read the variable ignores it (#85).	# この変数を読まないコアは、単に無視する (#85)。
+# Only this file knows the host port Mailpit is published on, so the	# Mailpit をホストのどのポートで公開しているかは、このファイルにしか
+# wizard is told where to link instead of guessing 8025. The core	# 分からない。8025 と決めつけず、リンク先をウィザードに伝える。
+# ignores anything that is not an http(s) URL, and it offers the link	# コアは http(s) の URL 以外を無視し、mailpit のサービスが応答して
+# only while the mailpit service answers, so the value does no harm	# いるあいだだけリンクを出すので、この値は TOOLS=false でも
+# with TOOLS=false (#85).	# 害にならない (#85)。
 # Drop to www-data (the uid php-fpm workers run as) before invoking	# スケジューラを起動する前に www-data (php-fpm ワーカーと同じ uid) に降格する。
 # the scheduler. The container starts as root so the ENTRYPOINT can	# コンテナは ENTRYPOINT が storage を chown できるよう root で起動するが、
 # chown storage, but schedule:run must not run as root: Laravel would	# schedule:run は root で実行してはならない: root だと Laravel が共有の日次ログ
