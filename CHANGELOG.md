@@ -8,6 +8,24 @@ A release is cut when behaviour on your machine changes (`setup.sh`, `update.sh`
 
 To update the installer itself, run `git pull` in its directory, then follow the upgrade notes of every release you skipped. `./update.sh` updates Dixlase core in `html/`, not the installer.
 
+## [0.1.12] — 2026-11-05
+
+### Fixed
+
+- `setup.sh` and `update.sh` publish the bundled theme's own build instead of building it again. Both always ran `dls:theme:build` on the theme in production mode. From theme v0.5.3 on, the release carries its built `resources/assets/` and the theme's signature covers those files, so building them again rewrites signed files and the site can report the theme as `signature_invalid`; core's `dls:theme:build` has no "skip when already built" mode and always runs npm and Vite. Both scripts now decide per theme: a theme whose signature covers those files is only published — `dls:theme:symlink create` points `public/assets/themes/<name>` at the theme's `resources/assets/`, which is what every `/assets/themes/<name>/…` request is served from, and it exists in every core release this installer can set up — while a theme that ships sources only is built exactly as before. What tells the two apart is the signed file list in `theme.json`, not the presence of the built manifest: a theme that was built on the site has `resources/assets/manifest.json` too, so keying off that file alone would stop building a source-only theme after its first build. The Tailwind plugin-sources stub exists for the build, so a theme that ships its own build gets none (#84).
+
+### Changed (CI)
+
+- The anonymous setup job and the update job assert the path that matches the theme on disk: published and not rebuilt when the theme's assets are signed, built when they are not (#84).
+
+### Upgrade notes
+
+**A new install needs nothing, and this release does not ask for an image rebuild.** `git pull` in the installer directory is enough.
+
+**Update the installer before the core release that moves the bundled theme to v0.5.3.** Until then the installer still builds the theme, because the theme it installs ships sources only and has to be built.
+
+**An install that already rebuilt the theme's signed files keeps them rebuilt.** This release stops the rebuild from happening again; it does not restore what an earlier run overwrote. Updating or reinstalling the bundled theme puts the signed files back, and the theme then verifies as valid again.
+
 ## [0.1.11] — 2026-10-24
 
 ### Fixed
