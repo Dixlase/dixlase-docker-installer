@@ -10,6 +10,9 @@
 # security setting — actually fires. Operators who run	# security setting — actually fires. Operators who run
 # `php artisan schedule:run` from a host cron can set CRON=false to	# `php artisan schedule:run` from a host cron can set CRON=false to
 # opt out of the container.	# opt out of the container.
+# The same two values the app container is given. Both containers run	# The same two values the app container is given. Both containers run
+# artisan against the same html/, bootstrap/cache included, so a config	# artisan against the same html/, bootstrap/cache included, so a config
+# cache written here must not be one the app container disagrees with.	# cache written here must not be one the app container disagrees with.
 # Laravel's scheduler is designed to be invoked every minute; the	# Laravel's scheduler is designed to be invoked every minute; the
 # actual cadence of individual jobs (dls:source:check, integrity	# actual cadence of individual jobs (dls:source:check, integrity
 # scan, etc.) is decided inside routes/console.php on each tick. We	# scan, etc.) is decided inside routes/console.php on each tick. We
@@ -26,6 +29,19 @@
 # worker). The image ships clear_env=no, so these reach the fpm	# worker). The image ships clear_env=no, so these reach the fpm
 # workers; Laravel's immutable dotenv keeps them over any html/.env	# workers; Laravel's immutable dotenv keeps them over any html/.env
 # value. The token is generated into the root .env by setup.sh.	# value. The token is generated into the root .env by setup.sh.
+# The setup wizard chooses its defaults and its guidance by install	# The setup wizard chooses its defaults and its guidance by install
+# method: a database in another container and Mailpit for mail here,	# method: a database in another container and Mailpit for mail here,
+# rather than the SQLite file and the empty mail host a plain checkout	# rather than the SQLite file and the empty mail host a plain checkout
+# gets. It used to work that out by resolving the service host name	# gets. It used to work that out by resolving the service host name
+# mysql, which misfires on a host that resolves that name for	# mysql, which misfires on a host that resolves that name for
+# something else. A real environment variable also survives the wizard	# something else. A real environment variable also survives the wizard
+# rewriting html/.env, and an existing install picks it up on its next	# rewriting html/.env, and an existing install picks it up on its next
+# up -d. A core that does not read the variable ignores it (#85).	# up -d. A core that does not read the variable ignores it (#85).
+# Only this file knows the host port Mailpit is published on, so the	# Only this file knows the host port Mailpit is published on, so the
+# wizard is told where to link instead of guessing 8025. The core	# wizard is told where to link instead of guessing 8025. The core
+# ignores anything that is not an http(s) URL, and it offers the link	# ignores anything that is not an http(s) URL, and it offers the link
+# only while the mailpit service answers, so the value does no harm	# only while the mailpit service answers, so the value does no harm
+# with TOOLS=false (#85).	# with TOOLS=false (#85).
 # Drop to www-data (the uid php-fpm workers run as) before invoking	# Drop to www-data (the uid php-fpm workers run as) before invoking
 # the scheduler. The container starts as root so the ENTRYPOINT can	# the scheduler. The container starts as root so the ENTRYPOINT can
 # chown storage, but schedule:run must not run as root: Laravel would	# chown storage, but schedule:run must not run as root: Laravel would

@@ -139,6 +139,17 @@ DB_ROOT_PASSWORD=root
 `HTTPS` / `VITE` / `REDIS` を切り替えたあとは `./setup.sh` を再実行してください。派生する `NGINX_VARIANT` / `COMPOSE_PROFILES` を反映させるためです。  
 `.env` はユーザー所有領域なので、派生値は `setup.sh` が export するだけで書き戻しません。`docker compose down` のあとも同じで、profile 配下のサービス (Vite / Redis) を確実に戻すには `./setup.sh` (idempotent) を使ってください。
 
+### コンテナがコアに伝えること
+
+app と cron のコンテナは、このインストールの性質を Dixlase 自身に伝える 2 つの変数を持ちます。`.env` ではなく `docker-compose.yml` で設定しているので、インストールウィザードが `html/.env` を書き換えても消えず、既存のインストールも次の `docker compose up -d` で反映されます。
+
+| 変数 | 値 | 理由 |
+| --- | --- | --- |
+| `DIXLASE_INSTALL_METHOD` | `docker` | ウィザードは、既定値(データベースは別のコンテナ、メールは Mailpit)と案内をインストール方法で切り替えます。`mysql` の名前解決から推測するのではなく、これで判断します。 |
+| `DIXLASE_MAILPIT_URL` | `http://localhost:${FORWARD_MAILPIT_PORT}` | Mailpit をホストのどのポートで公開しているかは、このインストーラにしか分かりません。8025 と決めつけるのではなく、正しいポートへリンクできます。 |
+
+これらを読まないコアのリリースは、単に無視します。`TOOLS=false` のときはどちらも不要で、Mailpit は動かずリンクも出ません。
+
 `REDIS` を有効化する場合は Laravel 側の `CACHE_STORE` / `SESSION_DRIVER` も `redis` に向けてください。`4xxxx` 名前空間 ("4" = D = Dixlase の頭文字、アルファベット 4 番目) は標準ポートと衝突しないためのデフォルトです。衝突がなく標準ポートで動かしたい場合は、`setup.sh` 実行前に `.env` で `APP_PORT=80` / `APP_SSL_PORT=443` に書き換えてください。
 
 ## サーバーで使う場合
