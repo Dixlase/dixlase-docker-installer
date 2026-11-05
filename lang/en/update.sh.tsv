@@ -203,8 +203,21 @@ Rebuilding frontend assets...	Rebuilding frontend assets...
 # sources but left the previous build in place. Rebuild it the same way	# sources but left the previous build in place. Rebuild it the same way
 # setup.sh does, or the pages keep asking for asset URLs that the new	# setup.sh does, or the pages keep asking for asset URLs that the new
 # manifest no longer lists.	# manifest no longer lists.
-# The bundled theme has its own build. On a cold npm cache this step	# The bundled theme has its own build. On a cold npm cache this step
-# can take several minutes.	# can take several minutes.
+# The bundled theme is published two ways, and which one is on disk	# The bundled theme is published two ways, and which one is on disk
+# decides what happens here. From theme v0.5.3 on, the release carries its	# decides what happens here. From theme v0.5.3 on, the release carries its
+# built resources/assets/ and the theme's signature covers those files, so	# built resources/assets/ and the theme's signature covers those files, so
+# building them again would rewrite signed files and the site would report	# building them again would rewrite signed files and the site would report
+# the theme as signature_invalid. Core's dls:theme:build has no "skip when	# the theme as signature_invalid. Core's dls:theme:build has no "skip when
+# already built" mode: it always runs npm and Vite (#84).	# already built" mode: it always runs npm and Vite (#84).
+# The signature's own file list is what tells the two apart. A theme that	# The signature's own file list is what tells the two apart. A theme that
+# was built on the site has resources/assets/manifest.json as well, but	# was built on the site has resources/assets/manifest.json as well, but
+# its theme.json does not name it, because naming it would need a new	# its theme.json does not name it, because naming it would need a new
+# signature. Publishing is then all that is left to do: the symlink	# signature. Publishing is then all that is left to do: the symlink
+# command points public/assets/themes/<name> at the theme's	# command points public/assets/themes/<name> at the theme's
+# resources/assets/, and it is idempotent.	# resources/assets/, and it is idempotent.
+# A theme that ships sources only is built as before. On a cold npm cache	# A theme that ships sources only is built as before. On a cold npm cache
+# that step can take several minutes.	# that step can take several minutes.
+  Publishing the theme's own build (themes/DixlaseOnePage)...	  Publishing the theme's own build (themes/DixlaseOnePage)...
   Building theme assets (themes/DixlaseOnePage)...	  Building theme assets (themes/DixlaseOnePage)...
 # Restart web so nginx sees freshly built assets. Docker Desktop bind	# Restart web so nginx sees freshly built assets. Docker Desktop bind
 # mounts on macOS sometimes hide files that appeared after the container	# mounts on macOS sometimes hide files that appeared after the container

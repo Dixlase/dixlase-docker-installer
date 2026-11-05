@@ -72,12 +72,6 @@
 # Read the actual ports from .env and build the CMS URL. Omit the port	# .env から実際のポートを読み取り CMS の URL を組み立てる。選択した
 # when it is the standard 80 / 443 for the chosen scheme.	# スキームの標準ポート (80 / 443) のときは URL からポート番号を省略する。
 # Remove the hot file so the built assets are used	# hot ファイルを削除してビルド済みアセットを使用させる
-# Build theme assets via core's dls:theme:build artisan: it runs	# コアの dls:theme:build artisan でテーマアセットをビルド: themes/<name>/
-# npm install + npm run build inside themes/<name>/ and creates the	# 内で npm install + npm run build を実行し、public/assets/themes/<name>
-# public/assets/themes/<name> symlink. The theme's tailwind.css	# のシンボリックリンクを作成する。テーマの tailwind.css は
-# @imports resources/src/common/css/dixlase-tailwind-plugin-sources.css,	# resources/src/common/css/dixlase-tailwind-plugin-sources.css を @import
-# which core's dls:tailwind:regenerate-plugin-sources rewrites every	# しており、このファイルはコアの dls:tailwind:regenerate-plugin-sources が
-# time plugins change (and the install wizard calls it after migrate).	# プラグイン更新のたびに書き直す (ウィザードも migrate 直後に呼ぶ)。
 # On a fresh clone neither has happened yet, so seed an empty stub	# 新規 clone 時はどちらもまだ走っていないため、プラグインソースが
 # in the exact format core emits when no plugin contributes sources	# 何もない状態でコアが出力するのと同じ形式の空 stub をここで配置し、
 # — the wizard / lifecycle commands overwrite it later with the	# 後でウィザード / ライフサイクルコマンドが本物のアグリゲータ出力で
@@ -141,6 +135,7 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
       Build skipped (hot-reload enabled).	      ビルドはスキップされます (hot-reload 有効)。
 [6/6] Building frontend assets...	[6/6] フロントエンドアセットをビルド中...
   Seeded $PLUGIN_SOURCES placeholder for theme build.	  テーマビルド用に $PLUGIN_SOURCES のプレースホルダーを配置しました。
+  Publishing the theme's own build (themes/DixlaseOnePage)...	  テーマ自身のビルドを公開中 (themes/DixlaseOnePage)...
   Building theme assets (themes/DixlaseOnePage)...	  テーマアセットをビルド中 (themes/DixlaseOnePage)...
   Restarting web to refresh asset mount...	  アセットマウントを再読込するため web を再起動中...
   Setup complete!	  セットアップ完了!
@@ -154,6 +149,15 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # Open a shell in the container	# コンテナに入る
 # Full reset of the environment	# 環境を完全リセット
 # Pull latest from GitHub	# GitHub から最新を取得
+# The bundled theme is published two ways, and which one is on disk decides	# 同梱テーマの配布の形は 2 通りあり、ディスクにどちらがあるかで、このスクリプト
+# what this script does with it. From theme v0.5.3 on, the release carries its	# での扱いが決まる。テーマ v0.5.3 以降は、ビルド済みの resources/assets/ がリリース
+# built resources/assets/ and the theme's signature covers those files, so	# に含まれ、テーマの署名がそのファイルを対象にしている。そのためここでビルドすると
+# building them here would rewrite signed files and the site would report the	# 署名されたファイルを書き換えてしまい、サイトはテーマを signature_invalid と
+# theme as signature_invalid. Core's dls:theme:build has no "skip when already	# 報告しうる。コアの dls:theme:build には「ビルド済みなら飛ばす」動きが無く、
+# built" mode: it always runs npm and Vite (#84).	# 必ず npm と Vite を実行する (#84)。
+# The signature's own file list is what tells the two apart. A theme that was	# 両者を見分けるのは、署名そのもののファイル一覧である。サイトでビルドしたテーマも
+# built on the site has resources/assets/manifest.json as well, but its	# resources/assets/manifest.json を持つが、その theme.json はそれを名指ししない。
+# theme.json does not name it, because naming it would need a new signature.	# 名指しするには新しい署名が必要になるからである。
 # Seed the Tailwind plugin-sources stub the theme build @imports.	# テーマビルドが @import する Tailwind plugin-sources のスタブを配置する。
 # Core's dls:tailwind:regenerate-plugin-sources normally writes it.	# 通常は core の dls:tailwind:regenerate-plugin-sources が書き出す。
 # Once the containers have run, app-entrypoint.sh owns several paths	# コンテナが一度でも起動すると app-entrypoint.sh は html/ 配下のいくつかの
@@ -200,7 +204,19 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # resources/src/common/css as www-data, so a host-side write there fails	# www-data 所有にしているため、bind mount の所有権を仮想化しないホスト
 # with "Permission denied" on hosts that do not virtualize bind-mount	# (Linux) ではホスト側からの書き込みが "Permission denied" で
 # ownership (Linux).	# 失敗するからである。
-# The stub it needs on a fresh clone was seeded in step [5/6].	# 新規クローン時に必要なスタブは [5/6] で配置済み。
+# Only the build needs it, so a theme that ships its own build gets no stub.	# これが必要なのはビルドのときだけなので、自前のビルドを同梱するテーマには置かない。
+# A theme that ships its own build only has to be published: the symlink	# 自前のビルドを同梱するテーマは、公開するだけでよい。symlink のコマンドが
+# command points public/assets/themes/<name> at the theme's	# public/assets/themes/<name> をテーマの resources/assets/ に向ける。
+# resources/assets/, which is what every /assets/themes/<name>/... request	# /assets/themes/<name>/... への要求はすべてそこから配信される。
+# is served from. It is idempotent, and it exists in every core release	# このコマンドは冪等で、このインストーラがセットアップできるどのコアの
+# this installer can set up.	# リリースにも存在する。
+# A theme that ships sources only is built via core's dls:theme:build	# ソースだけを同梱するテーマは、コアの dls:theme:build artisan でビルドする。
+# artisan: it runs npm install + npm run build inside themes/<name>/ and	# themes/<name>/ の中で npm install と npm run build を実行し、同じ symlink を
+# creates the same symlink. The theme's tailwind.css @imports	# 作る。テーマの tailwind.css は
+# resources/src/common/css/dixlase-tailwind-plugin-sources.css, which	# resources/src/common/css/dixlase-tailwind-plugin-sources.css を @import し、
+# core's dls:tailwind:regenerate-plugin-sources rewrites every time	# コアの dls:tailwind:regenerate-plugin-sources がプラグインの変更ごとに
+# plugins change (and the install wizard calls it after migrate). The stub	# これを書き換える (インストールウィザードも migrate のあとに呼ぶ)。新規
+# it needs on a fresh clone was seeded in step [5/6].	# クローン時に必要なスタブは [5/6] で配置済み。
 # Not called "production mode": this stack is a local trial, and the name	# 「本番モード」と呼ばないのは、このスタックがローカルで試すためのもので、
 # invited people to treat it as hardened for a server. All it decides is	# その名前がサーバー向けに固めてあるという誤解を招いていたからである。この
 # whether Vite serves the assets or they are built ahead of time.	# 切り替えが決めるのは、アセットを Vite が配信するか事前にビルドするかだけ。

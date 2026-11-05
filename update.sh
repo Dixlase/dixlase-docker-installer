@@ -440,9 +440,27 @@ else
     docker compose exec -T dixlase.test rm -f public/hot
     docker compose exec -T dixlase.test npm run build
 
-    # The bundled theme has its own build. On a cold npm cache this step
-    # can take several minutes.
-    if [ -f html/themes/DixlaseOnePage/package.json ]; then
+    # The bundled theme is published two ways, and which one is on disk
+    # decides what happens here. From theme v0.5.3 on, the release carries its
+    # built resources/assets/ and the theme's signature covers those files, so
+    # building them again would rewrite signed files and the site would report
+    # the theme as signature_invalid. Core's dls:theme:build has no "skip when
+    # already built" mode: it always runs npm and Vite (#84).
+    #
+    # The signature's own file list is what tells the two apart. A theme that
+    # was built on the site has resources/assets/manifest.json as well, but
+    # its theme.json does not name it, because naming it would need a new
+    # signature. Publishing is then all that is left to do: the symlink
+    # command points public/assets/themes/<name> at the theme's
+    # resources/assets/, and it is idempotent.
+    #
+    # A theme that ships sources only is built as before. On a cold npm cache
+    # that step can take several minutes.
+    if [ -f html/themes/DixlaseOnePage/resources/assets/manifest.json ] &&
+        grep -q '"resources/assets/manifest.json"' html/themes/DixlaseOnePage/theme.json 2>/dev/null; then
+        echo "  Publishing the theme's own build (themes/DixlaseOnePage)..."
+        docker compose exec -T dixlase.test php artisan dls:theme:symlink create DixlaseOnePage
+    elif [ -f html/themes/DixlaseOnePage/package.json ]; then
         echo "  Building theme assets (themes/DixlaseOnePage)..."
         docker compose exec -T dixlase.test php artisan dls:theme:build DixlaseOnePage
     fi
