@@ -176,12 +176,6 @@ site, so it is reachable by anything that can reach the site; the shared token i
 what protects it. Treat the token as a secret, and consider restricting the
 location to your Docker network if you expose the site publicly.
 
-### Build-time Composer credentials
-
-`Dockerfile` reads `~/.composer/auth.json` through a BuildKit secret mount so the
-private theme dependency can be fetched. The token is available only during
-`docker compose build` and is never written into the resulting image.
-
 ### File ownership inside the container
 
 `app-entrypoint.sh` chowns `storage/`, `bootstrap/cache/`,
