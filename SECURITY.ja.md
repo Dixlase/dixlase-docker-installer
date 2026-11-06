@@ -170,12 +170,6 @@ POST して php-fpm の opcache を更新します。このルートはサイト
 トークンのみです。トークンは秘密として扱い、サイトを公開する場合は当該 location を
 Docker ネットワークに限定することを検討してください。
 
-### ビルド時の Composer 認証情報
-
-`Dockerfile` は private なテーマ依存を取得するため、BuildKit の secret mount 経由で
-`~/.composer/auth.json` を読みます。トークンは `docker compose build` の間だけ利用可能で、
-生成されるイメージには一切書き込まれません。
-
 ### コンテナ内のファイル所有権
 
 `app-entrypoint.sh` はコンテナ起動毎に `storage/`、`bootstrap/cache/`、
