@@ -1,0 +1,47 @@
+# Dockerfile.frankenphp - Dixlase	# Dockerfile.frankenphp - Dixlase
+# The application image for DIXLASE_RUNTIME=octane: FrankenPHP in place of	# DIXLASE_RUNTIME=octane 用のアプリケーションイメージ。php-fpm の代わりに
+# php-fpm, so the same html/ can be served by Laravel Octane in worker mode	# FrankenPHP を使い、同じ html/ を Laravel Octane の worker mode で配信して、
+# and compared against the php-fpm stack it runs beside. Nothing in the	# 隣で動いている php-fpm のスタックと比較できるようにする。既定のスタックは
+# default stack refers to this file; it is built only when the octane	# このファイルを参照しない。octane の compose プロファイルが有効なときにのみ
+# compose profile is active.	# ビルドされる。
+# Worker mode is a measurement tool here, not a way to serve a site. It keeps	# ここでの worker mode は計測の道具で、サイトを配信する方法ではない。
+# the application in memory across requests, which is where php-fpm's	# リクエストをまたいでアプリをメモリに保持するので、php-fpm の保証、つまり
+# guarantee goes - that every request starts in a fresh process and every bit	# リクエストごとにプロセスが新品から始まり、状態がプロセスとともに消えるという
+# of state dies with it. Until the core is known not to carry user state	# 保証を失う。コアがリクエスト間でユーザの状態を持ち越さないと分かるまでは、
+# between requests, this is for a machine you develop on.	# これは開発に使っているマシンのためのもの。
+# Pinned to a FrankenPHP release and a PHP line, for the same reason the	# FrankenPHP のリリースと PHP のラインに固定する。データベースのイメージを
+# database image is pinned: a floating tag turns an ordinary rebuild into an	# 固定しているのと同じ理由で、動くタグは通常の再ビルドを、誰も頼んでいない
+# upgrade nobody asked for. The PHP line matches the php-fpm image, because	# アップグレードに変えてしまう。PHP のラインを php-fpm のイメージと揃えるのは、
+# vendor/ is shared through the html/ bind mount and was installed against	# vendor/ を html/ のバインドマウント経由で共有しており、それがそのラインに対して
+# that line.	# インストールされているから。
+# Install system packages. Only what the extensions below need to build --	# システムパッケージをインストール。下の拡張のビルドに必要なものだけにする。
+# this image serves requests and runs nothing else, so composer, Node and the	# このイメージはリクエストを配信するだけで他は何も動かさないので、composer・Node・
+# image tools stay in the php-fpm image, which is what setup.sh and update.sh	# 画像ツールは php-fpm のイメージに置いたままにする。setup.sh と update.sh が
+# drive.	# 動かすのはそちら。
+# The same PHP extensions the php-fpm image installs, in the same order.	# php-fpm のイメージが入れるのと同じ PHP 拡張を、同じ順番で入れる。
+# vendor/ arrives through the bind mount already installed, so an extension	# vendor/ はバインドマウント経由でインストール済みのものが来るので、あちらに
+# that image has and this one lacks fails at runtime, on a request, rather	# あってこちらに無い拡張は、ビルド時ではなく実行時、つまりリクエストの最中に
+# than at build time.	# 失敗する。
+# Configure GD library	# GDライブラリの設定
+# Install Redis PHP extension (PECL); the install wizard's Redis requirement	# Redis PHP 拡張 (PECL) をインストール。インストールウィザードの Redis 要件
+# check is extension_loaded('redis'), and Laravel's cache / session / queue	# チェックは extension_loaded('redis') で、Laravel のキャッシュ / セッション /
+# drivers that target Redis need it. Pinned, retried, and with a second source	# キューで Redis を使うドライバにも必要。php-fpm のイメージが詳しく述べている
+# to download from, for the reason the php-fpm image gives at length: on	# 理由により、バージョンを固定し、リトライし、ダウンロード元を 2 つ持つ。
+# 2026-10-22 pecl.php.net answered this download with 504 for about an hour.	# 2026-10-22 に pecl.php.net がこのダウンロードへ約 1 時間 504 を返した。
+# The two blocks are deliberately alike; a shared build stage for them is	# 2 つのブロックはあえて似せてある。共通のビルドステージにまとめるのは、
+# worth doing once a second runtime is more than an experiment.	# 2 つ目のランタイムが実験以上のものになってからでよい。
+# Copy PHP configuration file	# PHP設定ファイルをコピー
+# Set working directory	# 作業ディレクトリを設定
+# Trust /var/www/html no matter who owns it, as the php-fpm image does: the	# php-fpm のイメージと同様、所有者が誰であれ /var/www/html を信頼する。
+# bind-mounted core checkout is a git repository owned by the host user, and	# バインドマウントされたコアのチェックアウトはホストのユーザが所有する git の
+# git refuses it with "detected dubious ownership" otherwise.	# リポジトリで、そうしないと git が "detected dubious ownership" で拒否する。
+# Caddy wants somewhere to put its data and config, and the server runs as	# Caddy はデータと設定の置き場所を必要とする。またサーバは www-data として
+# www-data (see docker-compose.yml) so that nothing it writes under storage/	# 動く (docker-compose.yml を参照)。storage/ 配下に書くものが root 所有に
+# is root-owned - a root-owned log file is one php-fpm's www-data worker	# ならないようにするためで、root 所有のログファイルは、php-fpm の www-data の
+# cannot append to afterwards, and both runtimes share this html/. The	# worker があとから追記できないものになる。両ランタイムはこの html/ を共有する。
+# image's own /data and /config are root-owned, so point the XDG paths at a	# イメージ自身の /data と /config は root 所有なので、XDG のパスは www-data が
+# directory www-data owns instead.	# 所有するディレクトリに向ける。
+pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3).	pecl install redis-$REDIS_VERSION が失敗しました (3 回中 $attempt 回目)。
+pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.	pecl.php.net から redis-$REDIS_VERSION を取得できません。同じ版を GitHub のタグからビルドします。
+Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.	pecl.php.net も github.com も phpredis $REDIS_VERSION を返しませんでした。
+An ordinary build reaches both, so run the build again once they answer.	通常のビルドはどちらにも到達します。応答が戻ったらビルドをやり直してください。

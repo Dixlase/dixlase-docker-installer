@@ -105,3 +105,25 @@
 # share one image. The scheduler is deliberately not given PROFILER	# share one image. The scheduler is deliberately not given PROFILER
 # in its environment: it serves no requests, and the profiler is	# in its environment: it serves no requests, and the profiler is
 # reached over HTTP.	# reached over HTTP.
+# Activated by the "octane" profile, which setup.sh exports when	# Activated by the "octane" profile, which setup.sh exports when
+# DIXLASE_RUNTIME=octane. It runs beside php-fpm on a port of its own	# DIXLASE_RUNTIME=octane. It runs beside php-fpm on a port of its own
+# rather than replacing it, for two reasons: comparing the two runtimes	# rather than replacing it, for two reasons: comparing the two runtimes
+# means serving the same html/ through both, and the php-fpm container is	# means serving the same html/ through both, and the php-fpm container is
+# where setup.sh and update.sh run composer, the migrations and the asset	# where setup.sh and update.sh run composer, the migrations and the asset
+# build. Nothing in the default stack refers to this service, so an .env	# build. Nothing in the default stack refers to this service, so an .env
+# that does not mention DIXLASE_RUNTIME behaves exactly as it did before.	# that does not mention DIXLASE_RUNTIME behaves exactly as it did before.
+# The two values the app container is given, for the same reason: the	# The two values the app container is given, for the same reason: the
+# wizard and the core read them to describe this install.	# wizard and the core read them to describe this install.
+# Loopback by default, like the development tools and unlike the site: a	# Loopback by default, like the development tools and unlike the site: a
+# worker-mode server is a measurement here, not a way to serve anything.	# worker-mode server is a measurement here, not a way to serve anything.
+# Not restarted: the usual reason this container stops is that html/	# Not restarted: the usual reason this container stops is that html/
+# carries no laravel/octane, and a restart loop would bury that message	# carries no laravel/octane, and a restart loop would bury that message
+# under its own repetitions.	# under its own repetitions.
+# Starts as root so the paths below can be given to www-data, then drops	# Starts as root so the paths below can be given to www-data, then drops
+# to www-data to serve - the shape the cron service uses, and for the same	# to www-data to serve - the shape the cron service uses, and for the same
+# reason. php-fpm's workers are www-data and both runtimes write into this	# reason. php-fpm's workers are www-data and both runtimes write into this
+# html/, so a file this server leaves behind as root is one the other	# html/, so a file this server leaves behind as root is one the other
+# runtime cannot append to. public/ is included because Octane copies its	# runtime cannot append to. public/ is included because Octane copies its
+# FrankenPHP worker stub in there on the first start.	# FrankenPHP worker stub in there on the first start.
+html/ has no laravel/octane, so there is no worker to start.	html/ has no laravel/octane, so there is no worker to start.
+This needs a core that carries it; see README.md.	This needs a core that carries it; see README.md.

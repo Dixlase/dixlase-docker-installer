@@ -87,13 +87,13 @@ jobs:
           set -e
           mkdir /tmp/before
           cp setup.sh reset.sh update.sh \
-             Dockerfile Dockerfile.vite docker-compose.yml \
+             Dockerfile Dockerfile.frankenphp Dockerfile.vite docker-compose.yml \
              .env.example /tmp/before/
           cp -r nginx /tmp/before/
           ./convert-comments.sh ja
           ./convert-comments.sh ja --reverse
           for f in setup.sh reset.sh update.sh \
-                   Dockerfile Dockerfile.vite docker-compose.yml \
+                   Dockerfile Dockerfile.frankenphp Dockerfile.vite docker-compose.yml \
                    nginx/nginx.http.conf nginx/nginx.https.conf \
                    .env.example; do
             diff -q "/tmp/before/$f" "$f"

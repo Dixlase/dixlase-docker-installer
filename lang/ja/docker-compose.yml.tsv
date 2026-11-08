@@ -105,3 +105,25 @@
 # share one image. The scheduler is deliberately not given PROFILER	# 共有するため。スケジューラにはあえて PROFILER を環境変数として
 # in its environment: it serves no requests, and the profiler is	# 渡していない。リクエストを配信しないし、プロファイラへは HTTP で
 # reached over HTTP.	# 到達するものだから。
+# Activated by the "octane" profile, which setup.sh exports when	# "octane" プロファイルで有効になる。setup.sh が DIXLASE_RUNTIME=octane の
+# DIXLASE_RUNTIME=octane. It runs beside php-fpm on a port of its own	# ときに export する。php-fpm を置き換えるのではなく、自分のポートで隣に
+# rather than replacing it, for two reasons: comparing the two runtimes	# 並べて動かす。理由は 2 つ。2 つのランタイムを比較するには同じ html/ を
+# means serving the same html/ through both, and the php-fpm container is	# 両方から配信する必要があり、そして composer・マイグレーション・アセットの
+# where setup.sh and update.sh run composer, the migrations and the asset	# ビルドを setup.sh と update.sh が動かすのは php-fpm のコンテナだから。
+# build. Nothing in the default stack refers to this service, so an .env	# 既定のスタックはこのサービスを参照しないので、DIXLASE_RUNTIME に触れていない
+# that does not mention DIXLASE_RUNTIME behaves exactly as it did before.	# .env はこれまでとまったく同じ挙動になる。
+# The two values the app container is given, for the same reason: the	# app コンテナに渡しているのと同じ 2 つの値。理由も同じで、ウィザードと
+# wizard and the core read them to describe this install.	# コアがこのインストールの性質を知るために読む。
+# Loopback by default, like the development tools and unlike the site: a	# 既定は loopback。サイトではなく開発用ツールと同じ扱いで、worker mode の
+# worker-mode server is a measurement here, not a way to serve anything.	# サーバはここでは計測で、何かを配信する方法ではない。
+# Not restarted: the usual reason this container stops is that html/	# 再起動しない。このコンテナが止まる理由はたいてい html/ に laravel/octane が
+# carries no laravel/octane, and a restart loop would bury that message	# 無いことで、再起動ループはそのメッセージを、繰り返しそれ自身の下に
+# under its own repetitions.	# 埋めてしまう。
+# Starts as root so the paths below can be given to www-data, then drops	# 下のパスを www-data に渡せるよう root で起動し、そのあと配信のために
+# to www-data to serve - the shape the cron service uses, and for the same	# www-data に降りる。cron サービスと同じ形で、理由も同じ。php-fpm の worker は
+# reason. php-fpm's workers are www-data and both runtimes write into this	# www-data で、両ランタイムがこの html/ に書くので、このサーバが root として
+# html/, so a file this server leaves behind as root is one the other	# 残したファイルは、もう一方のランタイムが追記できないものになる。public/ を
+# runtime cannot append to. public/ is included because Octane copies its	# 含めているのは、Octane が初回起動時に FrankenPHP の worker スタブを
+# FrankenPHP worker stub in there on the first start.	# そこへコピーするから。
+html/ has no laravel/octane, so there is no worker to start.	html/ に laravel/octane がないため、起動する worker がありません。
+This needs a core that carries it; see README.md.	これを同梱するコアが必要です。README.md を参照してください。

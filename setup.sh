@@ -277,6 +277,7 @@ VITE_VAL=$(grep '^VITE=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper
 REDIS_VAL=$(grep '^REDIS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 CRON_VAL=$(grep '^CRON=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 TOOLS_VAL=$(grep '^TOOLS=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
+RUNTIME_VAL=$(grep '^DIXLASE_RUNTIME=' .env | cut -d'=' -f2 | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
 if [ "$DEV_MODE" = true ]; then
     VITE_VAL=true
 fi
@@ -301,11 +302,21 @@ fi
 if [ -z "$TOOLS_VAL" ] || [ "$TOOLS_VAL" = "true" ] || [ "$TOOLS_VAL" = "1" ]; then
     [ -n "$COMPOSE_PROFILES" ] && COMPOSE_PROFILES="${COMPOSE_PROFILES},tools" || COMPOSE_PROFILES="tools"
 fi
+# DIXLASE_RUNTIME defaults to fpm, which is also what an .env written before
+# this flag existed means. octane adds a FrankenPHP container beside php-fpm
+# rather than in place of it, so one install can be served and measured on
+# both runtimes.
+if [ "$RUNTIME_VAL" = "octane" ]; then
+    [ -n "$COMPOSE_PROFILES" ] && COMPOSE_PROFILES="${COMPOSE_PROFILES},octane" || COMPOSE_PROFILES="octane"
+fi
 
 export NGINX_VARIANT COMPOSE_PROFILES
 
 echo "  Selected nginx variant: nginx.$NGINX_VARIANT.conf (HTTPS=$HTTPS_VAL)"
 echo "  Active compose profiles: ${COMPOSE_PROFILES:-none} (VITE=$VITE_VAL REDIS=${REDIS_VAL:-false} CRON=${CRON_VAL:-true} TOOLS=${TOOLS_VAL:-true})"
+if [ "$RUNTIME_VAL" = "octane" ]; then
+    echo "  DIXLASE_RUNTIME=octane: FrankenPHP worker mode runs beside php-fpm. Development only."
+fi
 
 # Warn when the default database credentials are still in place AND something
 # is published past this machine. Either alone is a normal state: the defaults

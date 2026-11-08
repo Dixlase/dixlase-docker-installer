@@ -157,6 +157,45 @@ A core release that does not read them ignores them. Neither is needed with `TOO
 
 When you enable `REDIS`, also point Laravel's `CACHE_STORE` and `SESSION_DRIVER` at `redis`. The `4xxxx` port namespace ("4" = D = Dixlase, alphabetically the 4th letter) avoids common host-port conflicts; if you prefer `80` / `443`, set `APP_PORT=80` / `APP_SSL_PORT=443` in `.env` before running `setup.sh`.
 
+### Serving the site with FrankenPHP (Laravel Octane)
+
+`DIXLASE_RUNTIME` is `fpm` by default — nginx and php-fpm, exactly as before.
+Setting it to `octane` starts a **second** container, running the same `html/`
+under Laravel Octane in FrankenPHP worker mode, on `FORWARD_OCTANE_PORT`
+(`40090`, loopback only). php-fpm keeps serving `APP_PORT`, so the same site
+answers on both runtimes and can be compared request for request.
+
+```
+DIXLASE_RUNTIME=octane
+```
+
+Then `./setup.sh`. The site stays on <http://localhost:40080>; the worker-mode
+copy answers on <http://localhost:40090>.
+
+What it is worth, measured: of a ~220 ms front page, the whole nginx +
+php-fpm + container layer is 4–6 ms, and booting the application's service
+providers is 54.3 ms. Worker mode removes that boot from every request after
+the first, so the ceiling is about 25% — the remaining ~160 ms is request work
+that no runtime changes. FrankenPHP without worker mode would buy nothing at
+all.
+
+**This is a development setting.** Worker mode keeps the application in memory
+between requests, which is where php-fpm's one guarantee goes: that every
+request starts in a fresh process and every bit of state dies with it. State
+that survives a request can reach the **next user's** request, and in an admin
+panel that is a disclosure bug rather than a slow page. Keep `fpm` on anything
+you expose. `OCTANE_MAX_REQUESTS` (250) replaces each worker regularly, which
+bounds how long leaked state or a leaking allocation can live, but it does not
+make a leak safe.
+
+Two practical notes:
+
+- **An edited PHP file does not take effect until the worker restarts.** That
+  is what worker mode means. `docker compose restart octane` after a change,
+  or use the php-fpm port while you are editing.
+- **It needs a core that ships `laravel/octane`.** Without it the container
+  stops immediately and says so, rather than restarting in a loop.
+
 ### Profiling a slow request
 
 `PROFILER` is off by default, and off means the image installs nothing — the
@@ -213,6 +252,9 @@ and an open door as soon as it does not. Before you expose this host:
   `MAIL_*` values in `html/.env` — or the mail settings in the admin panel — to
   an SMTP server or a mail service. Core supports SMTP and Sendmail as well as
   services such as Mailgun, Amazon SES and Postmark.
+- **Leave `DIXLASE_RUNTIME` at `fpm`.** Worker mode is for measuring, not for
+  serving: it keeps the application resident between requests, so state that
+  one request leaves behind can reach the next user's.
 - **Leave `PROFILER` at `false`.** It builds a profiler into the app image and
   serves it on the site's own port to anyone holding the key, and what it serves
   is the structure and timing of your code. It is a development tool.
