@@ -302,3 +302,10 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
     DB_IMAGE=mariadb:$DATA_LINE	    DB_IMAGE=mariadb:$DATA_LINE
   To move it on purpose, dump the database on its current line first, then	  To move it on purpose, dump the database on its current line first, then
   set DB_IMAGE to the line you want and run this again.	  set DB_IMAGE to the line you want and run this again.
+# Generate a profiler key the same way, but only when the profiler is	# Generate a profiler key the same way, but only when the profiler is
+# actually asked for. The key is what guards the profiler: without it	# actually asked for. The key is what guards the profiler: without it
+# app-entrypoint.sh leaves the extension unloaded, because the address PHP	# app-entrypoint.sh leaves the extension unloaded, because the address PHP
+# sees for every request is the web container's, so an address whitelist	# sees for every request is the web container's, so an address whitelist
+# cannot tell an operator from a visitor.	# cannot tell an operator from a visitor.
+  Generated PROFILER_KEY for the request profiler.	  Generated PROFILER_KEY for the request profiler.
+  PROFILER=true: the image carries the profiler. Keep this off on a server.	  PROFILER=true: the image carries the profiler. Keep this off on a server.

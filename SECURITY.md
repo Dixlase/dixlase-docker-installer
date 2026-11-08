@@ -176,6 +176,28 @@ site, so it is reachable by anything that can reach the site; the shared token i
 what protects it. Treat the token as a secret, and consider restricting the
 location to your Docker network if you expose the site publicly.
 
+### The request profiler is off by default
+
+`PROFILER=false` in `.env.example` means the app image installs no profiler at
+all, so nothing here applies to a default install. With `PROFILER=true` the
+image carries [php-spx](https://github.com/NoiseByNorthwest/php-spx) and
+`app-entrypoint.sh` loads it, but only when `PROFILER_KEY` is non-empty; an
+empty key leaves the extension unloaded rather than open.
+
+When it is on, two things are worth knowing:
+
+- **It answers on the site's own port**, not on a loopback-only tool port like
+  Adminer's, because the profiler is served by PHP itself. The site is the one
+  service published on all interfaces.
+- **The key is the only authentication.** Every request reaches PHP through the
+  web container, so `REMOTE_ADDR` is nginx's address for a visitor and for you
+  alike, and `spx.http_ip_whitelist` is therefore set to `*`. Treat
+  `PROFILER_KEY` as a secret, and keep `PROFILER=false` on any host you expose.
+
+Profile reports are written inside the app container under `/tmp/spx`. They
+describe your code's structure and timings, and the container's filesystem is
+readable by anything that can exec into it.
+
 ### File ownership inside the container
 
 `app-entrypoint.sh` chowns `storage/`, `bootstrap/cache/`,

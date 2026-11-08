@@ -79,6 +79,46 @@ RUN set -eu; \
     fi; \
     php -m | grep -qx redis
 
+# Install the sampling profiler (php-spx), which is how a slow request is
+# taken apart. It is absent unless it is asked for: with PROFILER unset or
+# false this block installs nothing and downloads nothing, so the image is
+# the one an operator got before this existed. PROFILER=true builds the
+# extension but still does not load it -- app-entrypoint.sh writes the ini
+# that does, and only when a key is set, so a build argument on its own can
+# never expose a profiler.
+#
+# Sampling rather than instrumenting, which is why this is not Xdebug:
+# Xdebug's profiler times every function call and inflates the very numbers
+# being chased. A request has to stay roughly itself while it is measured,
+# or the profile describes the profiler.
+#
+# zlib's dev package is installed here rather than in the main package list
+# so the default build keeps exactly the packages it had.
+ARG PROFILER=false
+ARG SPX_VERSION=0.4.22
+RUN set -eu; \
+    if [ "$PROFILER" != "true" ]; then \
+        echo "PROFILER is not true: no profiler extension in this image."; \
+    else \
+        apt-get update --allow-releaseinfo-change; \
+        apt-get install -y zlib1g-dev; \
+        rm -rf /var/lib/apt/lists/*; \
+        curl -fsSL --retry 3 --retry-delay 5 -o /tmp/php-spx.tar.gz \
+            "https://github.com/NoiseByNorthwest/php-spx/archive/refs/tags/v$SPX_VERSION.tar.gz"; \
+        mkdir -p /usr/src/php-spx; \
+        tar -xzf /tmp/php-spx.tar.gz -C /usr/src/php-spx --strip-components=1; \
+        rm -f /tmp/php-spx.tar.gz; \
+        cd /usr/src/php-spx; \
+        phpize; \
+        ./configure --enable-spx; \
+        make -j"$(nproc)"; \
+        make install; \
+        cd /; \
+        rm -rf /usr/src/php-spx; \
+        php -d extension=spx.so -m | grep -qix spx; \
+        echo "php-spx $SPX_VERSION is installed and left disabled; PROFILER_KEY turns it on."; \
+    fi
+
 # Copy PHP configuration file
 COPY ./php/php.ini /usr/local/etc/php/conf.d/uploads.ini
 COPY ./php/fpm-security.conf /usr/local/etc/php-fpm.d/zz-security.conf

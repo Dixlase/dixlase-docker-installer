@@ -157,6 +157,39 @@ A core release that does not read them ignores them. Neither is needed with `TOO
 
 When you enable `REDIS`, also point Laravel's `CACHE_STORE` and `SESSION_DRIVER` at `redis`. The `4xxxx` port namespace ("4" = D = Dixlase, alphabetically the 4th letter) avoids common host-port conflicts; if you prefer `80` / `443`, set `APP_PORT=80` / `APP_SSL_PORT=443` in `.env` before running `setup.sh`.
 
+### Profiling a slow request
+
+`PROFILER` is off by default, and off means the image installs nothing — the
+stack behaves exactly as it does without this feature. Turn it on only on a
+machine you develop on.
+
+1. Set `PROFILER=true` in `.env` and run `./setup.sh`. The app image is rebuilt
+   with the [php-spx](https://github.com/NoiseByNorthwest/php-spx) sampling
+   profiler, which adds a few minutes to that one build.
+2. `setup.sh` writes a random `PROFILER_KEY` into `.env` when it is empty. Both
+   values matter: with `PROFILER=true` but no key, the extension is left
+   unloaded rather than reachable.
+3. Open `http://localhost:40080/?SPX_KEY=<your key>&SPX_UI_URI=/` (the site's
+   own port, from the Default URLs table). Enable profiling in the control panel,
+   load the page you want to measure, then open its report from the list.
+4. Or profile one request from the command line:
+   `curl --cookie "SPX_ENABLED=1; SPX_KEY=<your key>" http://localhost:40080/`
+
+Reports are written inside the app container (`/tmp/spx`), so recreating the
+container discards them. To turn the profiler off, set `PROFILER=false` and run
+`docker compose up -d`: the entrypoint removes the ini that loads it, no rebuild
+needed. The extension itself stays in the image until the next build.
+
+It samples rather than instruments, which is why this is php-spx and not Xdebug:
+Xdebug's profiler times every function call and inflates the numbers you are
+trying to read.
+
+**The key is the only thing guarding it.** Every request reaches PHP from the web
+container, so PHP sees nginx's address and not the visitor's, which makes an
+address whitelist useless here — the stack sets it to `*` and relies on the key.
+The profiler answers on the site's own port, which is published on all
+interfaces.
+
 ## Using this on a server
 
 The defaults are built for a local trial: the database password is `dixlase`, the
@@ -180,6 +213,9 @@ and an open door as soon as it does not. Before you expose this host:
   `MAIL_*` values in `html/.env` — or the mail settings in the admin panel — to
   an SMTP server or a mail service. Core supports SMTP and Sendmail as well as
   services such as Mailgun, Amazon SES and Postmark.
+- **Leave `PROFILER` at `false`.** It builds a profiler into the app image and
+  serves it on the site's own port to anyone holding the key, and what it serves
+  is the structure and timing of your code. It is a development tool.
 - The host's SSH keys are **not** mounted into the container. If you deploy from
   inside it, opt in through `docker-compose.deploy.yml` — anything running in the
   container can read those keys, install scripts included.

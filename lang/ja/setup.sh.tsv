@@ -302,3 +302,10 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
     DB_IMAGE=mariadb:$DATA_LINE	    DB_IMAGE=mariadb:$DATA_LINE
   To move it on purpose, dump the database on its current line first, then	  意図して移行するなら、まず今の系列でデータベースをダンプし、それから
   set DB_IMAGE to the line you want and run this again.	  DB_IMAGE を移行先の系列にして、もう一度実行してください。
+# Generate a profiler key the same way, but only when the profiler is	# プロファイラのキーも同じやり方で生成する。ただしプロファイラが実際に
+# actually asked for. The key is what guards the profiler: without it	# 求められているときだけ。プロファイラを守るのはこのキーで、無ければ
+# app-entrypoint.sh leaves the extension unloaded, because the address PHP	# app-entrypoint.sh は拡張を読み込まないままにする。PHP がどのリクエストでも
+# sees for every request is the web container's, so an address whitelist	# 見るアドレスは web コンテナのものなので、アドレスのホワイトリストでは
+# cannot tell an operator from a visitor.	# 運用者と訪問者を見分けられない。
+  Generated PROFILER_KEY for the request profiler.	  リクエストプロファイラ用の PROFILER_KEY を生成しました。
+  PROFILER=true: the image carries the profiler. Keep this off on a server.	  PROFILER=true: イメージにプロファイラが入ります。サーバーでは off のままにしてください。

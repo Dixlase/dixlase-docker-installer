@@ -91,3 +91,17 @@
 # inside the line still arrive. Set DB_IMAGE in .env to pin harder	# 系列内のパッチリリースは届く。もっと固定したいとき (mariadb:12.3.3)、または
 # (mariadb:12.3.3), or to the line an existing data directory names in	# 既存のデータディレクトリが mysql/mariadb_upgrade_info に記録している系列に
 # mysql/mariadb_upgrade_info.	# 合わせたいときは、.env の DB_IMAGE を設定する。
+# Whether the image carries the profiler extension at all. False	# イメージがプロファイラ拡張を持つかどうか。false なら追加で何も
+# builds and downloads nothing extra, so an operator who never asks	# ビルドせず、何もダウンロードしないので、求めなかった運用者は
+# for it gets the image unchanged. The cron service passes the same	# これまでと同じイメージを得る。cron サービスも同じ値を渡す。
+# value, because a differing build argument would have Compose build	# ビルド引数が違うと、同じ Dockerfile に対して Compose が 2 つ目の
+# a second image for the same Dockerfile.	# イメージをビルドしてしまうため。
+# Load the profiler, if this image has one. Both values have to be	# このイメージがプロファイラを持つ場合に読み込む。両方の値が必要で、
+# set: app-entrypoint.sh writes the ini only for PROFILER=true with a	# app-entrypoint.sh が ini を書くのは PROFILER=true かつキーが空でない
+# non-empty key, and removes it otherwise, so a restart is all it	# ときだけ。それ以外では削除するので、再起動するだけでプロファイラを
+# takes to turn the profiler off again. setup.sh generates the key	# 止められる。キーは、PROFILER が最初に true になったときに setup.sh が
+# into the root .env the first time PROFILER is true.	# ルートの .env に生成する。
+# The same build argument the app service passes, so both services	# app サービスが渡すのと同じビルド引数。両サービスで 1 つのイメージを
+# share one image. The scheduler is deliberately not given PROFILER	# 共有するため。スケジューラにはあえて PROFILER を環境変数として
+# in its environment: it serves no requests, and the profiler is	# 渡していない。リクエストを配信しないし、プロファイラへは HTTP で
+# reached over HTTP.	# 到達するものだから。

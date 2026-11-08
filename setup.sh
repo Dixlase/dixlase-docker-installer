@@ -242,6 +242,26 @@ if [ -z "$CORE_FPM_RESET_TOKEN_VAL" ]; then
     echo "  Generated CORE_FPM_RESET_TOKEN for php-fpm opcache reset."
 fi
 
+# Generate a profiler key the same way, but only when the profiler is
+# actually asked for. The key is what guards the profiler: without it
+# app-entrypoint.sh leaves the extension unloaded, because the address PHP
+# sees for every request is the web container's, so an address whitelist
+# cannot tell an operator from a visitor.
+PROFILER_VAL=$(grep '^PROFILER=' .env | cut -d'=' -f2- | tr -d '[:space:]"' | tr '[:upper:]' '[:lower:]')
+if [ "$PROFILER_VAL" = "true" ]; then
+    PROFILER_KEY_VAL=$(grep '^PROFILER_KEY=' .env | cut -d'=' -f2- | tr -d '[:space:]"')
+    if [ -z "$PROFILER_KEY_VAL" ]; then
+        NEW_PROFILER_KEY=$(openssl rand -hex 32)
+        if grep -q '^PROFILER_KEY=' .env; then
+            sed -i.bak "s|^PROFILER_KEY=.*|PROFILER_KEY=${NEW_PROFILER_KEY}|" .env && rm -f .env.bak
+        else
+            printf 'PROFILER_KEY=%s\n' "$NEW_PROFILER_KEY" >> .env
+        fi
+        echo "  Generated PROFILER_KEY for the request profiler."
+    fi
+    echo "  PROFILER=true: the image carries the profiler. Keep this off on a server."
+fi
+
 # Derive NGINX_VARIANT from the HTTPS flag and COMPOSE_PROFILES from
 # VITE / REDIS. Values are exported to setup.sh's process environment
 # so docker-compose picks them up below; we deliberately do NOT write

@@ -91,4 +91,35 @@ if [ ! -e public/storage ] && [ -d storage/app/public ]; then
   ln -sfn ../storage/app/public public/storage 2>/dev/null || true
 fi
 
+# 4. The profiler extension is loaded here and nowhere else. Building it
+#    into the image (PROFILER=true) does not enable it; this step writes
+#    the ini that php-fpm reads at startup, and only when PROFILER=true
+#    and PROFILER_KEY is a non-empty value. The ini is removed first, so
+#    turning PROFILER off and restarting the container is enough to turn
+#    the profiler off -- no rebuild, and no stale ini left behind by an
+#    earlier start.
+#
+#    The whitelist has to be permissive because php never sees the real
+#    client: every request arrives from the web container, so the address
+#    PHP checks is nginx's. The key is what actually guards the profiler,
+#    which is why an empty one leaves it off rather than open.
+SPX_INI=/usr/local/etc/php/conf.d/zz-spx.ini
+rm -f "$SPX_INI"
+if [ "${PROFILER:-false}" = "true" ]; then
+  spx_so=$(find /usr/local/lib/php/extensions -name spx.so -print 2>/dev/null | head -1)
+  if [ -z "$spx_so" ]; then
+    echo "PROFILER=true, but this image has no profiler extension. Rebuild it: docker compose build dixlase.test." >&2
+  elif [ -z "${PROFILER_KEY:-}" ]; then
+    echo "PROFILER=true, but PROFILER_KEY is empty. Leaving the profiler off." >&2
+  else
+    {
+      echo 'extension=spx.so'
+      echo 'spx.http_enabled=1'
+      echo 'spx.http_ip_whitelist="*"'
+      echo "spx.http_key=\"${PROFILER_KEY}\""
+    } > "$SPX_INI"
+    echo "Profiler enabled (php-spx). Requests need the key; see README."
+  fi
+fi
+
 exec "$@"

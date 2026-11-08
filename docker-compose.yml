@@ -19,6 +19,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Whether the image carries the profiler extension at all. False
+      # builds and downloads nothing extra, so an operator who never asks
+      # for it gets the image unchanged. The cron service passes the same
+      # value, because a differing build argument would have Compose build
+      # a second image for the same Dockerfile.
+      args:
+        PROFILER: ${PROFILER:-false}
     volumes:
       - ./html:/var/www/html
       - ./certs:/etc/ssl/private
@@ -53,6 +60,13 @@ services:
       # only while the mailpit service answers, so the value does no harm
       # with TOOLS=false (#85).
       - DIXLASE_MAILPIT_URL=http://localhost:${FORWARD_MAILPIT_PORT:-8025}
+      # Load the profiler, if this image has one. Both values have to be
+      # set: app-entrypoint.sh writes the ini only for PROFILER=true with a
+      # non-empty key, and removes it otherwise, so a restart is all it
+      # takes to turn the profiler off again. setup.sh generates the key
+      # into the root .env the first time PROFILER is true.
+      - PROFILER=${PROFILER:-false}
+      - PROFILER_KEY=${PROFILER_KEY:-}
     depends_on:
       - mysql
     networks:
@@ -189,6 +203,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # The same build argument the app service passes, so both services
+      # share one image. The scheduler is deliberately not given PROFILER
+      # in its environment: it serves no requests, and the profiler is
+      # reached over HTTP.
+      args:
+        PROFILER: ${PROFILER:-false}
     restart: always
     volumes:
       - ./html:/var/www/html
