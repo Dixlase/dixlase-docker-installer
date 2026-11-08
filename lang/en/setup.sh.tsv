@@ -309,3 +309,8 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # cannot tell an operator from a visitor.	# cannot tell an operator from a visitor.
   Generated PROFILER_KEY for the request profiler.	  Generated PROFILER_KEY for the request profiler.
   PROFILER=true: the image carries the profiler. Keep this off on a server.	  PROFILER=true: the image carries the profiler. Keep this off on a server.
+# DIXLASE_RUNTIME defaults to fpm, which is also what an .env written before	# DIXLASE_RUNTIME defaults to fpm, which is also what an .env written before
+# this flag existed means. octane adds a FrankenPHP container beside php-fpm	# this flag existed means. octane adds a FrankenPHP container beside php-fpm
+# rather than in place of it, so one install can be served and measured on	# rather than in place of it, so one install can be served and measured on
+# both runtimes.	# both runtimes.
+  DIXLASE_RUNTIME=octane: FrankenPHP worker mode runs beside php-fpm. Development only.	  DIXLASE_RUNTIME=octane: FrankenPHP worker mode runs beside php-fpm. Development only.

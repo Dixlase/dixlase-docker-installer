@@ -1,0 +1,111 @@
+# Dockerfile.frankenphp - Dixlase
+#
+# The application image for DIXLASE_RUNTIME=octane: FrankenPHP in place of
+# php-fpm, so the same html/ can be served by Laravel Octane in worker mode
+# and compared against the php-fpm stack it runs beside. Nothing in the
+# default stack refers to this file; it is built only when the octane
+# compose profile is active.
+#
+# Worker mode is a measurement tool here, not a way to serve a site. It keeps
+# the application in memory across requests, which is where php-fpm's
+# guarantee goes - that every request starts in a fresh process and every bit
+# of state dies with it. Until the core is known not to carry user state
+# between requests, this is for a machine you develop on.
+#
+# Pinned to a FrankenPHP release and a PHP line, for the same reason the
+# database image is pinned: a floating tag turns an ordinary rebuild into an
+# upgrade nobody asked for. The PHP line matches the php-fpm image, because
+# vendor/ is shared through the html/ bind mount and was installed against
+# that line.
+FROM dunglas/frankenphp:1.13.5-php8.3
+
+# Install system packages. Only what the extensions below need to build --
+# this image serves requests and runs nothing else, so composer, Node and the
+# image tools stay in the php-fpm image, which is what setup.sh and update.sh
+# drive.
+RUN apt-get update --allow-releaseinfo-change && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    locales \
+    zip \
+    unzip \
+    git \
+    curl \
+    ca-certificates \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libcurl4-openssl-dev \
+    pkg-config \
+    libssl-dev \
+    libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# The same PHP extensions the php-fpm image installs, in the same order.
+# vendor/ arrives through the bind mount already installed, so an extension
+# that image has and this one lacks fails at runtime, on a request, rather
+# than at build time.
+RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath intl
+
+# Configure GD library
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
+RUN docker-php-ext-install gd
+
+# Install Redis PHP extension (PECL); the install wizard's Redis requirement
+# check is extension_loaded('redis'), and Laravel's cache / session / queue
+# drivers that target Redis need it. Pinned, retried, and with a second source
+# to download from, for the reason the php-fpm image gives at length: on
+# 2026-10-22 pecl.php.net answered this download with 504 for about an hour.
+# The two blocks are deliberately alike; a shared build stage for them is
+# worth doing once a second runtime is more than an experiment.
+ARG REDIS_VERSION=6.3.0
+RUN set -eu; \
+    ext_dir="$(php -r 'echo ini_get("extension_dir");')"; \
+    for attempt in 1 2 3; do \
+        if pecl install --force "redis-$REDIS_VERSION"; then break; fi; \
+        echo "pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3)."; \
+        sleep 5; \
+    done; \
+    if [ -f "$ext_dir/redis.so" ]; then \
+        docker-php-ext-enable redis; \
+    else \
+        echo "pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead."; \
+        if ! curl -fsSL --retry 3 --retry-delay 5 -o /tmp/phpredis.tar.gz \
+                "https://github.com/phpredis/phpredis/archive/refs/tags/$REDIS_VERSION.tar.gz"; then \
+            echo "Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION." >&2; \
+            echo "An ordinary build reaches both, so run the build again once they answer." >&2; \
+            exit 1; \
+        fi; \
+        docker-php-source extract; \
+        mkdir -p /usr/src/php/ext/redis; \
+        tar -xzf /tmp/phpredis.tar.gz -C /usr/src/php/ext/redis --strip-components=1; \
+        rm -f /tmp/phpredis.tar.gz; \
+        docker-php-ext-install redis; \
+        docker-php-source delete; \
+    fi; \
+    php -m | grep -qx redis
+
+# Copy PHP configuration file
+COPY ./php/php.ini /usr/local/etc/php/conf.d/uploads.ini
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Trust /var/www/html no matter who owns it, as the php-fpm image does: the
+# bind-mounted core checkout is a git repository owned by the host user, and
+# git refuses it with "detected dubious ownership" otherwise.
+RUN git config --global --add safe.directory /var/www/html
+
+# Caddy wants somewhere to put its data and config, and the server runs as
+# www-data (see docker-compose.yml) so that nothing it writes under storage/
+# is root-owned - a root-owned log file is one php-fpm's www-data worker
+# cannot append to afterwards, and both runtimes share this html/. The
+# image's own /data and /config are root-owned, so point the XDG paths at a
+# directory www-data owns instead.
+ENV XDG_CONFIG_HOME=/var/www/.frankenphp-config
+ENV XDG_DATA_HOME=/var/www/.frankenphp-data
+RUN mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" \
+    && chown -R www-data:www-data "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" /var/www
+
+EXPOSE 8000

@@ -1,0 +1,47 @@
+# Dockerfile.frankenphp - Dixlase	# Dockerfile.frankenphp - Dixlase
+# The application image for DIXLASE_RUNTIME=octane: FrankenPHP in place of	# The application image for DIXLASE_RUNTIME=octane: FrankenPHP in place of
+# php-fpm, so the same html/ can be served by Laravel Octane in worker mode	# php-fpm, so the same html/ can be served by Laravel Octane in worker mode
+# and compared against the php-fpm stack it runs beside. Nothing in the	# and compared against the php-fpm stack it runs beside. Nothing in the
+# default stack refers to this file; it is built only when the octane	# default stack refers to this file; it is built only when the octane
+# compose profile is active.	# compose profile is active.
+# Worker mode is a measurement tool here, not a way to serve a site. It keeps	# Worker mode is a measurement tool here, not a way to serve a site. It keeps
+# the application in memory across requests, which is where php-fpm's	# the application in memory across requests, which is where php-fpm's
+# guarantee goes - that every request starts in a fresh process and every bit	# guarantee goes - that every request starts in a fresh process and every bit
+# of state dies with it. Until the core is known not to carry user state	# of state dies with it. Until the core is known not to carry user state
+# between requests, this is for a machine you develop on.	# between requests, this is for a machine you develop on.
+# Pinned to a FrankenPHP release and a PHP line, for the same reason the	# Pinned to a FrankenPHP release and a PHP line, for the same reason the
+# database image is pinned: a floating tag turns an ordinary rebuild into an	# database image is pinned: a floating tag turns an ordinary rebuild into an
+# upgrade nobody asked for. The PHP line matches the php-fpm image, because	# upgrade nobody asked for. The PHP line matches the php-fpm image, because
+# vendor/ is shared through the html/ bind mount and was installed against	# vendor/ is shared through the html/ bind mount and was installed against
+# that line.	# that line.
+# Install system packages. Only what the extensions below need to build --	# Install system packages. Only what the extensions below need to build --
+# this image serves requests and runs nothing else, so composer, Node and the	# this image serves requests and runs nothing else, so composer, Node and the
+# image tools stay in the php-fpm image, which is what setup.sh and update.sh	# image tools stay in the php-fpm image, which is what setup.sh and update.sh
+# drive.	# drive.
+# The same PHP extensions the php-fpm image installs, in the same order.	# The same PHP extensions the php-fpm image installs, in the same order.
+# vendor/ arrives through the bind mount already installed, so an extension	# vendor/ arrives through the bind mount already installed, so an extension
+# that image has and this one lacks fails at runtime, on a request, rather	# that image has and this one lacks fails at runtime, on a request, rather
+# than at build time.	# than at build time.
+# Configure GD library	# Configure GD library
+# Install Redis PHP extension (PECL); the install wizard's Redis requirement	# Install Redis PHP extension (PECL); the install wizard's Redis requirement
+# check is extension_loaded('redis'), and Laravel's cache / session / queue	# check is extension_loaded('redis'), and Laravel's cache / session / queue
+# drivers that target Redis need it. Pinned, retried, and with a second source	# drivers that target Redis need it. Pinned, retried, and with a second source
+# to download from, for the reason the php-fpm image gives at length: on	# to download from, for the reason the php-fpm image gives at length: on
+# 2026-10-22 pecl.php.net answered this download with 504 for about an hour.	# 2026-10-22 pecl.php.net answered this download with 504 for about an hour.
+# The two blocks are deliberately alike; a shared build stage for them is	# The two blocks are deliberately alike; a shared build stage for them is
+# worth doing once a second runtime is more than an experiment.	# worth doing once a second runtime is more than an experiment.
+# Copy PHP configuration file	# Copy PHP configuration file
+# Set working directory	# Set working directory
+# Trust /var/www/html no matter who owns it, as the php-fpm image does: the	# Trust /var/www/html no matter who owns it, as the php-fpm image does: the
+# bind-mounted core checkout is a git repository owned by the host user, and	# bind-mounted core checkout is a git repository owned by the host user, and
+# git refuses it with "detected dubious ownership" otherwise.	# git refuses it with "detected dubious ownership" otherwise.
+# Caddy wants somewhere to put its data and config, and the server runs as	# Caddy wants somewhere to put its data and config, and the server runs as
+# www-data (see docker-compose.yml) so that nothing it writes under storage/	# www-data (see docker-compose.yml) so that nothing it writes under storage/
+# is root-owned - a root-owned log file is one php-fpm's www-data worker	# is root-owned - a root-owned log file is one php-fpm's www-data worker
+# cannot append to afterwards, and both runtimes share this html/. The	# cannot append to afterwards, and both runtimes share this html/. The
+# image's own /data and /config are root-owned, so point the XDG paths at a	# image's own /data and /config are root-owned, so point the XDG paths at a
+# directory www-data owns instead.	# directory www-data owns instead.
+pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3).	pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3).
+pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.	pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.
+Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.	Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.
+An ordinary build reaches both, so run the build again once they answer.	An ordinary build reaches both, so run the build again once they answer.

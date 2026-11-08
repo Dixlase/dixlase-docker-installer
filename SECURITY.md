@@ -176,6 +176,27 @@ site, so it is reachable by anything that can reach the site; the shared token i
 what protects it. Treat the token as a secret, and consider restricting the
 location to your Docker network if you expose the site publicly.
 
+### Worker mode is off by default
+
+`DIXLASE_RUNTIME=fpm` in `.env.example` means no worker-mode container is
+built or started, so nothing here applies to a default install. With
+`DIXLASE_RUNTIME=octane`, a FrankenPHP container serves the same `html/` under
+Laravel Octane on `FORWARD_OCTANE_PORT`, published on `127.0.0.1` only.
+
+The security property that changes is not about ports:
+
+- **php-fpm discards everything after each request.** A worker does not: the
+  application stays in memory, so a value left in a static property, a
+  singleton or the view factory can be read by the **next** request — which
+  may belong to a different user. On public pages, which carry no user state,
+  such a leak barely shows; in the admin panel it is a disclosure.
+- **`OCTANE_MAX_REQUESTS` limits the window, not the leak.** Replacing a
+  worker every 250 requests bounds how long a leaked value or a leaking
+  allocation lives. It does not make either safe.
+- **The core has not been audited for this yet.** Until it has, treat worker
+  mode as a measurement on a machine you develop on, and keep
+  `DIXLASE_RUNTIME=fpm` on any host you expose.
+
 ### The request profiler is off by default
 
 `PROFILER=false` in `.env.example` means the app image installs no profiler at

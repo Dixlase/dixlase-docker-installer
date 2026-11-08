@@ -193,6 +193,14 @@ if [ "$REBUILD" = true ]; then
         REBUILD_SERVICES+=(cron)
         REBUILD_PROFILES="cron"
     fi
+    # The octane service is a second runtime over the same html/, built from a
+    # Dockerfile of its own. Rebuilt and replaced on the same terms as cron:
+    # only while it is running, so naming its profile cannot start a runtime
+    # the operator turned off.
+    if [ -n "$(COMPOSE_PROFILES=octane docker compose ps -q octane 2>/dev/null)" ]; then
+        REBUILD_SERVICES+=(octane)
+        [ -n "$REBUILD_PROFILES" ] && REBUILD_PROFILES="${REBUILD_PROFILES},octane" || REBUILD_PROFILES="octane"
+    fi
     echo "  Building: ${REBUILD_SERVICES[*]}"
     COMPOSE_PROFILES="$REBUILD_PROFILES" \
         docker compose build "${BUILD_ARGS[@]}" "${REBUILD_SERVICES[@]}"

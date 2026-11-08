@@ -264,3 +264,7 @@ Clearing caches...	Clearing caches...
   directory in place, and no older server would open it afterwards. To keep	  directory in place, and no older server would open it afterwards. To keep
   it where it is, set this in .env:	  it where it is, set this in .env:
     DB_IMAGE=mariadb:$DATA_LINE	    DB_IMAGE=mariadb:$DATA_LINE
+# The octane service is a second runtime over the same html/, built from a	# The octane service is a second runtime over the same html/, built from a
+# Dockerfile of its own. Rebuilt and replaced on the same terms as cron:	# Dockerfile of its own. Rebuilt and replaced on the same terms as cron:
+# only while it is running, so naming its profile cannot start a runtime	# only while it is running, so naming its profile cannot start a runtime
+# the operator turned off.	# the operator turned off.

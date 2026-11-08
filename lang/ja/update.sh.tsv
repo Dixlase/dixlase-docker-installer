@@ -264,3 +264,7 @@ Clearing caches...	キャッシュをクリア中...
   directory in place, and no older server would open it afterwards. To keep	  ディレクトリをその場でアップグレードし、そのあとは古いサーバーでは開けません。
   it where it is, set this in .env:	  今のままにするには、.env にこう書いてください:
     DB_IMAGE=mariadb:$DATA_LINE	    DB_IMAGE=mariadb:$DATA_LINE
+# The octane service is a second runtime over the same html/, built from a	# octane サービスは同じ html/ に対する 2 つ目のランタイムで、専用の
+# Dockerfile of its own. Rebuilt and replaced on the same terms as cron:	# Dockerfile からビルドされる。再ビルドと置き換えの条件は cron と同じで、
+# only while it is running, so naming its profile cannot start a runtime	# 動いているときだけ。プロファイルを指定したことで、運用者が止めている
+# the operator turned off.	# ランタイムが起動してしまうことがないように。
