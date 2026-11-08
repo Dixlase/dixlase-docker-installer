@@ -314,3 +314,49 @@ Built-assets mode (no Vite dev server)	Built-assets mode (no Vite dev server)
 # rather than in place of it, so one install can be served and measured on	# rather than in place of it, so one install can be served and measured on
 # both runtimes.	# both runtimes.
   DIXLASE_RUNTIME=octane: FrankenPHP worker mode runs beside php-fpm. Development only.	  DIXLASE_RUNTIME=octane: FrankenPHP worker mode runs beside php-fpm. Development only.
+# The octane container is held back for a different reason: its command	# The octane container is held back for a different reason: its command
+# refuses to start when html/ has no vendor/laravel/octane, and composer	# refuses to start when html/ has no vendor/laravel/octane, and composer
+# install is step [5/6]. On a fresh install the refusal is therefore	# install is step [5/6]. On a fresh install the refusal is therefore
+# certain, and `restart: "no"` makes it final — the worker stayed dead	# certain, and `restart: "no"` makes it final — the worker stayed dead
+# while setup.sh reported the octane profile as active, and the message it	# while setup.sh reported the octane profile as active, and the message it
+# left in the log ("html/ has no laravel/octane") was no longer true by	# left in the log ("html/ has no laravel/octane") was no longer true by
+# the time anyone read it (#98). The image is still built here; only the	# the time anyone read it (#98). The image is still built here; only the
+# container waits.	# container waits.
+  Starting the FrankenPHP worker...	  Starting the FrankenPHP worker...
+    FrankenPHP: http://localhost:${FORWARD_OCTANE_PORT_VAL:-40090}  (worker mode, development only)	    FrankenPHP: http://localhost:${FORWARD_OCTANE_PORT_VAL:-40090}  (worker mode, development only)
+    COMPOSE_PROFILES=octane docker compose restart octane	    COMPOSE_PROFILES=octane docker compose restart octane
+# It is started at the very end of this script, not after composer install:	# It is started at the very end of this script, not after composer install:
+# that is what the comment there is about.	# that is what the comment there is about.
+  The worker has not reported itself ready. Read its log with:	  The worker has not reported itself ready. Read its log with:
+    COMPOSE_PROFILES=octane docker compose logs octane	    COMPOSE_PROFILES=octane docker compose logs octane
+# Held back in step [4/6] and started here, last of all, because a worker	# Held back in step [4/6] and started here, last of all, because a worker
+# can only boot an application that is ready to be booted. On a fresh	# can only boot an application that is ready to be booted. On a fresh
+# install html/.env does not exist yet: the install wizard writes it on its	# install html/.env does not exist yet: the install wizard writes it on its
+# first request, which happens in a browser after this script ends. Started	# first request, which happens in a browser after this script ends. Started
+# before that, the worker script fails, FrankenPHP retries it about a dozen	# before that, the worker script fails, FrankenPHP retries it about a dozen
+# times and then exits ("worker public/frankenphp-worker.php has not	# times and then exits ("worker public/frankenphp-worker.php has not
+# reached frankenphp_handle_request()"), and setup.sh reported success over	# reached frankenphp_handle_request()"), and setup.sh reported success over
+# a container that was already dead (#98).	# a container that was already dead (#98).
+# html/.env is what decides it, not the ownership of html/ and not the	# html/.env is what decides it, not the ownership of html/ and not the
+# composer install: with that file in place and no request ever made	# composer install: with that file in place and no request ever made
+# through php-fpm, the same worker boots in about two seconds and answers.	# through php-fpm, the same worker boots in about two seconds and answers.
+# So a fresh install does not start it, and says what to run once the	# So a fresh install does not start it, and says what to run once the
+# wizard has been through.	# wizard has been through.
+# The guard inside the service's command stays for the case this cannot	# The guard inside the service's command stays for the case this cannot
+# see: an html/ placed from a core that does not carry laravel/octane.	# see: an html/ placed from a core that does not carry laravel/octane.
+# The worker is not listening the moment `up -d` returns, and Octane's	# The worker is not listening the moment `up -d` returns, and Octane's
+# "Server running" line is not the signal either: it is printed before	# "Server running" line is not the signal either: it is printed before
+# FrankenPHP loads its config, and a run that then failed to bring its	# FrankenPHP loads its config, and a run that then failed to bring its
+# workers up printed it just the same. So probe the port, from the app	# workers up printed it just the same. So probe the port, from the app
+# container over the compose network, and bound the wait so a worker	# container over the compose network, and bound the wait so a worker
+# that cannot boot at all does not hold this script.	# that cannot boot at all does not hold this script.
+# The worker could not be started because the application was not	# The worker could not be started because the application was not
+# installed yet, so the step that starts it belongs in this list rather	# installed yet, so the step that starts it belongs in this list rather
+# than in a note the reader has already scrolled past.	# than in a note the reader has already scrolled past.
+    4. Then start the FrankenPHP worker, which needs an installed site:	    4. Then start the FrankenPHP worker, which needs an installed site:
+         COMPOSE_PROFILES=octane docker compose up -d octane	         COMPOSE_PROFILES=octane docker compose up -d octane
+# A worker boots the application once and keeps it, so an edited PHP file	# A worker boots the application once and keeps it, so an edited PHP file
+# reaches the php-fpm port immediately and the worker not at all. ./update.sh	# reaches the php-fpm port immediately and the worker not at all. ./update.sh
+# restarts it for the same reason, once the new release is on disk.	# restarts it for the same reason, once the new release is on disk.
+  The FrankenPHP worker holds the application in memory, so an edited PHP	  The FrankenPHP worker holds the application in memory, so an edited PHP
+  file takes effect there only after a restart:	  file takes effect there only after a restart:

@@ -697,3 +697,224 @@ jobs:
           docker compose down -v 2>/dev/null || true
           docker run --rm -v "$PWD:/work" alpine rm -rf /work/html 2>/dev/null || true
           rm -rf html 2>/dev/null || true
+
+  # The runtime the other three jobs never exercise. #93 asks for a job that
+  # installs, serves the front page and runs the update under FrankenPHP
+  # worker mode, and #98 is what happens without one: a fresh install with
+  # DIXLASE_RUNTIME=octane started the worker in step [4/6], against an html/
+  # that had neither vendor/laravel/octane nor a .env, so it died — and
+  # setup.sh reported success over a dead container. Three green E2E jobs said
+  # nothing, because none of them sets the runtime.
+  #
+  # It needs no secret: core is public and the dependency now arrives from a
+  # core release, so the worker this job starts is the one an operator gets.
+  smoke-octane:
+    name: End-to-end setup and update with FrankenPHP worker mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout installer (no persisted credentials)
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Select the octane runtime before anything starts
+        run: |
+          set -e
+          # setup.sh leaves an existing .env exactly as the operator has it,
+          # so writing it here is how the runtime is chosen before the first
+          # container is created. Ports stay at the defaults.
+          cp .env.example .env
+          sed -i.bak 's|^DIXLASE_RUNTIME=.*|DIXLASE_RUNTIME=octane|' .env && rm -f .env.bak
+          grep -qF 'DIXLASE_RUNTIME=octane' .env
+
+      - name: Run setup.sh (fresh install, octane runtime)
+        run: |
+          set -o pipefail
+          ./setup.sh 2>&1 | tee /tmp/setup-octane.log
+
+      - name: Assert a fresh install starts no worker that cannot boot
+        run: |
+          set -e
+          # A worker can only boot an installed application, and html/.env —
+          # which the install wizard writes on its own first request — is what
+          # decides that. So the run must start nothing, advertise no URL it is
+          # not serving, and name the line to run after the wizard (#98).
+          # CRON and TOOLS are on in .env.example, so the list reads
+          # "cron,tools,octane" here rather than "octane" alone.
+          grep -qE 'Active compose profiles: .*octane' /tmp/setup-octane.log
+          grep -qF '4. Then start the FrankenPHP worker, which needs an installed site:' /tmp/setup-octane.log
+          if grep -qF 'FrankenPHP: http://localhost:40090' /tmp/setup-octane.log; then
+            echo "setup.sh advertised a worker URL although it started no worker." >&2
+            exit 1
+          fi
+          if [ -n "$(COMPOSE_PROFILES=octane docker compose ps -aq octane)" ]; then
+            echo "A worker container exists although the site is not installed yet." >&2
+            COMPOSE_PROFILES=octane docker compose logs --tail 40 octane || true
+            exit 1
+          fi
+          echo "OK: no worker on a fresh install, and setup.sh says what to run instead."
+
+      - name: Smoke check — php-fpm answers
+        run: |
+          set -e
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:40080/ || true)
+            if [ -n "$code" ] && [ "$code" != "000" ] && [ "$code" -lt 500 ]; then
+              echo "OK: php-fpm answered HTTP $code (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code (not ready), waiting..."
+            sleep 4
+          done
+          echo "php-fpm did not answer with a non-5xx status within the time budget." >&2
+          exit 1
+
+      # The worker needs an installed site, and update.sh ends on
+      # dls:core:reconcile, which needs rows in the core version ledger that
+      # only a real install writes. Core ships a command-line installer, so
+      # install for real rather than bootstrapping html/.env by hand.
+      #
+      # The admin path segment is an obviously invented CI value and the
+      # password is generated in this step: neither belongs in a workflow
+      # file, and this stack is destroyed in the teardown either way.
+      - name: Install Dixlase from the command line
+        run: |
+          set -e
+          docker compose exec -T \
+            -e DIXLASE_ADMIN_PASSWORD="Ci$(openssl rand -hex 12)9" \
+            dixlase.test php artisan dls:install \
+              --no-interaction --force \
+              --site-name="Octane smoke test" \
+              --admin-name=ciadmin \
+              --admin-display-name="CI" \
+              --admin-email=ci@example.invalid \
+              --url=localhost:40080 \
+              --admin-url=admin-ci \
+              --app-env=local \
+              --timezone=UTC \
+              --locale=en \
+              --db=mysql \
+              --db-host=mysql \
+              --db-port=3306 \
+              --db-database=dixlase \
+              --db-username=dixlase \
+              --db-password=dixlase
+          # dls:install runs as root in the container, so hand the file it
+          # wrote back to the user php-fpm serves the site as.
+          docker compose exec -T dixlase.test chown www-data:www-data /var/www/html/.env
+
+      - name: Start the worker the way setup.sh told the operator to
+        run: |
+          set -e
+          COMPOSE_PROFILES=octane docker compose up -d octane
+          # Probe the port rather than the log: Octane prints "Server running"
+          # before FrankenPHP has loaded its config, and a run that then fails
+          # to bring its workers up prints it just the same.
+          for i in $(seq 1 40); do
+            if docker compose exec -T dixlase.test \
+              php -r 'exit(@fsockopen("octane", 8000, $e, $s, 2) ? 0 : 1);' >/dev/null 2>&1; then
+              echo "the worker is listening (attempt $i)"
+              break
+            fi
+            sleep 3
+          done
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:40090/ || true)
+          if [ "$code" != "200" ]; then
+            echo "FrankenPHP worker mode answered $code on the installed front page." >&2
+            COMPOSE_PROFILES=octane docker compose logs --tail 40 octane || true
+            exit 1
+          fi
+          echo "OK: FrankenPHP worker mode serves the installed site (200)."
+
+      - name: setup.sh starts the worker itself once the site is installed
+        run: |
+          set -o pipefail
+          COMPOSE_PROFILES=octane docker compose rm -sf octane
+          echo "n" | ./setup.sh 2>&1 | tee /tmp/setup-octane-installed.log
+          grep -qF 'Starting the FrankenPHP worker...' /tmp/setup-octane-installed.log
+          grep -qF 'FrankenPHP: http://localhost:40090' /tmp/setup-octane-installed.log
+          # No wait here on purpose: setup.sh waits for the port before it
+          # prints that URL, so the site has to answer the moment it returns.
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:40090/ || true)
+          if [ "$code" != "200" ]; then
+            echo "The worker answered $code immediately after setup.sh returned." >&2
+            COMPOSE_PROFILES=octane docker compose logs --tail 40 octane || true
+            exit 1
+          fi
+          echo "OK: setup.sh left a worker that was already answering."
+
+      - name: update.sh restarts the worker instead of leaving a stale one
+        run: |
+          set -o pipefail
+          ./update.sh 2>&1 | tee /tmp/update-octane.log
+          # Step 2 of update.sh replaces the container, but that runs before
+          # composer install: without this restart the worker keeps serving
+          # the release the run replaced (#98).
+          grep -qF 'Restarting the FrankenPHP worker so it boots the updated application...' /tmp/update-octane.log
+          for i in $(seq 1 40); do
+            if docker compose exec -T dixlase.test \
+              php -r 'exit(@fsockopen("octane", 8000, $e, $s, 2) ? 0 : 1);' >/dev/null 2>&1; then
+              echo "the worker is listening again (attempt $i)"
+              break
+            fi
+            sleep 3
+          done
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:40090/ || true)
+          if [ "$code" != "200" ]; then
+            echo "After update.sh the worker answered $code." >&2
+            COMPOSE_PROFILES=octane docker compose logs --tail 40 octane || true
+            exit 1
+          fi
+          echo "OK: update.sh restarted the worker and it serves the site."
+
+      - name: Switching the runtime back to fpm removes the worker
+        run: |
+          set -o pipefail
+          sed -i.bak 's|^DIXLASE_RUNTIME=octane|DIXLASE_RUNTIME=fpm|' .env && rm -f .env.bak
+          echo "n" | ./setup.sh 2>&1 | tee /tmp/setup-back-to-fpm.log
+          # `up -d` starts what the active profiles name; it does not stop a
+          # container whose flag was just turned off. octane was missing from
+          # the sweep that removes one (#98).
+          grep -qF 'Removing the octane container (turned off in .env)...' /tmp/setup-back-to-fpm.log
+          if [ -n "$(COMPOSE_PROFILES=octane docker compose ps -aq octane)" ]; then
+            echo "The worker container survived the switch back to fpm." >&2
+            exit 1
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:40080/ || true)
+          if [ "$code" != "200" ]; then
+            echo "php-fpm answered $code after the switch back." >&2
+            exit 1
+          fi
+          echo "OK: the worker is gone and php-fpm still serves the site."
+
+      - name: Show running containers
+        if: always()
+        run: COMPOSE_PROFILES=octane docker compose ps -a
+
+      - name: setup.sh and update.sh logs (on failure)
+        if: failure()
+        run: |
+          for log in /tmp/setup-octane.log /tmp/setup-octane-installed.log \
+                     /tmp/update-octane.log /tmp/setup-back-to-fpm.log; do
+            [ -f "$log" ] || continue
+            echo "--- $log (last 120 lines) ---"
+            tail -n 120 "$log"
+          done
+
+      - name: Container logs (on failure)
+        if: failure()
+        run: COMPOSE_PROFILES=octane docker compose logs --tail 200
+
+      - name: Laravel storage log (on failure)
+        if: failure()
+        run: |
+          docker compose exec -T dixlase.test sh -c 'tail -n 200 storage/logs/laravel.log 2>/dev/null || echo "(no laravel.log)"' || true
+
+      - name: Tear down
+        if: always()
+        run: |
+          COMPOSE_PROFILES=octane docker compose down -v 2>/dev/null || true
+          docker run --rm -v "$PWD:/work" alpine rm -rf /work/html 2>/dev/null || true
+          rm -rf html 2>/dev/null || true
