@@ -91,3 +91,17 @@
 # inside the line still arrive. Set DB_IMAGE in .env to pin harder	# inside the line still arrive. Set DB_IMAGE in .env to pin harder
 # (mariadb:12.3.3), or to the line an existing data directory names in	# (mariadb:12.3.3), or to the line an existing data directory names in
 # mysql/mariadb_upgrade_info.	# mysql/mariadb_upgrade_info.
+# Whether the image carries the profiler extension at all. False	# Whether the image carries the profiler extension at all. False
+# builds and downloads nothing extra, so an operator who never asks	# builds and downloads nothing extra, so an operator who never asks
+# for it gets the image unchanged. The cron service passes the same	# for it gets the image unchanged. The cron service passes the same
+# value, because a differing build argument would have Compose build	# value, because a differing build argument would have Compose build
+# a second image for the same Dockerfile.	# a second image for the same Dockerfile.
+# Load the profiler, if this image has one. Both values have to be	# Load the profiler, if this image has one. Both values have to be
+# set: app-entrypoint.sh writes the ini only for PROFILER=true with a	# set: app-entrypoint.sh writes the ini only for PROFILER=true with a
+# non-empty key, and removes it otherwise, so a restart is all it	# non-empty key, and removes it otherwise, so a restart is all it
+# takes to turn the profiler off again. setup.sh generates the key	# takes to turn the profiler off again. setup.sh generates the key
+# into the root .env the first time PROFILER is true.	# into the root .env the first time PROFILER is true.
+# The same build argument the app service passes, so both services	# The same build argument the app service passes, so both services
+# share one image. The scheduler is deliberately not given PROFILER	# share one image. The scheduler is deliberately not given PROFILER
+# in its environment: it serves no requests, and the profiler is	# in its environment: it serves no requests, and the profiler is
+# reached over HTTP.	# reached over HTTP.

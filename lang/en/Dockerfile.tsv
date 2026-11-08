@@ -49,3 +49,18 @@ pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3).	pecl install r
 pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.	pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.
 Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.	Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.
 An ordinary build reaches both, so run the build again once they answer.	An ordinary build reaches both, so run the build again once they answer.
+# Install the sampling profiler (php-spx), which is how a slow request is	# Install the sampling profiler (php-spx), which is how a slow request is
+# taken apart. It is absent unless it is asked for: with PROFILER unset or	# taken apart. It is absent unless it is asked for: with PROFILER unset or
+# false this block installs nothing and downloads nothing, so the image is	# false this block installs nothing and downloads nothing, so the image is
+# the one an operator got before this existed. PROFILER=true builds the	# the one an operator got before this existed. PROFILER=true builds the
+# extension but still does not load it -- app-entrypoint.sh writes the ini	# extension but still does not load it -- app-entrypoint.sh writes the ini
+# that does, and only when a key is set, so a build argument on its own can	# that does, and only when a key is set, so a build argument on its own can
+# never expose a profiler.	# never expose a profiler.
+# Sampling rather than instrumenting, which is why this is not Xdebug:	# Sampling rather than instrumenting, which is why this is not Xdebug:
+# Xdebug's profiler times every function call and inflates the very numbers	# Xdebug's profiler times every function call and inflates the very numbers
+# being chased. A request has to stay roughly itself while it is measured,	# being chased. A request has to stay roughly itself while it is measured,
+# or the profile describes the profiler.	# or the profile describes the profiler.
+# zlib's dev package is installed here rather than in the main package list	# zlib's dev package is installed here rather than in the main package list
+# so the default build keeps exactly the packages it had.	# so the default build keeps exactly the packages it had.
+PROFILER is not true: no profiler extension in this image.	PROFILER is not true: no profiler extension in this image.
+php-spx $SPX_VERSION is installed and left disabled; PROFILER_KEY turns it on.	php-spx $SPX_VERSION is installed and left disabled; PROFILER_KEY turns it on.

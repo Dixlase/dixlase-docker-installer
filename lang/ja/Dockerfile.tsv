@@ -49,3 +49,18 @@ pecl install redis-$REDIS_VERSION failed (attempt $attempt of 3).	pecl install r
 pecl.php.net did not serve redis-$REDIS_VERSION; building that version from its GitHub tag instead.	pecl.php.net から redis-$REDIS_VERSION を取得できません。同じ版を GitHub のタグからビルドします。
 Neither pecl.php.net nor github.com served phpredis $REDIS_VERSION.	pecl.php.net も github.com も phpredis $REDIS_VERSION を返しませんでした。
 An ordinary build reaches both, so run the build again once they answer.	通常のビルドはどちらにも到達します。応答が戻ったらビルドをやり直してください。
+# Install the sampling profiler (php-spx), which is how a slow request is	# サンプリング方式のプロファイラ (php-spx) をインストール。遅いリクエストを
+# taken apart. It is absent unless it is asked for: with PROFILER unset or	# 分解するのはこれ。求められない限り入らない。PROFILER が未設定か false なら
+# false this block installs nothing and downloads nothing, so the image is	# このブロックは何もインストールせず、何もダウンロードしないので、イメージは
+# the one an operator got before this existed. PROFILER=true builds the	# これが存在する前に運用者が得ていたものと同じ。PROFILER=true は拡張をビルド
+# extension but still does not load it -- app-entrypoint.sh writes the ini	# するが、読み込みはしない。読み込む ini を書くのは app-entrypoint.sh で、
+# that does, and only when a key is set, so a build argument on its own can	# しかもキーが設定されている場合のみ。ビルド引数だけでプロファイラが露出する
+# never expose a profiler.	# ことはない。
+# Sampling rather than instrumenting, which is why this is not Xdebug:	# 方式はサンプリングで、instrument ではない。Xdebug でないのはそのため:
+# Xdebug's profiler times every function call and inflates the very numbers	# Xdebug のプロファイラは全関数呼び出しを計測し、追いかけている数字そのものを
+# being chased. A request has to stay roughly itself while it is measured,	# 膨らませる。計測中もリクエストがおおむねそれ自身のままである必要があり、
+# or the profile describes the profiler.	# そうでなければプロファイルはプロファイラを説明することになる。
+# zlib's dev package is installed here rather than in the main package list	# zlib の dev パッケージをここで入れるのは、メインのパッケージ一覧に足さずに
+# so the default build keeps exactly the packages it had.	# 既定のビルドのパッケージ構成をそのまま保つため。
+PROFILER is not true: no profiler extension in this image.	PROFILER が true ではありません: このイメージにプロファイラ拡張はありません。
+php-spx $SPX_VERSION is installed and left disabled; PROFILER_KEY turns it on.	php-spx $SPX_VERSION をインストールし、無効のままにしました。PROFILER_KEY で有効になります。
