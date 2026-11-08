@@ -268,3 +268,10 @@ Clearing caches...	Clearing caches...
 # Dockerfile of its own. Rebuilt and replaced on the same terms as cron:	# Dockerfile of its own. Rebuilt and replaced on the same terms as cron:
 # only while it is running, so naming its profile cannot start a runtime	# only while it is running, so naming its profile cannot start a runtime
 # the operator turned off.	# the operator turned off.
+# A worker boots the application once and keeps it, so everything above —	# A worker boots the application once and keeps it, so everything above —
+# the new core in html/, composer install, the rebuilt assets, the cleared	# the new core in html/, composer install, the rebuilt assets, the cleared
+# caches — reached the disk behind a worker still holding the release this	# caches — reached the disk behind a worker still holding the release this
+# run replaced. The rebuild in step 2 did replace the container, but it ran	# run replaced. The rebuild in step 2 did replace the container, but it ran
+# before composer install, so it is not the restart this needs (#98). Only	# before composer install, so it is not the restart this needs (#98). Only
+# while the worker is running, the same condition that rebuild uses.	# while the worker is running, the same condition that rebuild uses.
+  Restarting the FrankenPHP worker so it boots the updated application...	  Restarting the FrankenPHP worker so it boots the updated application...

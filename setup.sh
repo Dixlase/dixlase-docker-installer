@@ -432,11 +432,29 @@ fi
 # "vite: not found"). So vite is held back here and started once step
 # [5/6] has finished; its entrypoint then finds node_modules and skips its
 # own install.
+#
+# The octane container is held back for a different reason: its command
+# refuses to start when html/ has no vendor/laravel/octane, and composer
+# install is step [5/6]. On a fresh install the refusal is therefore
+# certain, and `restart: "no"` makes it final — the worker stayed dead
+# while setup.sh reported the octane profile as active, and the message it
+# left in the log ("html/ has no laravel/octane") was no longer true by
+# the time anyone read it (#98). The image is still built here; only the
+# container waits.
+#
+# It is started at the very end of this script, not after composer install:
+# that is what the comment there is about.
 VITE_ENABLED=false
 case ",${COMPOSE_PROFILES}," in *,dev,*) VITE_ENABLED=true ;; esac
+OCTANE_ENABLED=false
+case ",${COMPOSE_PROFILES}," in *,octane,*) OCTANE_ENABLED=true ;; esac
 docker compose build
-if [ "$VITE_ENABLED" = true ]; then
+if [ "$VITE_ENABLED" = true ] && [ "$OCTANE_ENABLED" = true ]; then
+    docker compose up -d --scale vite=0 --scale octane=0
+elif [ "$VITE_ENABLED" = true ]; then
     docker compose up -d --scale vite=0
+elif [ "$OCTANE_ENABLED" = true ]; then
+    docker compose up -d --scale octane=0
 else
     docker compose up -d
 fi
@@ -466,10 +484,11 @@ case ",${COMPOSE_PROFILES}," in *,dev,*) ;; *) DISABLED_SERVICES="$DISABLED_SERV
 case ",${COMPOSE_PROFILES}," in *,redis,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES redis" ;; esac
 case ",${COMPOSE_PROFILES}," in *,cron,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES cron" ;; esac
 case ",${COMPOSE_PROFILES}," in *,tools,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES adminer mailpit" ;; esac
+case ",${COMPOSE_PROFILES}," in *,octane,*) ;; *) DISABLED_SERVICES="$DISABLED_SERVICES octane" ;; esac
 for disabled_service in $DISABLED_SERVICES; do
-    if [ -n "$(COMPOSE_PROFILES=cron,dev,redis,tools docker compose ps -aq "$disabled_service" 2>/dev/null)" ]; then
+    if [ -n "$(COMPOSE_PROFILES=cron,dev,octane,redis,tools docker compose ps -aq "$disabled_service" 2>/dev/null)" ]; then
         echo "  Removing the $disabled_service container (turned off in .env)..."
-        COMPOSE_PROFILES=cron,dev,redis,tools docker compose rm -sf "$disabled_service" >/dev/null 2>&1 || true
+        COMPOSE_PROFILES=cron,dev,octane,redis,tools docker compose rm -sf "$disabled_service" >/dev/null 2>&1 || true
     fi
 done
 
@@ -573,6 +592,7 @@ APP_PORT_VAL=$(grep '^APP_PORT=' .env | cut -d'=' -f2)
 APP_SSL_PORT_VAL=$(grep '^APP_SSL_PORT=' .env | cut -d'=' -f2)
 FORWARD_ADMINER_PORT_VAL=$(grep '^FORWARD_ADMINER_PORT=' .env | cut -d'=' -f2)
 FORWARD_MAILPIT_PORT_VAL=$(grep '^FORWARD_MAILPIT_PORT=' .env | cut -d'=' -f2)
+FORWARD_OCTANE_PORT_VAL=$(grep '^FORWARD_OCTANE_PORT=' .env | cut -d'=' -f2)
 
 if [ "$NGINX_VARIANT" = "https" ]; then
     [ "$APP_SSL_PORT_VAL" = "443" ] && APP_URL="https://localhost" || APP_URL="https://localhost:$APP_SSL_PORT_VAL"
@@ -663,6 +683,50 @@ echo "  Setting html/ ownership to www-data (container app user)..."
 docker compose exec -T dixlase.test \
     sh -c 'find /var/www/html -name .git -prune -o -exec chown -h www-data:www-data {} +' || true
 
+# Held back in step [4/6] and started here, last of all, because a worker
+# can only boot an application that is ready to be booted. On a fresh
+# install html/.env does not exist yet: the install wizard writes it on its
+# first request, which happens in a browser after this script ends. Started
+# before that, the worker script fails, FrankenPHP retries it about a dozen
+# times and then exits ("worker public/frankenphp-worker.php has not
+# reached frankenphp_handle_request()"), and setup.sh reported success over
+# a container that was already dead (#98).
+#
+# html/.env is what decides it, not the ownership of html/ and not the
+# composer install: with that file in place and no request ever made
+# through php-fpm, the same worker boots in about two seconds and answers.
+# So a fresh install does not start it, and says what to run once the
+# wizard has been through.
+#
+# The guard inside the service's command stays for the case this cannot
+# see: an html/ placed from a core that does not carry laravel/octane.
+OCTANE_STARTED=false
+if [ "$OCTANE_ENABLED" = true ] && [ -f html/.env ]; then
+    echo ""
+    echo "  Starting the FrankenPHP worker..."
+    docker compose up -d octane
+    OCTANE_STARTED=true
+    # The worker is not listening the moment `up -d` returns, and Octane's
+    # "Server running" line is not the signal either: it is printed before
+    # FrankenPHP loads its config, and a run that then failed to bring its
+    # workers up printed it just the same. So probe the port, from the app
+    # container over the compose network, and bound the wait so a worker
+    # that cannot boot at all does not hold this script.
+    OCTANE_WAIT=0
+    while [ "$OCTANE_WAIT" -lt 40 ]; do
+        if docker compose exec -T dixlase.test \
+            php -r 'exit(@fsockopen("octane", 8000, $e, $s, 2) ? 0 : 1);' >/dev/null 2>&1; then
+            break
+        fi
+        OCTANE_WAIT=$((OCTANE_WAIT + 1))
+        sleep 1
+    done
+    if [ "$OCTANE_WAIT" -ge 40 ]; then
+        echo "  The worker has not reported itself ready. Read its log with:"
+        echo "    COMPOSE_PROFILES=octane docker compose logs octane"
+    fi
+fi
+
 # -------------------------------------------------
 # Done
 # -------------------------------------------------
@@ -688,11 +752,31 @@ echo "    CMS:        $APP_URL"
 echo "    Adminer:    http://localhost:$FORWARD_ADMINER_PORT_VAL"
 echo "    Mailpit:    http://localhost:$FORWARD_MAILPIT_PORT_VAL"
 echo ""
+if [ "$OCTANE_STARTED" = true ]; then
+    echo "    FrankenPHP: http://localhost:${FORWARD_OCTANE_PORT_VAL:-40090}  (worker mode, development only)"
+    echo ""
+fi
 echo "  Next steps:"
 echo "    1. Open $APP_URL in your browser."
 echo "    2. The install wizard will appear."
 echo "    3. After install, start operations in the admin panel."
+# The worker could not be started because the application was not
+# installed yet, so the step that starts it belongs in this list rather
+# than in a note the reader has already scrolled past.
+if [ "$OCTANE_ENABLED" = true ] && [ "$OCTANE_STARTED" = false ]; then
+    echo "    4. Then start the FrankenPHP worker, which needs an installed site:"
+    echo "         COMPOSE_PROFILES=octane docker compose up -d octane"
+fi
 echo ""
+# A worker boots the application once and keeps it, so an edited PHP file
+# reaches the php-fpm port immediately and the worker not at all. ./update.sh
+# restarts it for the same reason, once the new release is on disk.
+if [ "$OCTANE_STARTED" = true ]; then
+    echo "  The FrankenPHP worker holds the application in memory, so an edited PHP"
+    echo "  file takes effect there only after a restart:"
+    echo "    COMPOSE_PROFILES=octane docker compose restart octane"
+    echo ""
+fi
 echo "  Useful commands:"
 echo "    docker compose logs -f                  # View logs"
 echo "    docker compose exec dixlase.test bash   # Open a shell in the container"

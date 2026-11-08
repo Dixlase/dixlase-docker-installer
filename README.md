@@ -170,7 +170,9 @@ DIXLASE_RUNTIME=octane
 ```
 
 Then `./setup.sh`. The site stays on <http://localhost:40080>; the worker-mode
-copy answers on <http://localhost:40090>.
+copy answers on <http://localhost:40090>. On a site that is already installed,
+`setup.sh` starts the worker itself — last of all, and only once it can
+actually boot.
 
 What it is worth, measured: of a ~220 ms front page, the whole nginx +
 php-fpm + container layer is 4–6 ms, and booting the application's service
@@ -188,13 +190,36 @@ you expose. `OCTANE_MAX_REQUESTS` (250) replaces each worker regularly, which
 bounds how long leaked state or a leaking allocation can live, but it does not
 make a leak safe.
 
-Two practical notes:
+Three practical notes:
 
+- **On a fresh install, run the install wizard first.** A worker can only boot
+  an application that is installed, and `html/.env` — which the wizard writes
+  on its own first request, in the browser, after `setup.sh` has ended — is
+  what decides that. Started any earlier the worker fails, FrankenPHP retries
+  it about a dozen times and gives up, and the container is dead. So
+  `setup.sh` does not start it on a fresh install: it says so and prints the
+  line to run once the wizard has been through.
+
+  ```
+  COMPOSE_PROFILES=octane docker compose up -d octane
+  ```
+
+  With `html/.env` in place the worker boots in about two seconds. It really is
+  that file: a worker started against it answers without php-fpm ever having
+  served a request.
 - **An edited PHP file does not take effect until the worker restarts.** That
-  is what worker mode means. `docker compose restart octane` after a change,
-  or use the php-fpm port while you are editing.
-- **It needs a core that ships `laravel/octane`.** Without it the container
-  stops immediately and says so, rather than restarting in a loop.
+  is what worker mode means. Restart it after a change, or use the php-fpm port
+  while you are editing:
+
+  ```
+  COMPOSE_PROFILES=octane docker compose restart octane
+  ```
+
+  `./update.sh` does it for you, at the end, once the new core, its
+  dependencies and the rebuilt assets are all on disk.
+- **It needs a core that ships `laravel/octane`** — Dixlase Core 0.2.10 or
+  later. Without it the container stops immediately and says so, rather than
+  restarting in a loop.
 
 ### Profiling a slow request
 

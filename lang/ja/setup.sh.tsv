@@ -314,3 +314,49 @@ Built-assets mode (no Vite dev server)	ビルド済みアセットモード (Vit
 # rather than in place of it, so one install can be served and measured on	# 追加するので、1 つのインストールを両方のランタイムで配信して計測できる。
 # both runtimes.	# どちらでも同じ html/ を使う。
   DIXLASE_RUNTIME=octane: FrankenPHP worker mode runs beside php-fpm. Development only.	  DIXLASE_RUNTIME=octane: FrankenPHP の worker mode が php-fpm の隣で動きます。開発用のみ。
+# The octane container is held back for a different reason: its command	# octane のコンテナを保留するのは別の理由による。このサービスのコマンドは
+# refuses to start when html/ has no vendor/laravel/octane, and composer	# html/ に vendor/laravel/octane が無いと起動を拒否し、composer install は
+# install is step [5/6]. On a fresh install the refusal is therefore	# 手順 [5/6] にある。そのため新規インストールではこの拒否が必ず起きる。
+# certain, and `restart: "no"` makes it final — the worker stayed dead	# そして `restart: "no"` がそれを最終状態にする。worker は死んだままで、
+# while setup.sh reported the octane profile as active, and the message it	# それでも setup.sh は octane のプロファイルを有効と報告し、ログに残った
+# left in the log ("html/ has no laravel/octane") was no longer true by	# メッセージ("html/ has no laravel/octane")は、読まれる時点では事実と
+# the time anyone read it (#98). The image is still built here; only the	# 違っていた(#98)。イメージはここで変わらずビルドされ、待つのは
+# container waits.	# コンテナだけである。
+  Starting the FrankenPHP worker...	  FrankenPHP の worker を起動中...
+    FrankenPHP: http://localhost:${FORWARD_OCTANE_PORT_VAL:-40090}  (worker mode, development only)	    FrankenPHP: http://localhost:${FORWARD_OCTANE_PORT_VAL:-40090}  (worker mode、開発用のみ)
+    COMPOSE_PROFILES=octane docker compose restart octane	    COMPOSE_PROFILES=octane docker compose restart octane
+# It is started at the very end of this script, not after composer install:	# 起動するのは composer install の直後ではなく、このスクリプトの最後である。
+# that is what the comment there is about.	# そこに置いた理由は、その場所のコメントに書いてある。
+  The worker has not reported itself ready. Read its log with:	  worker が準備完了を報告しませんでした。ログを次で確認してください:
+    COMPOSE_PROFILES=octane docker compose logs octane	    COMPOSE_PROFILES=octane docker compose logs octane
+# Held back in step [4/6] and started here, last of all, because a worker	# 手順 [4/6] で保留し、ここで、すべての最後に起動する。worker が boot できる
+# can only boot an application that is ready to be booted. On a fresh	# のは、boot できる状態のアプリだけだからである。新規インストールでは
+# install html/.env does not exist yet: the install wizard writes it on its	# html/.env がまだ存在しない。インストールウィザードが最初のリクエストで
+# first request, which happens in a browser after this script ends. Started	# 書き、それはこのスクリプトが終わったあとのブラウザで起きる。それより前に
+# before that, the worker script fails, FrankenPHP retries it about a dozen	# 起動すると worker スクリプトは失敗し、FrankenPHP は十数回やり直してから
+# times and then exits ("worker public/frankenphp-worker.php has not	# 終了する("worker public/frankenphp-worker.php has not
+# reached frankenphp_handle_request()"), and setup.sh reported success over	# reached frankenphp_handle_request()")。そして setup.sh は、すでに死んで
+# a container that was already dead (#98).	# いるコンテナの上で成功を報告していた(#98)。
+# html/.env is what decides it, not the ownership of html/ and not the	# これを決めるのは html/.env であって、html/ の所有者でも composer install
+# composer install: with that file in place and no request ever made	# でもない。そのファイルがあれば、php-fpm へのリクエストを一度もしなくても、
+# through php-fpm, the same worker boots in about two seconds and answers.	# 同じ worker は約 2 秒で boot して応答する。そのため新規インストールでは
+# So a fresh install does not start it, and says what to run once the	# 起動せず、ウィザードを通したあとに何を実行すればよいかを表示する。
+# wizard has been through.	# 表示するのはその 1 行である。
+# The guard inside the service's command stays for the case this cannot	# サービスのコマンドにあるガードは、ここでは見分けられない場合のために残す。
+# see: an html/ placed from a core that does not carry laravel/octane.	# つまり laravel/octane を含まないコアから配置された html/ である。
+# The worker is not listening the moment `up -d` returns, and Octane's	# worker は `up -d` が返った時点では listen していない。Octane の
+# "Server running" line is not the signal either: it is printed before	# "Server running" の行も指標にはならない。この行は FrankenPHP が設定を
+# FrankenPHP loads its config, and a run that then failed to bring its	# 読み込む前に表示され、そのあと worker の起動に失敗した実行でも同じように
+# workers up printed it just the same. So probe the port, from the app	# 表示されていた。そのため、app コンテナから compose のネットワーク越しに
+# container over the compose network, and bound the wait so a worker	# ポートを実際に叩いて判定する。上限を付けるのは、まったく boot できない
+# that cannot boot at all does not hold this script.	# worker にこのスクリプトを止めさせないためである。
+# The worker could not be started because the application was not	# アプリがまだインストールされていないため worker を起動できなかった。
+# installed yet, so the step that starts it belongs in this list rather	# そのため、それを起動する手順は、読み手がすでに通り過ぎた注記ではなく
+# than in a note the reader has already scrolled past.	# この一覧に置く。
+    4. Then start the FrankenPHP worker, which needs an installed site:	    4. そのあとで FrankenPHP の worker を起動します(インストール済みのサイトが必要です):
+         COMPOSE_PROFILES=octane docker compose up -d octane	         COMPOSE_PROFILES=octane docker compose up -d octane
+# A worker boots the application once and keeps it, so an edited PHP file	# worker はアプリを 1 度 boot して保持するので、編集した PHP ファイルは
+# reaches the php-fpm port immediately and the worker not at all. ./update.sh	# php-fpm 側には即座に反映され、worker には反映されない。./update.sh が
+# restarts it for the same reason, once the new release is on disk.	# 再起動するのも同じ理由で、新しいリリースがディスクに置かれたあとである。
+  The FrankenPHP worker holds the application in memory, so an edited PHP	  FrankenPHP の worker はアプリをメモリに保持するため、編集した PHP ファイルが
+  file takes effect there only after a restart:	  そちらに反映されるのは再起動のあとだけです:

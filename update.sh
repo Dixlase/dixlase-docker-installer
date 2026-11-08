@@ -526,6 +526,17 @@ echo "  Setting html/ ownership to www-data (container app user)..."
 docker compose exec -T dixlase.test \
     sh -c 'find /var/www/html -name .git -prune -o -exec chown -h www-data:www-data {} +' || true
 
+# A worker boots the application once and keeps it, so everything above —
+# the new core in html/, composer install, the rebuilt assets, the cleared
+# caches — reached the disk behind a worker still holding the release this
+# run replaced. The rebuild in step 2 did replace the container, but it ran
+# before composer install, so it is not the restart this needs (#98). Only
+# while the worker is running, the same condition that rebuild uses.
+if [ -n "$(COMPOSE_PROFILES=octane docker compose ps -q octane 2>/dev/null)" ]; then
+    echo "  Restarting the FrankenPHP worker so it boots the updated application..."
+    COMPOSE_PROFILES=octane docker compose restart octane
+fi
+
 echo ""
 echo "========================================"
 echo "  Update complete!"

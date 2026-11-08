@@ -175,7 +175,9 @@ DIXLASE_RUNTIME=octane
 ```
 
 そのうえで `./setup.sh` を実行します。サイトは <http://localhost:40080> のまま、
-worker mode 側は <http://localhost:40090> で応答します。
+worker mode 側は <http://localhost:40090> で応答します。すでにインストール済みの
+サイトなら、`setup.sh` が worker も起動します。すべての最後、そして実際に boot
+できる状態になってからです。
 
 計測した効果の大きさ: 約 220 ms のフロントページのうち、nginx + php-fpm +
 コンテナの層全体は 4〜6 ms、アプリのサービスプロバイダの boot が 54.3 ms です。
@@ -192,13 +194,34 @@ worker mode でない FrankenPHP では、何も得られません。
 漏れた状態やメモリの増加が生きられる時間を限定しますが、漏れ自体を安全にする
 ものではありません。
 
-実務上の注意が 2 つあります。
+実務上の注意が 3 つあります。
 
+- **新規インストールでは、先にインストールウィザードを実行してください。**
+  worker が boot できるのはインストール済みのアプリだけで、それを決めるのは
+  `html/.env` です。このファイルを書くのはウィザード自身の最初のリクエスト、
+  つまり `setup.sh` が終わったあとのブラウザです。それより前に起動すると worker は
+  失敗し、FrankenPHP は十数回やり直してから諦め、コンテナは死にます。そのため
+  `setup.sh` は新規インストールでは起動せず、その旨と、ウィザードを通したあとに
+  実行する行を表示します。
+
+  ```
+  COMPOSE_PROFILES=octane docker compose up -d octane
+  ```
+
+  `html/.env` があれば worker は約 2 秒で boot します。本当にこのファイルが分岐点で、
+  php-fpm が 1 度もリクエストを処理していなくても、worker は応答します。
 - **編集した PHP ファイルは、worker が再起動するまで反映されません。** それが
-  worker mode の意味です。変更後に `docker compose restart octane` を実行するか、
-  編集中は php-fpm 側のポートを使ってください。
-- **`laravel/octane` を同梱するコアが必要です。** 無い場合、コンテナは再起動を
-  繰り返すのではなく、その旨を表示して即座に停止します。
+  worker mode の意味です。変更後に再起動するか、編集中は php-fpm 側のポートを
+  使ってください。
+
+  ```
+  COMPOSE_PROFILES=octane docker compose restart octane
+  ```
+
+  `./update.sh` は自動で行います。新しいコア、その依存、ビルドし直したアセットが
+  すべてディスクに揃ったあと、最後に再起動します。
+- **`laravel/octane` を同梱するコアが必要です**(Dixlase Core 0.2.10 以降)。無い
+  場合、コンテナは再起動を繰り返すのではなく、その旨を表示して即座に停止します。
 
 ### 遅いリクエストをプロファイルする
 
