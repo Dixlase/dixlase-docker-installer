@@ -230,9 +230,10 @@ application user can write to those paths.
 
 ### An upstream image update reaches an install only through a rebuild
 
-The images are built from floating tags (`php:8.3-fpm`, `mariadb:latest`,
-`nginx:alpine`), and a floating tag moves for an install only when the image is
-built again. `./update.sh` on its own updates the core checkout inside the
+The images are built from tags that move within their line (`php:8.3-fpm`,
+`mariadb:12.3`, `nginx:alpine`): a rebuild takes the newest patch release of that
+line, and `DB_IMAGE` in `.env` chooses another MariaDB line. A tag moves for an
+install only when the image is built again. `./update.sh` on its own updates the core checkout inside the
 containers that are already running, so a PHP security release does not reach the
 site until the image is rebuilt:
 
