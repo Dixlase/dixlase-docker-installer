@@ -458,8 +458,11 @@ so the baseline was left unchanged.
 1 度だけ作り直します。管理画面（セキュリティ → ファイル整合性）か、コマンドラインで:
 
 ```bash
-docker compose exec dixlase.test php artisan dls:integrity:generate-baseline --force
+docker compose exec dixlase.test php artisan dls:integrity:generate-baseline --force --reason="コアの更新後に作り直す"
 ```
+
+コア v0.2.17 以前では `--reason` を付けないでください。`--force` だけで動き、このオプションを
+知りません。v0.2.18 からは理由が必須で、監査ログに記録されます。
 
 v0.1.2 に更新したサイトで必要なのは**この 1 回だけ**で、以降の更新は基準を自動で作り直します。
 作り直さないサイトは、古い基準のせいで更新前の照合が通らず、更新のたびに同じ警告が出ます。
