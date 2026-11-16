@@ -454,8 +454,11 @@ Fix: check that the listed files are the ones the release changed, then regenera
 once — in the admin screen (Security -> File integrity) or on the command line:
 
 ```bash
-docker compose exec dixlase.test php artisan dls:integrity:generate-baseline --force
+docker compose exec dixlase.test php artisan dls:integrity:generate-baseline --force --reason="Refresh after the core update"
 ```
+
+On core v0.2.17 and earlier, leave out `--reason`: those versions take `--force` alone and do
+not know the option. From v0.2.18 the reason is required and is recorded in the audit log.
 
 A site updated to v0.1.2 needs this **once**; later updates refresh the baseline on their own. A
 site that skips it keeps reporting the warning after every update, because the stale baseline keeps
